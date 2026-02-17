@@ -3,6 +3,7 @@ import { Col, Row, Form, InputGroup } from "react-bootstrap";
 import Card from "../../components/Card";
 import { Link } from "react-router-dom";
 import { patientApi } from "../../services/api";
+import ConfirmActionModal from "../../components/ConfirmActionModal";
 
 const generatePath = (path) => window.origin + import.meta.env.BASE_URL + path;
 
@@ -13,6 +14,7 @@ const PatientList = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState(null);
+  const [patientToDelete, setPatientToDelete] = useState(null);
   const [filterName, setFilterName] = useState("");
   const [filterEmail, setFilterEmail] = useState("");
   const [filterService, setFilterService] = useState("");
@@ -47,11 +49,11 @@ const PatientList = () => {
   }, []);
 
   const handleDelete = async (patient) => {
-    if (!window.confirm(`Supprimer ${patient.firstName} ${patient.lastName} ?`)) return;
     setDeletingId(patient._id);
     try {
       await patientApi.delete(patient._id);
       setPatients((prev) => prev.filter((p) => p._id !== patient._id));
+      setPatientToDelete(null);
     } catch (err) {
       if (err.status === 401) window.location.href = "/auth/lock-screen";
       else alert(err.message || "Erreur lors de la suppression");
@@ -223,7 +225,7 @@ const PatientList = () => {
                   <button
                     type="button"
                     className="btn btn-danger-subtle btn-sm"
-                    onClick={() => handleDelete(patient)}
+                    onClick={() => setPatientToDelete(patient)}
                     disabled={deletingId === patient._id}
                   >
                     {deletingId === patient._id ? "..." : "Supprimer"}
@@ -234,6 +236,16 @@ const PatientList = () => {
           </Col>
         ))}
       </Row>
+      <ConfirmActionModal
+        show={!!patientToDelete}
+        title="Supprimer ce patient ?"
+        message={`Cette action supprimera définitivement ${patientToDelete?.firstName || ""} ${patientToDelete?.lastName || ""}.`}
+        onCancel={() => setPatientToDelete(null)}
+        onConfirm={() => patientToDelete && handleDelete(patientToDelete)}
+        confirmLabel="Supprimer"
+        loading={deletingId === patientToDelete?._id}
+        iconClass="ri-delete-bin-6-line"
+      />
     </>
   );
 };

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Col, Row } from "react-bootstrap";
 import { useParams, Link } from "react-router-dom";
 import Card from "../../components/Card";
+import FaceEnrollmentCard from "../../components/FaceEnrollmentCard";
 import { doctorApi } from "../../services/api";
 
 // Import FsLightBox
@@ -99,6 +100,11 @@ const DoctorProfile = (props) => {
 
     return (
         <>
+            <Row>
+                <Col sm={12}>
+                    <FaceEnrollmentCard />
+                </Col>
+            </Row>
             <FsLightbox
                 toggler={imageController.toggler}
                 sources={[

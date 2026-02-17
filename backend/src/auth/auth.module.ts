@@ -12,6 +12,9 @@ import { LoginAttempt, LoginAttemptSchema } from './schemas/login-attempt.schema
 import { Doctor, DoctorSchema } from '../doctor/schemas/doctor.schema';
 import { Patient, PatientSchema } from '../patient/schemas/patient.schema';
 import { Nurse, NurseSchema } from '../nurse/schemas/nurse.schema';
+import { PasskeyCredential, PasskeyCredentialSchema } from './schemas/passkey-credential.schema';
+import { PasskeyChallenge, PasskeyChallengeSchema } from './schemas/passkey-challenge.schema';
+import { FaceLoginProfile, FaceLoginProfileSchema } from './schemas/face-login-profile.schema';
 
 @Module({
   imports: [
@@ -21,6 +24,9 @@ import { Nurse, NurseSchema } from '../nurse/schemas/nurse.schema';
       { name: Doctor.name, schema: DoctorSchema },
       { name: Patient.name, schema: PatientSchema },
       { name: Nurse.name, schema: NurseSchema },
+      { name: PasskeyCredential.name, schema: PasskeyCredentialSchema },
+      { name: PasskeyChallenge.name, schema: PasskeyChallengeSchema },
+      { name: FaceLoginProfile.name, schema: FaceLoginProfileSchema },
     ]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({

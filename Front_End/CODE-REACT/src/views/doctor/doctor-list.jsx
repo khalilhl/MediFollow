@@ -3,6 +3,7 @@ import { Col, Row, Form, InputGroup } from "react-bootstrap";
 import Card from "../../components/Card";
 import { Link } from "react-router-dom";
 import { doctorApi } from "../../services/api";
+import ConfirmActionModal from "../../components/ConfirmActionModal";
 
 const generatePath = (path) => window.origin + import.meta.env.BASE_URL + path;
 
@@ -13,6 +14,7 @@ const DoctorList = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState(null);
+  const [doctorToDelete, setDoctorToDelete] = useState(null);
   const [filterName, setFilterName] = useState("");
   const [filterSpecialty, setFilterSpecialty] = useState("");
 
@@ -44,11 +46,11 @@ const DoctorList = () => {
   }, []);
 
   const handleDelete = async (doctor) => {
-    if (!window.confirm(`Supprimer Dr. ${doctor.firstName} ${doctor.lastName} ?`)) return;
     setDeletingId(doctor._id);
     try {
       await doctorApi.delete(doctor._id);
       setDoctors((prev) => prev.filter((d) => d._id !== doctor._id));
+      setDoctorToDelete(null);
     } catch (err) {
       if (err.status === 401) window.location.href = "/auth/lock-screen";
       else alert(err.message || "Erreur lors de la suppression");
@@ -226,7 +228,7 @@ const DoctorList = () => {
                   <button
                     type="button"
                     className="btn btn-danger-subtle btn-sm"
-                    onClick={() => handleDelete(doctor)}
+                    onClick={() => setDoctorToDelete(doctor)}
                     disabled={deletingId === doctor._id}
                   >
                     {deletingId === doctor._id ? "..." : "Supprimer"}
@@ -237,6 +239,16 @@ const DoctorList = () => {
           </Col>
         ))}
       </Row>
+      <ConfirmActionModal
+        show={!!doctorToDelete}
+        title="Supprimer ce médecin ?"
+        message={`Cette action supprimera définitivement Dr. ${doctorToDelete?.firstName || ""} ${doctorToDelete?.lastName || ""}.`}
+        onCancel={() => setDoctorToDelete(null)}
+        onConfirm={() => doctorToDelete && handleDelete(doctorToDelete)}
+        confirmLabel="Supprimer"
+        loading={deletingId === doctorToDelete?._id}
+        iconClass="ri-delete-bin-6-line"
+      />
     </>
   );
 };

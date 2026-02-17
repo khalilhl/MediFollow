@@ -1,8 +1,9 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
-import { Carousel, Container, Row, Col, Form } from 'react-bootstrap';
+import { Carousel, Container, Row, Col, Form, Modal } from 'react-bootstrap';
 import { Link, useNavigate } from "react-router-dom";
 import { authApi } from "../../services/api";
 import { useHandGesture } from "../../context/HandGestureContext";
+import { captureFaceDescriptor } from "../../services/face-auth";
 
 const generatePath = (path) => {
   return window.origin + import.meta.env.BASE_URL + path;
@@ -32,8 +33,25 @@ const SignIn = () => {
   const [listeningField, setListeningField] = useState(null);
   const [speechError, setSpeechError] = useState("");
   const [isReadingPage, setIsReadingPage] = useState(false);
+  const [faceLoading, setFaceLoading] = useState(false);
+  const [faceCameraOn, setFaceCameraOn] = useState(false);
+  const [faceCameraReady, setFaceCameraReady] = useState(false);
+  const [faceCameraBooting, setFaceCameraBooting] = useState(false);
+  const [faceCameraError, setFaceCameraError] = useState("");
   const recognitionRef = useRef(null);
   const utteranceRef = useRef(null);
+  const faceVideoRef = useRef(null);
+  const faceStreamRef = useRef(null);
+  const faceAutoLoginBusyRef = useRef(false);
+  const faceAutoLoginDoneRef = useRef(false);
+  const faceAutoLoginTimerRef = useRef(null);
+  const faceNotEnrolledPopupShownRef = useRef(false);
+  const [showFaceNotEnrolledPopup, setShowFaceNotEnrolledPopup] = useState(false);
+
+  const isFaceNotEnrolledError = useCallback((message) => {
+    const text = (message || "").toLowerCase();
+    return text.includes("aucun visage enregistre");
+  }, []);
 
   const startVoiceInput = useCallback((field) => {
     if (!isSpeechSupported) {
@@ -157,9 +175,33 @@ const SignIn = () => {
         recognitionRef.current.stop();
         recognitionRef.current = null;
       }
+      if (faceStreamRef.current) {
+        faceStreamRef.current.getTracks().forEach((track) => track.stop());
+        faceStreamRef.current = null;
+      }
+      if (faceAutoLoginTimerRef.current) {
+        clearInterval(faceAutoLoginTimerRef.current);
+        faceAutoLoginTimerRef.current = null;
+      }
       setListeningField(null);
     };
   }, [stopPageReading]);
+
+  useEffect(() => {
+    const bindStreamToVideo = async () => {
+      if (!faceCameraOn || !faceStreamRef.current || !faceVideoRef.current) return;
+      try {
+        faceVideoRef.current.srcObject = faceStreamRef.current;
+        await faceVideoRef.current.play().catch(() => {});
+        if (faceVideoRef.current.videoWidth > 0) {
+          setFaceCameraReady(true);
+        }
+      } catch {
+        setFaceCameraError("Impossible d'afficher le flux camera.");
+      }
+    };
+    bindStreamToVideo();
+  }, [faceCameraOn]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -195,6 +237,141 @@ const SignIn = () => {
       setLoading(false);
     }
   };
+
+  const finalizeRoleLogin = useCallback((data) => {
+    const role = data?.user?.role;
+    if (role === "doctor") {
+      localStorage.setItem("doctorToken", data.access_token);
+      localStorage.setItem("doctorUser", JSON.stringify(data.user));
+      navigate("/dashboard");
+      window.location.reload();
+      return;
+    }
+    if (role === "patient") {
+      localStorage.setItem("patientToken", data.access_token);
+      localStorage.setItem("patientUser", JSON.stringify(data.user));
+      navigate("/dashboard-pages/patient-dashboard");
+      window.location.reload();
+      return;
+    }
+    if (role === "nurse") {
+      localStorage.setItem("nurseToken", data.access_token);
+      localStorage.setItem("nurseUser", JSON.stringify(data.user));
+      navigate("/dashboard-pages/nurse-dashboard");
+      window.location.reload();
+      return;
+    }
+    setError("Role non supporte");
+  }, [navigate]);
+
+  const stopFaceCamera = useCallback(() => {
+    if (faceAutoLoginTimerRef.current) {
+      clearInterval(faceAutoLoginTimerRef.current);
+      faceAutoLoginTimerRef.current = null;
+    }
+    if (faceStreamRef.current) {
+      faceStreamRef.current.getTracks().forEach((track) => track.stop());
+      faceStreamRef.current = null;
+    }
+    if (faceVideoRef.current) {
+      faceVideoRef.current.srcObject = null;
+    }
+    setFaceCameraReady(false);
+    setFaceCameraBooting(false);
+    setFaceCameraOn(false);
+    setShowFaceNotEnrolledPopup(false);
+    faceAutoLoginBusyRef.current = false;
+    faceAutoLoginDoneRef.current = false;
+    faceNotEnrolledPopupShownRef.current = false;
+  }, []);
+
+  const startFaceCamera = useCallback(async () => {
+    setFaceCameraError("");
+    setFaceCameraBooting(true);
+    setFaceCameraReady(false);
+    setShowFaceNotEnrolledPopup(false);
+    faceAutoLoginBusyRef.current = false;
+    faceAutoLoginDoneRef.current = false;
+    faceNotEnrolledPopupShownRef.current = false;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: 640, height: 480, facingMode: "user" },
+      });
+      faceStreamRef.current = stream;
+      setFaceCameraOn(true);
+    } catch (err) {
+      setFaceCameraError(err?.message || "Impossible d'acceder a la camera.");
+      setFaceCameraOn(false);
+      setFaceCameraReady(false);
+    } finally {
+      setFaceCameraBooting(false);
+    }
+  }, []);
+
+  const handleFaceCameraSignIn = useCallback(async (options = { auto: false }) => {
+    if (faceAutoLoginBusyRef.current || faceLoading) {
+      return;
+    }
+    if (!faceVideoRef.current) {
+      if (!options.auto) {
+        setError("Ouvrez la camera puis reessayez.");
+      }
+      return;
+    }
+    faceAutoLoginBusyRef.current = true;
+    setFaceLoading(true);
+    setFaceCameraError("");
+    setError("");
+    try {
+      const descriptor = await captureFaceDescriptor(faceVideoRef.current);
+      const data = await authApi.faceLogin(descriptor, email || undefined);
+      if (data?.requiresEnrollment) {
+        if (!faceNotEnrolledPopupShownRef.current) {
+          faceNotEnrolledPopupShownRef.current = true;
+          setShowFaceNotEnrolledPopup(true);
+        }
+        faceAutoLoginDoneRef.current = true;
+        return;
+      }
+      faceAutoLoginDoneRef.current = true;
+      finalizeRoleLogin(data);
+    } catch (err) {
+      const message = err?.message || "Connexion visage echouee.";
+      if (isFaceNotEnrolledError(message) && !faceNotEnrolledPopupShownRef.current) {
+        faceNotEnrolledPopupShownRef.current = true;
+        faceAutoLoginDoneRef.current = true;
+        setShowFaceNotEnrolledPopup(true);
+      }
+      if (!options.auto) {
+        setError(message);
+      } else if (message.toLowerCase() !== "visage non reconnu" && !isFaceNotEnrolledError(message)) {
+        setFaceCameraError(message);
+      }
+    } finally {
+      setFaceLoading(false);
+      faceAutoLoginBusyRef.current = false;
+    }
+  }, [email, finalizeRoleLogin, faceLoading, isFaceNotEnrolledError]);
+
+  useEffect(() => {
+    if (!faceCameraOn || !faceCameraReady) return;
+    if (faceAutoLoginTimerRef.current) {
+      clearInterval(faceAutoLoginTimerRef.current);
+      faceAutoLoginTimerRef.current = null;
+    }
+    faceAutoLoginTimerRef.current = setInterval(() => {
+      if (!faceCameraOn || !faceCameraReady) return;
+      if (faceAutoLoginDoneRef.current || faceAutoLoginBusyRef.current || faceLoading) return;
+      handleFaceCameraSignIn({ auto: true });
+    }, 1800);
+
+    return () => {
+      if (faceAutoLoginTimerRef.current) {
+        clearInterval(faceAutoLoginTimerRef.current);
+        faceAutoLoginTimerRef.current = null;
+      }
+    };
+  }, [faceCameraOn, faceCameraReady, faceLoading, handleFaceCameraSignIn]);
 
   return (
     <>
@@ -246,27 +423,30 @@ const SignIn = () => {
                       {speechError}
                     </div>
                   )}
-                  <div className="d-flex justify-content-end gap-2 mb-2 flex-wrap">
-                    <button
-                      type="button"
-                      className={`btn btn-sm ${largeTextEnabled ? "btn-primary" : "btn-outline-primary"}`}
-                      onClick={() => setLargeTextEnabled((v) => !v)}
-                      data-eye-clickable
-                    >
-                      <i className="ri-font-size me-1"></i>
-                      {largeTextEnabled ? "Texte normal" : "Grand texte"}
-                    </button>
-                    {isTtsSupported && (
+                  <div className="a11y-toolbar mb-3">
+                    <div className="a11y-toolbar-title">Accessibilite rapide</div>
+                    <div className="a11y-toolbar-actions d-flex gap-2 flex-wrap">
                       <button
                         type="button"
-                        className={`btn btn-sm ${isReadingPage ? "btn-danger" : "btn-outline-secondary"}`}
-                        onClick={isReadingPage ? stopPageReading : readPageContent}
+                        className={`btn btn-sm a11y-btn ${largeTextEnabled ? "btn-primary" : "btn-outline-primary"}`}
+                        onClick={() => setLargeTextEnabled((v) => !v)}
                         data-eye-clickable
                       >
-                        <i className={`me-1 ${isReadingPage ? "ri-volume-mute-line" : "ri-volume-up-line"}`}></i>
-                        {isReadingPage ? "Arreter la lecture" : "Lire la page"}
+                        <i className="ri-font-size me-1"></i>
+                        {largeTextEnabled ? "Texte normal" : "Grand texte"}
                       </button>
-                    )}
+                      {isTtsSupported && (
+                        <button
+                          type="button"
+                          className={`btn btn-sm a11y-btn ${isReadingPage ? "btn-danger" : "btn-outline-secondary"}`}
+                          onClick={isReadingPage ? stopPageReading : readPageContent}
+                          data-eye-clickable
+                        >
+                          <i className={`me-1 ${isReadingPage ? "ri-volume-mute-line" : "ri-volume-up-line"}`}></i>
+                          {isReadingPage ? "Arreter la lecture" : "Lire la page"}
+                        </button>
+                      )}
+                    </div>
                   </div>
                   {isSpeechSupported && (
                     <p className="text-muted small mb-2">
@@ -287,17 +467,69 @@ const SignIn = () => {
                       <button type="button" className="btn-close btn-sm float-end" onClick={() => setHandError("")} aria-label="Fermer" />
                     </div>
                   )}
-                  <div className="d-flex gap-2 flex-wrap align-items-center mb-2">
+                  <div className="assist-actions d-flex gap-2 flex-wrap align-items-center mb-2">
                     {!handActive ? (
-                      <button type="button" className="btn btn-outline-primary btn-sm" onClick={startHandGesture}>
-                        <i className="ri-camera-line me-1"></i>Navigation par doigts (webcam)
+                      <button type="button" className="btn btn-sm assist-btn assist-btn-hand" onClick={startHandGesture}>
+                        <i className="ri-camera-line me-1"></i>Navigation doigts
                       </button>
                     ) : (
-                      <button type="button" className="btn btn-primary btn-sm" onClick={stopHandGesture}>
-                        <i className="ri-camera-off-line me-1"></i>Désactiver
+                      <button type="button" className="btn btn-sm assist-btn assist-btn-hand is-active" onClick={stopHandGesture}>
+                        <i className="ri-camera-off-line me-1"></i>Arreter navigation doigts
                       </button>
                     )}
+                    <button
+                      type="button"
+                      className={`btn btn-sm assist-btn assist-btn-face ${faceCameraOn ? "is-active" : ""}`}
+                      onClick={faceCameraOn ? stopFaceCamera : startFaceCamera}
+                      disabled={faceLoading || faceCameraBooting}
+                      data-eye-clickable
+                    >
+                      <i className={`me-1 ${faceCameraOn ? "ri-camera-off-line" : "ri-camera-line"}`}></i>
+                      {faceCameraOn ? "Fermer camera visage" : (faceCameraBooting ? "Ouverture..." : "Ouvrir camera visage")}
+                    </button>
+                    {faceCameraOn && (
+                      <span className="badge text-bg-light border align-self-center">
+                        {faceLoading ? "Analyse visage..." : "Connexion visage automatique active"}
+                      </span>
+                    )}
                   </div>
+                  {faceCameraError && (
+                    <div className="alert alert-warning py-2 small" role="alert">
+                      {faceCameraError}
+                    </div>
+                  )}
+                  {faceCameraOn && (
+                    <div className="mb-2">
+                      <div
+                        style={{
+                          width: "100%",
+                          minHeight: 220,
+                          borderRadius: 10,
+                          border: "1px solid rgba(0,0,0,0.15)",
+                          background: "#111",
+                          overflow: "hidden",
+                          position: "relative",
+                        }}
+                      >
+                        <video
+                          ref={faceVideoRef}
+                          autoPlay
+                          muted
+                          playsInline
+                          onLoadedData={() => setFaceCameraReady(true)}
+                          style={{ width: "100%", minHeight: 220, objectFit: "cover", display: "block" }}
+                        />
+                        {!faceCameraReady ? (
+                          <div
+                            className="text-white d-flex align-items-center justify-content-center"
+                            style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.35)" }}
+                          >
+                            Initialisation camera...
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  )}
                   <p className="text-muted small mb-2" style={{ fontSize: "0.75rem" }}>
                     <strong>Navigation par doigts :</strong> Pointez avec l&apos;index devant la caméra. Le curseur suit votre doigt. Maintenez 0,8 s sur un élément pour cliquer.
                   </p>
@@ -392,6 +624,20 @@ const SignIn = () => {
           </Row>
         </Container>
       </section>
+      <Modal show={showFaceNotEnrolledPopup} onHide={() => setShowFaceNotEnrolledPopup(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Visage non enregistré</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          Aucun visage n&apos;est enregistré pour ce compte.
+          Enregistrez d&apos;abord votre visage dans votre profil pour utiliser la connexion visage.
+        </Modal.Body>
+        <Modal.Footer>
+          <button type="button" className="btn btn-primary" onClick={() => setShowFaceNotEnrolledPopup(false)}>
+            Compris
+          </button>
+        </Modal.Footer>
+      </Modal>
     </>
   )
 }

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Col, Row } from "react-bootstrap";
 import { useParams, Link } from "react-router-dom";
 import Card from "../../components/Card";
+import FaceEnrollmentCard from "../../components/FaceEnrollmentCard";
 import { nurseApi } from "../../services/api";
 
 import img11 from "/assets/images/user/11.png";
@@ -69,6 +70,11 @@ const NurseProfile = () => {
 
   return (
     <>
+      <Row>
+        <Col sm={12}>
+          <FaceEnrollmentCard />
+        </Col>
+      </Row>
       <Row>
         <Col lg={4}>
           <Card>

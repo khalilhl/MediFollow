@@ -3,6 +3,7 @@ import { Col, Row, Form, InputGroup } from "react-bootstrap";
 import Card from "../../components/Card";
 import { Link } from "react-router-dom";
 import { nurseApi } from "../../services/api";
+import ConfirmActionModal from "../../components/ConfirmActionModal";
 
 const generatePath = (path) => window.origin + import.meta.env.BASE_URL + path;
 
@@ -13,6 +14,7 @@ const NurseList = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState(null);
+  const [nurseToDelete, setNurseToDelete] = useState(null);
   const [filterName, setFilterName] = useState("");
   const [filterSpecialty, setFilterSpecialty] = useState("");
 
@@ -44,11 +46,11 @@ const NurseList = () => {
   }, []);
 
   const handleDelete = async (nurse) => {
-    if (!window.confirm(`Supprimer ${nurse.firstName} ${nurse.lastName} ?`)) return;
     setDeletingId(nurse._id);
     try {
       await nurseApi.delete(nurse._id);
       setNurses((prev) => prev.filter((n) => n._id !== nurse._id));
+      setNurseToDelete(null);
     } catch (err) {
       if (err.status === 401) window.location.href = "/auth/lock-screen";
       else alert(err.message || "Erreur lors de la suppression");
@@ -203,7 +205,7 @@ const NurseList = () => {
                   <button
                     type="button"
                     className="btn btn-danger-subtle btn-sm"
-                    onClick={() => handleDelete(nurse)}
+                    onClick={() => setNurseToDelete(nurse)}
                     disabled={deletingId === nurse._id}
                   >
                     {deletingId === nurse._id ? "..." : "Supprimer"}
@@ -214,6 +216,16 @@ const NurseList = () => {
           </Col>
         ))}
       </Row>
+      <ConfirmActionModal
+        show={!!nurseToDelete}
+        title="Supprimer cette infirmière ?"
+        message={`Cette action supprimera définitivement ${nurseToDelete?.firstName || ""} ${nurseToDelete?.lastName || ""}.`}
+        onCancel={() => setNurseToDelete(null)}
+        onConfirm={() => nurseToDelete && handleDelete(nurseToDelete)}
+        confirmLabel="Supprimer"
+        loading={deletingId === nurseToDelete?._id}
+        iconClass="ri-delete-bin-6-line"
+      />
     </>
   );
 };

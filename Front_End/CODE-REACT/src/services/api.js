@@ -90,6 +90,16 @@ export const authApi = {
   doctorLogin: (email, password) => api.postNoAuth("/auth/doctor-login", { email, password }),
   patientLogin: (email, password) => api.postNoAuth("/auth/patient-login", { email, password }),
   nurseLogin: (email, password) => api.postNoAuth("/auth/nurse-login", { email, password }),
+  passkeyRegisterOptions: (email, password) => api.postNoAuth("/auth/passkey/register/options", { email, password }),
+  passkeyRegisterVerify: (email, response, deviceLabel) =>
+    api.postNoAuth("/auth/passkey/register/verify", { email, response, deviceLabel }),
+  passkeyAuthOptions: (email) => api.postNoAuth("/auth/passkey/auth/options", { email }),
+  passkeyAuthVerify: (email, response) => api.postNoAuth("/auth/passkey/auth/verify", { email, response }),
+  faceStatus: () => api.get("/auth/face/status"),
+  faceEnroll: (descriptor) => api.post("/auth/face/enroll", { descriptor }),
+  faceDisable: () => api.post("/auth/face/disable", {}),
+  faceLogin: (descriptor, email) =>
+    api.postNoAuth("/auth/face/login", email ? { email, descriptor } : { descriptor }),
   me: () => api.get("/auth/me"),
   updateMe: (data) => api.put("/auth/me", data),
 };

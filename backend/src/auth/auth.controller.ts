@@ -31,6 +31,56 @@ export class AuthController {
     return this.authService.loginNurse(body.email, body.password);
   }
 
+  @Post('passkey/register/options')
+  async passkeyRegisterOptions(@Body() body: { email: string; password: string }) {
+    return this.authService.getPasskeyRegistrationOptions(body.email, body.password);
+  }
+
+  @Post('passkey/register/verify')
+  async passkeyRegisterVerify(
+    @Body()
+    body: {
+      email: string;
+      response: any;
+      deviceLabel?: string;
+    },
+  ) {
+    return this.authService.verifyPasskeyRegistration(body.email, body.response, body.deviceLabel);
+  }
+
+  @Post('passkey/auth/options')
+  async passkeyAuthOptions(@Body() body: { email: string }) {
+    return this.authService.getPasskeyAuthenticationOptions(body.email);
+  }
+
+  @Post('passkey/auth/verify')
+  async passkeyAuthVerify(@Body() body: { email: string; response: any }) {
+    return this.authService.verifyPasskeyAuthentication(body.email, body.response);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('face/status')
+  async faceStatus(@Request() req: any) {
+    return this.authService.getFaceEnrollmentStatus(req.user.id, req.user.role);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('face/enroll')
+  async faceEnroll(@Request() req: any, @Body() body: { descriptor: number[] }) {
+    return this.authService.enrollFaceForCurrentUser(req.user.id, req.user.role, body.descriptor);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('face/disable')
+  async faceDisable(@Request() req: any) {
+    return this.authService.disableFaceForCurrentUser(req.user.id, req.user.role);
+  }
+
+  @Post('face/login')
+  async faceLogin(@Body() body: { email?: string; descriptor: number[] }) {
+    return this.authService.loginWithFace(body.email, body.descriptor);
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get('me')
   async me(@Request() req: any) {

@@ -41,6 +41,22 @@ Identifiants par défaut :
 - Email : `admin@medifollow.com`
 - Mot de passe : `Admin123!`
 
+## Session admin
+
+Une fois l'admin créé, connectez-vous via l'endpoint :
+
+```http
+POST /api/auth/login
+```
+
+Puis confirmez la session avec le token reçu par email via :
+
+```http
+POST /api/auth/confirm-login
+```
+
+La réponse retourne `access_token` et l'objet `user`, à stocker côté frontend pour ouvrir la session admin.
+
 ## Lancement
 
 ```bash

@@ -14,6 +14,7 @@ const AdminEditProfile = () => {
   const [error, setError] = useState("");
   const [user, setUser] = useState(null);
   const [profilePreview, setProfilePreview] = useState(DEFAULT_PHOTO);
+  const [saveMessage, setSaveMessage] = useState("");
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -38,6 +39,7 @@ const AdminEditProfile = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setSaveMessage("");
     setLoading(true);
 
     const form = e.target;
@@ -73,6 +75,7 @@ const AdminEditProfile = () => {
       const stored = JSON.parse(localStorage.getItem("adminUser") || "{}");
       localStorage.setItem("adminUser", JSON.stringify({ ...stored, ...updated }));
       window.dispatchEvent(new CustomEvent("admin-updated"));
+      setSaveMessage("Profil admin mis à jour avec succès.");
       navigate("/admin/profile");
     } catch (err) {
       if (err.status === 401) {
@@ -168,6 +171,7 @@ const AdminEditProfile = () => {
           <Card.Body>
             <Form onSubmit={handleSubmit}>
               {error && <div className="alert alert-danger">{error}</div>}
+              {saveMessage && <div className="alert alert-success">{saveMessage}</div>}
               <Form.Group className="mb-3">
                 <Form.Label>Nom</Form.Label>
                 <Form.Control type="text" name="name" defaultValue={user?.name} placeholder="Nom" required />

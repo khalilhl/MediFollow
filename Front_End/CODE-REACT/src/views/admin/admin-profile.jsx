@@ -52,6 +52,10 @@ const AdminProfile = () => {
     );
   }
 
+  const lastSession = user?.updatedAt
+    ? new Date(user.updatedAt).toLocaleString("fr-FR")
+    : "Session active";
+
   if (error || !user) {
     return (
       <Row>
@@ -83,6 +87,9 @@ const AdminProfile = () => {
             <p className="mt-2 mb-0">
               <span className="badge bg-primary">{user.role}</span>
             </p>
+            <p className="mt-2 mb-0">
+              <span className="badge bg-success-subtle text-success">Session active</span>
+            </p>
             <Link to="/admin/edit-profile" className="btn btn-primary-subtle mt-3">
               Modifier le profil
             </Link>
@@ -104,6 +111,8 @@ const AdminProfile = () => {
               <Col xs={8}>{user.email}</Col>
               <Col xs={4} className="text-muted">Rôle :</Col>
               <Col xs={8}>{user.role}</Col>
+              <Col xs={4} className="text-muted">Dernière session :</Col>
+              <Col xs={8}>{lastSession}</Col>
             </Row>
           </Card.Body>
         </Card>

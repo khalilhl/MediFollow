@@ -92,6 +92,33 @@ GET /api/vitals/my/latest
 GET /api/vitals/my/history
 ```
 
+## Création compte nurse
+
+Pour créer un compte nurse (infirmier/ère) depuis l'API:
+
+```http
+POST /api/nurses
+```
+
+Exemple de payload:
+
+```json
+{
+  "firstName": "Ines",
+  "lastName": "Ben Ali",
+  "email": "ines.nurse@medifollow.com",
+  "password": "Nurse123!",
+  "specialty": "Nurse",
+  "department": "Urgences"
+}
+```
+
+Une fois créé, l'authentification se fait via:
+
+```http
+POST /api/auth/nurse-login
+```
+
 ## Lancement
 
 ```bash

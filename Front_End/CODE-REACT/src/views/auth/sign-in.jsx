@@ -33,6 +33,7 @@ const SignIn = () => {
   const [listeningField, setListeningField] = useState(null);
   const [speechError, setSpeechError] = useState("");
   const [isReadingPage, setIsReadingPage] = useState(false);
+  const [fingerMouseA11yMessage, setFingerMouseA11yMessage] = useState("");
   const [faceLoading, setFaceLoading] = useState(false);
   const [faceCameraOn, setFaceCameraOn] = useState(false);
   const [faceCameraReady, setFaceCameraReady] = useState(false);
@@ -121,6 +122,16 @@ const SignIn = () => {
     }
     setListeningField(null);
   }, []);
+
+  const handleStartFingerMouse = useCallback(() => {
+    startHandGesture();
+    setFingerMouseA11yMessage("Simulation souris par doigt activée.");
+  }, [startHandGesture]);
+
+  const handleStopFingerMouse = useCallback(() => {
+    stopHandGesture();
+    setFingerMouseA11yMessage("Simulation souris par doigt désactivée.");
+  }, [stopHandGesture]);
 
   const stopPageReading = useCallback(() => {
     if (SpeechSynthesis) {
@@ -494,11 +505,11 @@ const SignIn = () => {
                   )}
                   <div className="assist-actions d-flex gap-2 flex-wrap align-items-center mb-2">
                     {!handActive ? (
-                      <button type="button" className="btn btn-sm assist-btn assist-btn-hand" onClick={startHandGesture}>
+                      <button type="button" className="btn btn-sm assist-btn assist-btn-hand" onClick={handleStartFingerMouse}>
                         <i className="ri-camera-line me-1"></i>Navigation doigts
                       </button>
                     ) : (
-                      <button type="button" className="btn btn-sm assist-btn assist-btn-hand is-active" onClick={stopHandGesture}>
+                      <button type="button" className="btn btn-sm assist-btn assist-btn-hand is-active" onClick={handleStopFingerMouse}>
                         <i className="ri-camera-off-line me-1"></i>Arreter navigation doigts
                       </button>
                     )}
@@ -558,6 +569,9 @@ const SignIn = () => {
                   <p className="text-muted small mb-2" style={{ fontSize: "0.75rem" }}>
                     <strong>Navigation par doigts :</strong> Pointez avec l&apos;index devant la caméra. Le curseur suit votre doigt. Maintenez 0,8 s sur un élément pour cliquer.
                   </p>
+                  <span className="visually-hidden" aria-live="polite">
+                    {fingerMouseA11yMessage}
+                  </span>
                   <div className="form-group mb-3">
                     <div className="d-flex align-items-center justify-content-between mb-1">
                       <label htmlFor="exampleInputEmail1" className="mb-0">Email</label>

@@ -139,7 +139,8 @@
 
 // Authentication
 .sign-in-page {
-    height: 100%;
+    min-height: 100vh;
+    height: auto;
 }
 
 .sign-in-detail {
@@ -149,23 +150,201 @@
 }
 
 .sign-in-logo {
-    display: inline-block;
+    display: block;
     width: 100%;
+    height: 100px;
+    flex-shrink: 0;
 }
 
 .sign-in-logo img {
-    height: 100px;
+    max-height: 100px;
+    max-width: 320px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
 }
 
 .sign-in-from {
-    padding: 20px 60px;
+    padding: clamp(16px, 2vw, 24px) clamp(18px, 3vw, 44px);
     border-radius: 37px;
     position: absolute;
-    top: 10%;
-    height: 40rem;
+    top: 6%;
+    bottom: 6%;
+    height: auto;
     left: 0;
     right: 0;
+    max-height: calc(100vh - 4rem);
+    overflow-y: auto;
+    overflow-x: hidden;
     background: var(--bs-gray-900);
+}
+
+/* Hide scrollbars while keeping scroll behavior */
+.sign-in-from {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.sign-in-from::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+}
+
+// Accessibility: larger text mode on sign-in page
+.sign-in-page.a11y-large-text .sign-in-from {
+    font-size: 1.12rem;
+    position: static !important;
+    top: auto !important;
+    bottom: auto !important;
+    height: auto;
+    max-height: none;
+    min-height: 0;
+    overflow: visible;
+    padding-bottom: 34px;
+}
+
+.sign-in-page.a11y-large-text .sign-in-page-bg {
+    overflow: visible;
+}
+
+.sign-in-page.a11y-large-text {
+    align-items: flex-start !important;
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+}
+
+.sign-in-page.a11y-large-text .sign-in-detail {
+    height: auto;
+    min-height: 100%;
+}
+
+.sign-in-page.a11y-large-text .sign-in-from h1 {
+    font-size: 2.35rem;
+    line-height: 1.2;
+}
+
+.sign-in-page.a11y-large-text .sign-in-from p,
+.sign-in-page.a11y-large-text .sign-in-from label,
+.sign-in-page.a11y-large-text .sign-in-from .form-text,
+.sign-in-page.a11y-large-text .sign-in-from .alert {
+    font-size: 1.03em !important;
+}
+
+.sign-in-page.a11y-large-text .sign-in-from .form-control {
+    font-size: 1.08rem;
+    padding-top: 0.7rem;
+    padding-bottom: 0.7rem;
+}
+
+.sign-in-page.a11y-large-text .sign-in-from .btn {
+    font-size: 0.98rem;
+    padding-top: 0.52rem;
+    padding-bottom: 0.52rem;
+}
+
+.sign-in-from .a11y-toolbar {
+    border: 1px solid var(--bs-border-color);
+    border-radius: 12px;
+    padding: 0.7rem;
+    background: var(--bs-body-bg);
+}
+
+.sign-in-from .a11y-toolbar-title {
+    font-size: 0.78rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+    font-weight: 600;
+    margin-bottom: 0.45rem;
+}
+
+.sign-in-from .a11y-toolbar-actions .a11y-btn {
+    flex: 1 1 11rem;
+    min-height: 2.4rem;
+    border-radius: 0.65rem;
+    font-weight: 500;
+}
+
+.sign-in-from .assist-actions .assist-btn {
+    min-height: 2.5rem;
+    border-radius: 0.7rem;
+    padding: 0.5rem 0.9rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    transition: all 0.2s ease;
+}
+
+.sign-in-from .assist-actions .assist-btn i {
+    opacity: 0.9;
+}
+
+.sign-in-from .assist-actions .assist-btn.assist-btn-hand {
+    border: 1px solid rgba(8, 155, 171, 0.45);
+    color: #0b6f7f;
+    background: rgba(8, 155, 171, 0.08);
+}
+
+.sign-in-from .assist-actions .assist-btn.assist-btn-hand:hover {
+    border-color: rgba(8, 155, 171, 0.7);
+    background: rgba(8, 155, 171, 0.14);
+}
+
+.sign-in-from .assist-actions .assist-btn.assist-btn-face {
+    border: 1px solid rgba(13, 17, 23, 0.25);
+    color: #243447;
+    background: #fff;
+}
+
+.sign-in-from .assist-actions .assist-btn.assist-btn-face:hover {
+    border-color: rgba(13, 17, 23, 0.5);
+    background: #f8f9fa;
+}
+
+.sign-in-from .assist-actions .assist-btn.is-active {
+    color: #fff;
+    border-color: transparent;
+    background: linear-gradient(135deg, #0b93a3 0%, #0a6f89 100%);
+    box-shadow: 0 6px 14px rgba(10, 111, 137, 0.25);
+}
+
+.sign-in-from .assist-actions .assist-btn:disabled {
+    opacity: 0.7;
+}
+
+// Keep large-text layout usable when controls wrap.
+.sign-in-page.a11y-large-text .sign-in-from .d-flex.justify-content-end.gap-2.mb-2.flex-wrap {
+    justify-content: flex-start !important;
+}
+
+.sign-in-page.a11y-large-text .sign-in-from .d-flex.gap-2.flex-wrap.align-items-center.mb-2 {
+    align-items: stretch !important;
+}
+
+.sign-in-page.a11y-large-text .sign-in-from .d-flex.gap-2.flex-wrap.align-items-center.mb-2 .btn {
+    flex: 1 1 15rem;
+    min-height: 2.6rem;
+}
+
+.sign-in-page.a11y-large-text .sign-in-from .a11y-toolbar-title {
+    font-size: 0.86rem;
+}
+
+.sign-in-page.a11y-large-text .sign-in-from .a11y-toolbar-actions .a11y-btn {
+    flex: 1 1 14rem;
+}
+
+.sign-in-page.a11y-large-text .sign-in-from .assist-actions .assist-btn {
+    flex: 1 1 15rem;
+    min-height: 2.75rem;
+}
+
+.sign-in-page.a11y-large-text .sign-in-from .d-flex.w-100.justify-content-between.align-items-center.mt-3 {
+    gap: 0.75rem;
+}
+
+.sign-in-page.a11y-large-text .sign-in-from .sign-info {
+    gap: 0.75rem;
 }
 
 .sign-info {
@@ -176,7 +355,7 @@
 
 .sign-in-page .sign-in-page-bg {
     position: relative;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .sign-in-page .sign-in-page-bg::after {
@@ -217,6 +396,48 @@
     margin-right: 10px;
 }
 
+.mf-confirm-modal {
+    border: 0;
+    border-radius: 1rem;
+    box-shadow: 0 18px 45px rgba(14, 26, 38, 0.24);
+    overflow: hidden;
+}
+
+.mf-confirm-modal .modal-header {
+    border-bottom: 1px solid rgba(8, 155, 171, 0.15);
+    background: linear-gradient(135deg, rgba(8, 155, 171, 0.1) 0%, rgba(12, 181, 200, 0.06) 100%);
+}
+
+.mf-confirm-modal .modal-title {
+    font-weight: 700;
+    color: #0e2f3c;
+}
+
+.mf-confirm-icon-wrap {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    background: linear-gradient(135deg, #ff6b6b 0%, #d63031 100%);
+    box-shadow: 0 6px 14px rgba(214, 48, 49, 0.3);
+}
+
+.mf-confirm-icon-wrap i {
+    font-size: 1.1rem;
+}
+
+.mf-confirm-modal .modal-body {
+    color: #4e5b67;
+    font-size: 0.98rem;
+}
+
+.mf-confirm-modal .modal-footer {
+    border-top: 1px solid rgba(8, 155, 171, 0.12);
+}
+
 @media (max-width: 767px) {
     .sign-in-from {
         position: static !important;
@@ -252,7 +473,23 @@
 
 @media (max-width: 992px) {
     .sign-in-from {
+        position: static !important;
+        top: auto !important;
+        bottom: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
         padding: 20px !important;
+    }
+}
+
+@media (max-width: 1200px) {
+    .sign-in-page.a11y-large-text .sign-in-from .d-flex.w-100.justify-content-between.align-items-center.mt-3 {
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+
+    .sign-in-page.a11y-large-text .sign-in-from .d-flex.w-100.justify-content-between.align-items-center.mt-3 .btn {
+        width: 100%;
     }
 }
 

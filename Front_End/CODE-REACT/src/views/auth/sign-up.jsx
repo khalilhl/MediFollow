@@ -15,27 +15,27 @@ const SignUp = () => {
             <Col md={6} className="text-center z-2">
               <div className="sign-in-detail text-white">
                 <Link to="/" className="sign-in-logo mb-2">
-                  <img src={generatePath("/assets/images/logo-white.png")} className="img-fluid" alt="Logo" />
+                  <img src={generatePath("/assets/images/logosite.png")} className="img-fluid" alt="Logo" style={{ maxWidth: "320px", maxHeight: "100px", objectFit: "contain" }} />
                 </Link>
-                <Carousel id="carouselExampleCaptions" interval={2000} controls={false}>
+                <Carousel id="carouselExampleCaptions" interval={4000} controls={false}>
                   <Carousel.Item>
-                    <img src={generatePath("/assets/images/login/1.png")} className="d-block w-100" alt="Slide 1" />
+                    <img src={generatePath("/assets/images/login/image_signin_signup.png")} className="d-block w-100" alt="Slide 1" />
                     <div className="carousel-caption-container">
-                      <h4 className="mb-1 mt-1 text-white">Manage your orders</h4>
+                      <h4 className="mb-1 mt-3 text-white">Manage your orders</h4>
                       <p className="pb-5">It is a long established fact that a reader will be distracted by the readable content.</p>
                     </div>
                   </Carousel.Item>
                   <Carousel.Item>
-                    <img src={generatePath("/assets/images/login/2.png")} className="d-block w-100" alt="Slide 2" />
+                    <img src={generatePath("/assets/images/login/signin1.png")} className="d-block w-100" alt="Slide 2" />
                     <div className="carousel-caption-container">
-                      <h4 className="mb-1 mt-1 text-white">Manage your orders</h4>
+                      <h4 className="mb-1 mt-3 text-white">Manage your orders</h4>
                       <p className="pb-5">It is a long established fact that a reader will be distracted by the readable content.</p>
                     </div>
                   </Carousel.Item>
                   <Carousel.Item>
-                    <img src={generatePath("/assets/images/login/3.png")} className="d-block w-100" alt="Slide 3" />
+                    <img src={generatePath("/assets/images/login/signin2.png")} className="d-block w-100" alt="Slide 3" />
                     <div className="carousel-caption-container">
-                      <h4 className="mb-1 mt-1 text-white">Manage your orders</h4>
+                      <h4 className="mb-1 mt-3 text-white">Manage your orders</h4>
                       <p className="pb-5">It is a long established fact that a reader will be distracted by the readable content.</p>
                     </div>
                   </Carousel.Item>

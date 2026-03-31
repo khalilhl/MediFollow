@@ -9,16 +9,56 @@ import Flatpickr from 'react-flatpickr';
 import 'flatpickr/dist/flatpickr.css';
 import Scrollbar from "smooth-scrollbar";
 import { Link } from "react-router-dom";
+import { doctorApi } from "../services/api";
 import Chart from 'react-apexcharts';
 
 const generatePath = (path) => {
-    return window.origin + import.meta.env.BASE_URL + path;
+    const base = (import.meta.env.BASE_URL || "/").replace(/\/+$/, "") || "";
+    const p = (path || "").replace(/^\/+/, "");
+    const url = `${window.origin}${base}/${p}`;
+    return url.replace(/([^:])\/\/+/g, "$1/");
+};
+
+const DEFAULT_AVATAR = generatePath("assets/images/user/11.png");
+
+const getDoctorImage = (doctor) => {
+    if (!doctor?.profileImage) return DEFAULT_AVATAR;
+    const img = doctor.profileImage;
+    if (img?.startsWith("data:")) return img;
+    if (img?.startsWith("http")) return img;
+    const path = img.startsWith("/") ? img.slice(1) : img;
+    return path ? generatePath(path) : DEFAULT_AVATAR;
 };
 
 const Index = () => {
     const backgroundImage = generatePath("/assets/images/page-img/38.png");
-    const userImage = generatePath("/assets/images/user/11.png");
+    const [doctorUser, setDoctorUser] = useState(() => {
+        try {
+            const stored = localStorage.getItem("doctorUser");
+            return stored ? JSON.parse(stored) : null;
+        } catch { return null; }
+    });
 
+    useEffect(() => {
+        const onDoctorUpdated = () => {
+            try {
+                const stored = localStorage.getItem("doctorUser");
+                setDoctorUser(stored ? JSON.parse(stored) : null);
+            } catch { setDoctorUser(null); }
+        };
+        window.addEventListener("doctor-updated", onDoctorUpdated);
+        return () => window.removeEventListener("doctor-updated", onDoctorUpdated);
+    }, []);
+
+    useEffect(() => {
+        const stored = localStorage.getItem("doctorUser");
+        const doctorId = stored ? (JSON.parse(stored)?.id) : null;
+        if (doctorId) {
+            doctorApi.getById(doctorId)
+                .then((doctor) => setDoctorUser((prev) => ({ ...prev, ...doctor, id: doctor._id || doctor.id })))
+                .catch(() => {});
+        }
+    }, []);
 
     const [wavechart7, setWavechart7] = useState({
         chart: {
@@ -510,17 +550,19 @@ const Index = () => {
                             <div className="user-details-block">
                                 <div className="user-profile text-center">
                                     <img
-                                        src={userImage}
+                                        src={getDoctorImage(doctorUser)}
                                         alt="profile-img"
                                         className="rounded-circle img-fluid"
-                                        style={{ width: "130px" }}
+                                        style={{ width: "130px", height: "130px", objectFit: "cover" }}
                                     />
                                 </div>
                                 <div className="text-center mt-3 pb-3">
-                                    <h4><b>Bini Jets</b></h4>
-                                    <p>Doctor</p>
-                                    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. In in arcu turpis. Nunc</p>
-                                    <Button variant="primary-subtle">Assign</Button>
+                                    <h4><b>{doctorUser ? `Dr. ${doctorUser.firstName || ''} ${doctorUser.lastName || ''}`.trim() || doctorUser.email : 'Doctor'}</b></h4>
+                                    <p>{doctorUser?.specialty || 'Doctor'}</p>
+                                    <p>{doctorUser?.email || '—'}</p>
+                                    <Button variant="primary-subtle" as={Link} to={doctorUser ? `/doctor/doctor-profile/${doctorUser.id}` : '#'}>
+                                        View Profile
+                                    </Button>
                                 </div>
                                 <hr />
                                 <ul className="doctoe-sedual d-flex align-items-center justify-content-between p-0 m-0">

@@ -2,6 +2,10 @@ import React, { Fragment } from "react";
 
 // Redux Selector / Action
 import { useDispatch } from "react-redux";
+import { AuthProvider } from "./context/AuthContext";
+import { HandGestureProvider } from "./context/HandGestureContext";
+import HandGestureOverlay from "./components/HandGestureOverlay";
+import VirtualKeyboard from "./components/VirtualKeyboard";
 
 // import state selectors
 import {
@@ -13,9 +17,13 @@ function App({ children }) {
   const dispatch = useDispatch();
   dispatch(setSetting());
   return (
-    <>
-      <div className="App">{children}</div>
-    </>
+    <AuthProvider>
+      <HandGestureProvider>
+        <div className="App">{children}</div>
+        <HandGestureOverlay />
+        <VirtualKeyboard />
+      </HandGestureProvider>
+    </AuthProvider>
   )
 }
 

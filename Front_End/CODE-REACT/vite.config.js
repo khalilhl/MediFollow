@@ -9,6 +9,19 @@ export default defineConfig(({ mode }) => {
   return {
     base: baseUrl,
     plugins: [react()],
+    css: {
+      preprocessorOptions: {
+        scss: {
+          silenceDeprecations: [
+            "legacy-js-api",
+            "import",
+            "if-function",
+            "color-functions",
+            "global-builtin",
+          ],
+        },
+      },
+    },
     build: {
       outDir: "build",
       minify: true,

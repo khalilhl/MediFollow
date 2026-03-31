@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Carousel, Container, Row, Col, Form } from 'react-bootstrap';
 
 // Import Image
-import logowhite from "/assets/images/logo-white.png"
+import logowhite from "/assets/images/logosite.png"
 import login1 from "/assets/images/login/1.png"
 import login2 from "/assets/images/login/2.png"
 import login3 from "/assets/images/login/3.png"
@@ -18,7 +18,7 @@ const RecoverPassword = () => {
                         <Col md={6} className="text-center z-2">
                             <div className="sign-in-detail text-white">
                                 <Link to="/" className="sign-in-logo mb-2">
-                                    <img src={logowhite} className="img-fluid" />
+                                    <img src={logowhite} className="img-fluid" alt="Logo" style={{ maxWidth: "320px", maxHeight: "100px", objectFit: "contain" }} />
                                 </Link>
                                 <Carousel id="carouselExampleCaptions" interval={2000} controls={false}>
                                     <Carousel.Item>

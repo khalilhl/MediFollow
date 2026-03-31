@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { doctorApi, patientApi, nurseApi } from '../../../services/api'
 
 // Import From React Bootstrap
 import { Col, Container, Dropdown, Nav, Navbar, Row } from 'react-bootstrap'
@@ -26,9 +27,165 @@ import user04 from "/assets/images/user/04.jpg"
 
 import user001 from "/assets/images/user/001.png"
 
-const Header = () => {
+const generatePath = (path) => {
+  const base = (import.meta.env.BASE_URL || "/").replace(/\/+$/, "") || "";
+  const p = (path || "").replace(/^\/+/, "");
+  const url = `${window.origin}${base}/${p}`;
+  return url.replace(/([^:])\/\/+/g, "$1/");
+};
+const DEFAULT_ADMIN_PHOTO = generatePath("assets/images/login/Admin_photo.jpeg");
 
+const getAdminPhoto = (adminUser) => {
+  if (!adminUser) return null;
+  const img = adminUser.profileImage;
+  if (img?.startsWith("data:")) return img;
+  if (img?.startsWith("http")) return img;
+  const path = img?.startsWith("/") ? img.slice(1) : img;
+  return path ? generatePath(path) : DEFAULT_ADMIN_PHOTO;
+};
+
+const getDoctorPhoto = (doctorUser) => {
+  if (!doctorUser) return null;
+  const img = doctorUser.profileImage;
+  if (img?.startsWith("data:")) return img;
+  if (img?.startsWith("http")) return img;
+  const path = img?.startsWith("/") ? img.slice(1) : img;
+  return path ? generatePath(path) : user001;
+};
+
+const getPatientPhoto = (patientUser) => {
+  if (!patientUser) return null;
+  const img = patientUser.profileImage;
+  if (img?.startsWith("data:")) return img;
+  if (img?.startsWith("http")) return img;
+  const path = img?.startsWith("/") ? img.slice(1) : img;
+  return path ? generatePath(path) : user001;
+};
+
+const getNursePhoto = (nurseUser) => {
+  if (!nurseUser) return null;
+  const img = nurseUser.profileImage;
+  if (img?.startsWith("data:")) return img;
+  if (img?.startsWith("http")) return img;
+  const path = img?.startsWith("/") ? img.slice(1) : img;
+  return path ? generatePath(path) : user001;
+};
+
+const Header = () => {
+   const navigate = useNavigate();
    const pageLayout = useSelector(SettingSelector.page_layout)
+   const [adminUser, setAdminUser] = useState(() => {
+      try {
+         const stored = localStorage.getItem("adminUser");
+         return stored ? JSON.parse(stored) : null;
+      } catch { return null; }
+   })
+   const [doctorUser, setDoctorUser] = useState(() => {
+      try {
+         const stored = localStorage.getItem("doctorUser");
+         return stored ? JSON.parse(stored) : null;
+      } catch { return null; }
+   })
+   const [patientUser, setPatientUser] = useState(() => {
+      try {
+         const stored = localStorage.getItem("patientUser");
+         return stored ? JSON.parse(stored) : null;
+      } catch { return null; }
+   })
+   const [nurseUser, setNurseUser] = useState(() => {
+      try {
+         const stored = localStorage.getItem("nurseUser");
+         return stored ? JSON.parse(stored) : null;
+      } catch { return null; }
+   })
+   const isDoctor = !!doctorUser;
+   const isPatient = !!patientUser;
+   const isNurse = !!nurseUser;
+   const currentUser = doctorUser || adminUser || patientUser || nurseUser;
+
+   useEffect(() => {
+      const onAdminUpdated = () => {
+         try {
+            const stored = localStorage.getItem("adminUser");
+            setAdminUser(stored ? JSON.parse(stored) : null);
+         } catch { setAdminUser(null); }
+      };
+      const onDoctorUpdated = () => {
+         try {
+            const stored = localStorage.getItem("doctorUser");
+            setDoctorUser(stored ? JSON.parse(stored) : null);
+         } catch { setDoctorUser(null); }
+      };
+      const onPatientUpdated = () => {
+         try {
+            const stored = localStorage.getItem("patientUser");
+            setPatientUser(stored ? JSON.parse(stored) : null);
+         } catch { setPatientUser(null); }
+      };
+      const onNurseUpdated = () => {
+         try {
+            const stored = localStorage.getItem("nurseUser");
+            setNurseUser(stored ? JSON.parse(stored) : null);
+         } catch { setNurseUser(null); }
+      };
+      window.addEventListener("admin-updated", onAdminUpdated);
+      window.addEventListener("doctor-updated", onDoctorUpdated);
+      window.addEventListener("patient-updated", onPatientUpdated);
+      window.addEventListener("nurse-updated", onNurseUpdated);
+      return () => {
+         window.removeEventListener("admin-updated", onAdminUpdated);
+         window.removeEventListener("doctor-updated", onDoctorUpdated);
+         window.removeEventListener("patient-updated", onPatientUpdated);
+         window.removeEventListener("nurse-updated", onNurseUpdated);
+      };
+   }, [])
+
+   useEffect(() => {
+      const id = doctorUser?.id;
+      if (id) {
+         doctorApi.getById(id)
+            .then((doctor) => setDoctorUser((prev) => prev ? { ...prev, ...doctor, id: doctor._id || doctor.id } : prev))
+            .catch(() => {});
+      }
+   }, [doctorUser?.id])
+
+   useEffect(() => {
+      const id = patientUser?.id;
+      if (id) {
+         patientApi.getById(id)
+            .then((patient) => setPatientUser((prev) => prev ? { ...prev, ...patient, id: patient._id || patient.id } : prev))
+            .catch(() => {});
+      }
+   }, [patientUser?.id])
+
+   useEffect(() => {
+      const id = nurseUser?.id;
+      if (id) {
+         nurseApi.getById(id)
+            .then((nurse) => setNurseUser((prev) => prev ? { ...prev, ...nurse, id: nurse._id || nurse.id } : prev))
+            .catch(() => {});
+      }
+   }, [nurseUser?.id])
+
+   const handleSignOut = () => {
+      const wasDoctor = !!doctorUser;
+      const wasPatient = !!patientUser;
+      const wasNurse = !!nurseUser;
+      localStorage.removeItem("adminToken");
+      localStorage.removeItem("adminUser");
+      localStorage.removeItem("doctorToken");
+      localStorage.removeItem("doctorUser");
+      localStorage.removeItem("patientToken");
+      localStorage.removeItem("patientUser");
+      localStorage.removeItem("nurseToken");
+      localStorage.removeItem("nurseUser");
+      setAdminUser(null);
+      setDoctorUser(null);
+      setPatientUser(null);
+      setNurseUser(null);
+      window.dispatchEvent(new CustomEvent("user-signed-out"));
+      navigate(wasDoctor || wasPatient || wasNurse ? "/auth/sign-in" : "/auth/lock-screen");
+   };
 
    const [open, setOpen] = useState(false)
    const [isScrolled, setIsScrolled] = useState(false);
@@ -400,12 +557,14 @@ const Header = () => {
                      <Dropdown as="li" className="nav-item">
                         <Dropdown.Toggle as="a" bsPrefix=' ' to="#" className="nav-link d-flex align-items-center"
                            id="notification-drop">
-                           <img src={user001}
-                              style={{ width: "50px", height: "50px" }}
+                           <img src={currentUser ? (isDoctor ? (getDoctorPhoto(doctorUser) || user001) : isPatient ? (getPatientPhoto(patientUser) || user001) : isNurse ? (getNursePhoto(nurseUser) || user001) : (getAdminPhoto(adminUser) || DEFAULT_ADMIN_PHOTO)) : user001}
+                              style={{ width: "50px", height: "50px", objectFit: "cover", objectPosition: "50% 15%" }}
                               className="img-fluid rounded" alt="user" />
-                           <div className="caption d-none d-lg-block">
-                              <h6 className="mb-0 line-height">Bini Jets</h6>
-                              <span className="font-size-12">Available</span>
+                           <div className="caption d-none d-lg-block ms-3">
+                              <h6 className="mb-0 line-height">
+                                 {isDoctor ? `Dr. ${doctorUser?.firstName || ''} ${doctorUser?.lastName || ''}`.trim() || doctorUser?.email : isPatient ? `${patientUser?.firstName || ''} ${patientUser?.lastName || ''}`.trim() || patientUser?.email : isNurse ? `${nurseUser?.firstName || ''} ${nurseUser?.lastName || ''}`.trim() || nurseUser?.email : (adminUser?.name || adminUser?.email || "Admin")}
+                              </h6>
+                              <span className="font-size-12">Connecté</span>
                            </div>{" "}
                         </Dropdown.Toggle>{" "}
                         <Dropdown.Menu as="div" className="p-0 sub-drop dropdown-menu dropdown-menu-end"
@@ -419,7 +578,106 @@ const Header = () => {
                                  </div>
                               </div>
                               <div className="p-0 card-body">
-                                 <Link to="/doctor/doctor-profile" className="iq-sub-card">
+                                 {isDoctor ? (
+                                 <>
+                                 <Link to={`/doctor/doctor-profile/${doctorUser?.id}`} className="iq-sub-card">
+                                    <div className="d-flex align-items-center">
+                                       <div className="bg-primary-subtle px-3 py-2 rounded-1">
+                                          <i className="ri-file-user-line "></i>
+                                       </div>
+                                       <div className="ms-3 flex-grow-1 text-start">
+                                          <h6 className="mb-0 ">My Profile</h6>
+                                          <p className="mb-0">View your doctor profile.</p>
+                                       </div>
+                                    </div>
+                                 </Link>
+                                 <Link to={`/doctor/edit-doctor/${doctorUser?.id}`} className="iq-sub-card">
+                                    <div className="d-flex align-items-center">
+                                       <div className="bg-primary-subtle px-3 py-2 rounded-1">
+                                          <i className="ri-profile-line "></i>
+                                       </div>
+                                       <div className="ms-3 flex-grow-1 text-start">
+                                          <h6 className="mb-0 ">Edit Profile</h6>
+                                          <p className="mb-0">Modify your personal details.</p>
+                                       </div>
+                                    </div>
+                                 </Link>
+                                 <Link to="/extra-pages/account-setting" className="iq-sub-card">
+                                    <div className="d-flex align-items-center">
+                                       <div className="bg-primary-subtle px-3 py-2 rounded-1">
+                                          <i className="ri-account-box-line "></i>
+                                       </div>
+                                       <div className="ms-3 flex-grow-1 text-start">
+                                          <h6 className="mb-0 ">Account Settings</h6>
+                                          <p className="mb-0">Manage your account parameters.</p>
+                                       </div>
+                                    </div>
+                                 </Link>
+                                 <Link to="/extra-pages/privacy-setting" className="iq-sub-card">
+                                    <div className="d-flex align-items-center">
+                                       <div className="bg-primary-subtle px-3 py-2 rounded-1">
+                                          <i className="ri-lock-line"></i>
+                                       </div>
+                                       <div className="ms-3 flex-grow-1 text-start">
+                                          <h6 className="mb-0 ">Privacy Settings</h6>
+                                          <p className="mb-0">Control your privacy parameters.</p>
+                                       </div>
+                                    </div>
+                                 </Link>
+                                 </>
+                                 ) : isNurse ? (
+                                 <>
+                                 <Link to={`/nurse/nurse-profile/${nurseUser?.id}`} className="iq-sub-card">
+                                    <div className="d-flex align-items-center">
+                                       <div className="bg-primary-subtle px-3 py-2 rounded-1">
+                                          <i className="ri-file-user-line "></i>
+                                       </div>
+                                       <div className="ms-3 flex-grow-1 text-start">
+                                          <h6 className="mb-0 ">Mon profil</h6>
+                                          <p className="mb-0">Voir mon profil infirmier.</p>
+                                       </div>
+                                    </div>
+                                 </Link>
+                                 <Link to="/extra-pages/account-setting" className="iq-sub-card">
+                                    <div className="d-flex align-items-center">
+                                       <div className="bg-primary-subtle px-3 py-2 rounded-1">
+                                          <i className="ri-account-box-line "></i>
+                                       </div>
+                                       <div className="ms-3 flex-grow-1 text-start">
+                                          <h6 className="mb-0 ">Paramètres du compte</h6>
+                                          <p className="mb-0">Gérer vos paramètres.</p>
+                                       </div>
+                                    </div>
+                                 </Link>
+                                 </>
+                                 ) : isPatient ? (
+                                 <>
+                                 <Link to={`/patient/patient-profile/${patientUser?.id}`} className="iq-sub-card">
+                                    <div className="d-flex align-items-center">
+                                       <div className="bg-primary-subtle px-3 py-2 rounded-1">
+                                          <i className="ri-file-user-line "></i>
+                                       </div>
+                                       <div className="ms-3 flex-grow-1 text-start">
+                                          <h6 className="mb-0 ">Mon profil</h6>
+                                          <p className="mb-0">Voir mon profil patient.</p>
+                                       </div>
+                                    </div>
+                                 </Link>
+                                 <Link to="/extra-pages/account-setting" className="iq-sub-card">
+                                    <div className="d-flex align-items-center">
+                                       <div className="bg-primary-subtle px-3 py-2 rounded-1">
+                                          <i className="ri-account-box-line "></i>
+                                       </div>
+                                       <div className="ms-3 flex-grow-1 text-start">
+                                          <h6 className="mb-0 ">Paramètres du compte</h6>
+                                          <p className="mb-0">Gérer vos paramètres.</p>
+                                       </div>
+                                    </div>
+                                 </Link>
+                                 </>
+                                 ) : (
+                                 <>
+                                 <Link to="/admin/profile" className="iq-sub-card">
                                     <div className="d-flex align-items-center">
                                        <div
                                           className="bg-primary-subtle px-3 py-2 rounded-1">
@@ -433,7 +691,7 @@ const Header = () => {
 
                                     </div>
                                  </Link>
-                                 <Link to="/doctor/edit-doctor" className="iq-sub-card">
+                                 <Link to="/admin/edit-profile" className="iq-sub-card">
                                     <div className="d-flex align-items-center">
                                        <div
                                           className="bg-primary-subtle px-3 py-2 rounded-1">
@@ -475,11 +733,17 @@ const Header = () => {
 
                                     </div>
                                  </Link>
-                                 <div className="iq-sub-card d-flex justify-content-center">
-                                    <Link to="/auth/sign-in" className="btn btn-primary-subtle ">
+                                 </>
+                                 )}
+                                 <div className="iq-sub-card d-flex justify-content-center p-3">
+                                    <button
+                                       type="button"
+                                       className="btn btn-primary-subtle w-100"
+                                       onClick={handleSignOut}
+                                    >
                                        Sign out
                                        <i className="ri-login-box-line ms-2"></i>
-                                    </Link>
+                                    </button>
                                  </div>
                               </div>
                            </div>

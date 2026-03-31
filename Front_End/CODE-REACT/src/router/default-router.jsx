@@ -6,6 +6,7 @@ import Index from "../views"
 import HospitalDashboardOne from "../views/dashboard-pages/hospital-dashboard-one"
 import HospitalDashboardTwo from "../views/dashboard-pages/hospital-dashboard-two"
 import PatientDashboard from "../views/dashboard-pages/patient-dashboard"
+import NurseDashboard from "../views/dashboard-pages/nurse-dashboard"
 import Covid19Dashboard from "../views/dashboard-pages/covid-19-dashboard"
 
 // Email Page
@@ -17,6 +18,18 @@ import AddDoctor from "../views/doctor/add-doctor"
 import DoctorList from "../views/doctor/doctor-list"
 import DoctorProfile from "../views/doctor/doctor-profile"
 import EditDoctor from "../views/doctor/edit-doctor"
+
+// Patient Page
+import AddPatient from "../views/patient/add-patient"
+import PatientList from "../views/patient/patient-list"
+import PatientProfile from "../views/patient/patient-profile"
+import EditPatient from "../views/patient/edit-patient"
+
+// Nurse Page
+import AddNurse from "../views/nurse/add-nurse"
+import NurseList from "../views/nurse/nurse-list"
+import NurseProfile from "../views/nurse/nurse-profile"
+import EditNurse from "../views/nurse/edit-nurse"
 
 // Calendar Page
 import Calendar from "../views/calendar/calendar"
@@ -80,7 +93,20 @@ import GoogleMap from "../views/maps/google-map"
 
 // Extra Page
 import AccountSetting from "../views/extra-pages/account-setting"
-import BlankPage from "../views/extra-pages/blank-page"
+import AdminDashboard from "../views/extra-pages/admin-dashboard"
+import AdminProfile from "../views/admin/admin-profile"
+import AdminEditProfile from "../views/admin/admin-edit-profile"
+import SuperAdminDashboard from "../views/super-admin/super-admin-dashboard"
+import UserList from "../views/super-admin/user-list"
+import AuditorList from "../views/super-admin/auditor-list"
+import AddAuditor from "../views/super-admin/add-auditor"
+import EditAuditor from "../views/super-admin/edit-auditor"
+import ViewAuditor from "../views/super-admin/view-auditor"
+import CareCoordinatorList from "../views/super-admin/care-coordinator-list"
+import AddCareCoordinator from "../views/super-admin/add-care-coordinator"
+import EditCareCoordinator from "../views/super-admin/edit-care-coordinator"
+import ViewCareCoordinator from "../views/super-admin/view-care-coordinator"
+import SuperAdminProfile from "../views/super-admin/super-admin-profile"
 import CommingSoon from "../views/extra-pages/pages-comingsoon"
 import Error404 from "../views/extra-pages/pages-error-404"
 import Error500 from "../views/extra-pages/pages-error-500"
@@ -94,13 +120,13 @@ import PrivacyPolicy from "../views/extra-pages/privacy-policy"
 import PrivacySetting from "../views/extra-pages/privacy-setting"
 import TermsOfService from "../views/extra-pages/terms-of-service"
 import BlankLayout from "../layouts/blank-layout"
+import Home from "../views/home"
 import SignIn from "../views/auth/sign-in"
 import ConformMail from "../views/auth/confirm-mail"
 import SignUp from "../views/auth/sign-up"
 import RecoverPassword from "../views/auth/recover-password"
 import LockScreen from "../views/auth/lock-screen"
-import { path } from "@amcharts/amcharts4/core"
-
+import ConfirmLogin from "../views/auth/confirm-login"
 export const DefaultRoute = [
   {
     path: "",
@@ -108,7 +134,7 @@ export const DefaultRoute = [
     children: [
       //  ------ Dashboard Route ------ 
       {
-        path: '/',
+        path: '/dashboard',
         element: <Index />
       },
       {
@@ -122,6 +148,10 @@ export const DefaultRoute = [
       {
         path: '/dashboard-pages/patient-dashboard',
         element: <PatientDashboard />
+      },
+      {
+        path: '/dashboard-pages/nurse-dashboard',
+        element: <NurseDashboard />
       },
       {
         path: '/dashboard-pages/dashboard-4',
@@ -152,8 +182,56 @@ export const DefaultRoute = [
         element: <DoctorProfile />
       },
       {
-        path: '/doctor/edit-doctor',
+        path: '/doctor/doctor-profile/:id',
+        element: <DoctorProfile />
+      },
+      {
+        path: '/doctor/edit-doctor/:id',
         element: <EditDoctor />
+      },
+
+      //  ------ Patient Route ------
+      {
+        path: '/patient/patient-list',
+        element: <PatientList />
+      },
+      {
+        path: '/patient/add-patient',
+        element: <AddPatient />
+      },
+      {
+        path: '/patient/patient-profile',
+        element: <PatientProfile />
+      },
+      {
+        path: '/patient/patient-profile/:id',
+        element: <PatientProfile />
+      },
+      {
+        path: '/patient/edit-patient/:id',
+        element: <EditPatient />
+      },
+
+      //  ------ Nurse Route ------
+      {
+        path: '/nurse/nurse-list',
+        element: <NurseList />
+      },
+      {
+        path: '/nurse/add-nurse',
+        element: <AddNurse />
+      },
+      {
+        path: '/nurse/nurse-profile',
+        element: <NurseProfile />
+      },
+      {
+        path: '/nurse/nurse-profile/:id',
+        element: <NurseProfile />
+      },
+      {
+        path: '/nurse/edit-nurse/:id',
+        element: <EditNurse />
       },
 
       //  ------ Calendar Route ------ 
@@ -357,7 +435,65 @@ export const DefaultRoute = [
       },
       {
         path: '/extra-pages/blank-page',
-        element: <BlankPage />
+        element: <AdminDashboard />
+      },
+      {
+        path: '/admin/dashboard',
+        element: <AdminDashboard />
+      },
+      {
+        path: '/admin/profile',
+        element: <AdminProfile />
+      },
+      {
+        path: '/admin/edit-profile',
+        element: <AdminEditProfile />
+      },
+
+      //  ------ Super Admin Routes ------
+      {
+        path: '/super-admin/dashboard',
+        element: <SuperAdminDashboard />
+      },
+      {
+        path: '/super-admin/users',
+        element: <UserList />
+      },
+      {
+        path: '/super-admin/auditors',
+        element: <AuditorList />
+      },
+      {
+        path: '/super-admin/auditors/add',
+        element: <AddAuditor />
+      },
+      {
+        path: '/super-admin/auditors/edit/:id',
+        element: <EditAuditor />
+      },
+      {
+        path: '/super-admin/auditors/:id',
+        element: <ViewAuditor />
+      },
+      {
+        path: '/super-admin/care-coordinators',
+        element: <CareCoordinatorList />
+      },
+      {
+        path: '/super-admin/care-coordinators/add',
+        element: <AddCareCoordinator />
+      },
+      {
+        path: '/super-admin/care-coordinators/edit/:id',
+        element: <EditCareCoordinator />
+      },
+      {
+        path: '/super-admin/care-coordinators/:id',
+        element: <ViewCareCoordinator />
+      },
+      {
+        path: '/super-admin/profile',
+        element: <SuperAdminProfile />
       },
       {
         path: '/extra-pages/pages-pricing',
@@ -396,7 +532,11 @@ export const BlankLayoutRouter = [
     path: "",
     element: <BlankLayout />,
     children: [
-
+      //  ------ Home Route ------ 
+      {
+        path: '/',
+        element: <Home />
+      },
       //  ------ Auth Route ------ 
       {
         path: '/auth/sign-in',
@@ -417,6 +557,10 @@ export const BlankLayoutRouter = [
       {
         path: '/auth/lock-screen',
         element: <LockScreen />
+      },
+      {
+        path: '/auth/confirm-login',
+        element: <ConfirmLogin />
       },
 
       //  ------ Extra Page Route ------ 

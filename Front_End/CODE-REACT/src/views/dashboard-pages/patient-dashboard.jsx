@@ -18,10 +18,17 @@ const trainings = [
 
 
 const PatientDashboard = () => {
+    const [patientUser] = React.useState(() => {
+        try {
+            const stored = localStorage.getItem("patientUser");
+            return stored ? JSON.parse(stored) : null;
+        } catch { return null; }
+    });
+
     const userData = {
-        name: "Bess Willis",
+        name: patientUser ? `${patientUser.firstName || ''} ${patientUser.lastName || ''}`.trim() || patientUser.email : "Bess Willis",
         age: 27,
-        location: "California",
+        location: patientUser?.service || "California",
         weight: { current: 60, goal: 55 },
         height: 170,
         steps: { walked: 4532, goal: 6500 },
@@ -31,7 +38,10 @@ const PatientDashboard = () => {
             protein: 65,
             fat: 70,
         },
-        profileImage: generatePath(`/assets/images/user/11.png`)
+        profileImage: patientUser?.profileImage?.startsWith("data:") ? patientUser.profileImage
+            : patientUser?.profileImage?.startsWith("http") ? patientUser.profileImage
+            : patientUser?.profileImage ? generatePath(patientUser.profileImage.startsWith("/") ? patientUser.profileImage.slice(1) : patientUser.profileImage)
+            : generatePath(`/assets/images/user/11.png`)
     };
 
     const chartOptions = {

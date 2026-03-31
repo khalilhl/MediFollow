@@ -9,6 +9,27 @@ const VerticalNav = () => {
     const location = useLocation()
     const [activeMenu, setActiveMenu] = useState(false)
     const [active, setActive] = useState('')
+    const [patientUser] = useState(() => {
+        try {
+            const stored = localStorage.getItem("patientUser");
+            return stored ? JSON.parse(stored) : null;
+        } catch { return null; }
+    })
+    const [nurseUser] = useState(() => {
+        try {
+            const stored = localStorage.getItem("nurseUser");
+            return stored ? JSON.parse(stored) : null;
+        } catch { return null; }
+    })
+    const [adminUser] = useState(() => {
+        try {
+            const stored = localStorage.getItem("adminUser");
+            return stored ? JSON.parse(stored) : null;
+        } catch { return null; }
+    })
+    const isPatient = !!patientUser
+    const isNurse = !!nurseUser
+    const isSuperAdmin = adminUser?.role === "superadmin"
 
     const emailItems = [
         { path: "/email/inbox", name: "Inbox", icon: "ri-inbox-fill" },
@@ -19,7 +40,18 @@ const VerticalNav = () => {
         { path: "/doctor/doctor-list", name: "All Doctor", icon: "ri-file-list-fill" },
         { path: "/doctor/add-doctor", name: "Add Doctor", icon: "ri-user-add-fill" },
         { path: "/doctor/doctor-profile", name: "Doctor Profile", icon: "ri-profile-fill" },
-        { path: "/doctor/edit-doctor", name: "Edit Doctor", icon: "ri-file-edit-fill" },
+    ];
+
+    const patientItems = [
+        { path: "/patient/patient-list", name: "All Patient", icon: "ri-file-list-fill" },
+        { path: "/patient/add-patient", name: "Add Patient", icon: "ri-user-add-fill" },
+        { path: "/patient/patient-profile", name: "Patient Profile", icon: "ri-profile-fill" },
+    ];
+
+    const nurseItems = [
+        { path: "/nurse/nurse-list", name: "All Nurse", icon: "ri-file-list-fill" },
+        { path: "/nurse/add-nurse", name: "Add Nurse", icon: "ri-user-add-fill" },
+        { path: "/nurse/nurse-profile", name: "Nurse Profile", icon: "ri-profile-fill" },
     ];
 
     const uiElementsItems = [
@@ -85,13 +117,14 @@ const VerticalNav = () => {
         { path: "/auth/sign-up", name: "Register", icon: "ri-logout-box-fill" },
         { path: "/auth/recover-password", name: "Recover Password", icon: "ri-record-mail-fill" },
         { path: "/auth/confirm-mail", name: "Confirm Mail", icon: "ri-chat-check-fill" },
-        { path: "/auth/lock-screen", name: "Lock Screen", icon: "ri-file-lock-fill" },
+        { path: "/auth/lock-screen", name: "Admin Login", icon: "ri-file-lock-fill" },
     ];
 
     const extraPagesItems = [
+        { path: "/extra-pages/account-setting", name: "Paramètres du compte", icon: "ri-user-settings-fill" },
         { path: "/extra-pages/pages-timeline", name: "Timeline", icon: "ri-map-pin-time-fill" },
         { path: "/extra-pages/pages-invoice", name: "Invoice", icon: "ri-question-answer-fill" },
-        { path: "/extra-pages/blank-page", name: "Blank Page", icon: "ri-checkbox-blank-fill" },
+        { path: "/extra-pages/blank-page", name: "Admin Dashboard", icon: "ri-dashboard-fill" },
         { path: "/extra-pages/pages-error-404", name: "Error 404", icon: "ri-error-warning-fill" },
         { path: "/extra-pages/pages-error-500", name: "Error 500", icon: "ri-error-warning-fill" },
         { path: "/extra-pages/pages-pricing", name: "Pricing", icon: "ri-price-tag-3-fill" },
@@ -119,6 +152,44 @@ const VerticalNav = () => {
     }
 
 
+    if (isPatient) {
+        return (
+            <ul className="navbar-nav iq-main-menu" id="sidebar-menu">
+                <Nav.Item as="li">
+                    <Link to="/dashboard-pages/patient-dashboard" className={`nav-link ${location.pathname === "/dashboard-pages/patient-dashboard" ? "active" : ""}`}>
+                        <i className="ri-hospital-fill"></i>
+                        <span className="item-name">Mon tableau de bord</span>
+                    </Link>
+                </Nav.Item>
+                <Nav.Item as="li">
+                    <Link to={`/patient/patient-profile/${patientUser?.id}`} className={`nav-link ${location.pathname === `/patient/patient-profile/${patientUser?.id}` ? "active" : ""}`}>
+                        <i className="ri-user-heart-fill"></i>
+                        <span className="item-name">Mon profil</span>
+                    </Link>
+                </Nav.Item>
+            </ul>
+        )
+    }
+
+    if (isNurse) {
+        return (
+            <ul className="navbar-nav iq-main-menu" id="sidebar-menu">
+                <Nav.Item as="li">
+                    <Link to="/dashboard-pages/nurse-dashboard" className={`nav-link ${location.pathname === "/dashboard-pages/nurse-dashboard" ? "active" : ""}`}>
+                        <i className="ri-hospital-fill"></i>
+                        <span className="item-name">Mon tableau de bord</span>
+                    </Link>
+                </Nav.Item>
+                <Nav.Item as="li">
+                    <Link to={`/nurse/nurse-profile/${nurseUser?.id}`} className={`nav-link ${location.pathname === `/nurse/nurse-profile/${nurseUser?.id}` ? "active" : ""}`}>
+                        <i className="ri-nurse-fill"></i>
+                        <span className="item-name">Mon profil</span>
+                    </Link>
+                </Nav.Item>
+            </ul>
+        )
+    }
+
     return (
         <>
             <ul className="navbar-nav iq-main-menu" id="sidebar-menu">
@@ -139,7 +210,7 @@ const VerticalNav = () => {
                     </Link>
                 </Nav.Item>
                 <Nav.Item as="li">
-                    <Link to="/" className={`nav-link ${location.pathname === "/" ? "active" : ""}`}>
+                    <Link to="/dashboard" className={`nav-link ${location.pathname === "/dashboard" ? "active" : ""}`}>
                         <OverlayTrigger
                             key={"DDashboard"}
                             placement={"right"}
@@ -286,7 +357,7 @@ const VerticalNav = () => {
                         <div className="colors">
                             <CustomToggle
                                 eventKey="Doctor"
-                                activeClass={doctorItems.some(item => location.pathname === item.path)}
+                                activeClass={doctorItems.some(item => location.pathname === item.path) || location.pathname.startsWith("/doctor/doctor-profile/")}
                                 onClick={(activeKey) => setActiveMenu(activeKey)}
                             >
                                 <OverlayTrigger
@@ -316,6 +387,92 @@ const VerticalNav = () => {
                             <Accordion.Collapse as="ul" eventKey="Doctor" className="sub-nav" id="Doctor">
                                 <>
                                     {doctorItems.map(({ path, name, icon }) => (
+                                        <li key={path}>
+                                            <Link className={`nav-link ${location.pathname === path ? "active" : ""}`} to={path}>
+                                                <i className={icon}></i>
+                                                <span className="item-name">{name}</span>
+                                            </Link>
+                                        </li>
+                                    ))}
+                                </>
+                            </Accordion.Collapse>
+
+
+                        </div>
+                    </Accordion.Item>
+
+                    <Accordion.Item as="li" className={`nav-item ${active === "Patient" && 'active'}`} onClick={() => setActive("Patient")}>
+                        <div className="colors">
+                            <CustomToggle
+                                eventKey="Patient"
+                                activeClass={patientItems.some(item => location.pathname === item.path || location.pathname.startsWith("/patient/patient-profile/"))}
+                                onClick={(activeKey) => setActiveMenu(activeKey)}
+                            >
+                                <OverlayTrigger
+                                    key={"Patient"}
+                                    placement={"right"}
+                                    overlay={
+                                        <Tooltip id="Patient">
+                                            Patient
+                                        </Tooltip>
+                                    }
+                                >
+                                    <i className="ri-user-heart-fill"></i>
+                                </OverlayTrigger>
+                                <span className="item-name">Patient</span>
+                                <i className="right-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" className="icon-18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </i>
+                            </CustomToggle>
+
+                            <Accordion.Collapse as="ul" eventKey="Patient" className="sub-nav" id="Patient">
+                                <>
+                                    {patientItems.map(({ path, name, icon }) => (
+                                        <li key={path}>
+                                            <Link className={`nav-link ${location.pathname === path ? "active" : ""}`} to={path}>
+                                                <i className={icon}></i>
+                                                <span className="item-name">{name}</span>
+                                            </Link>
+                                        </li>
+                                    ))}
+                                </>
+                            </Accordion.Collapse>
+
+
+                        </div>
+                    </Accordion.Item>
+
+                    <Accordion.Item as="li" className={`nav-item ${active === "Nurse" && 'active'}`} onClick={() => setActive("Nurse")}>
+                        <div className="colors">
+                            <CustomToggle
+                                eventKey="Nurse"
+                                activeClass={nurseItems.some(item => location.pathname === item.path) || location.pathname.startsWith("/nurse/nurse-profile/")}
+                                onClick={(activeKey) => setActiveMenu(activeKey)}
+                            >
+                                <OverlayTrigger
+                                    key={"Nurse"}
+                                    placement={"right"}
+                                    overlay={
+                                        <Tooltip id="Nurse">
+                                            Nurse
+                                        </Tooltip>
+                                    }
+                                >
+                                    <i className="ri-nurse-fill"></i>
+                                </OverlayTrigger>
+                                <span className="item-name">Nurse</span>
+                                <i className="right-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" className="icon-18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </i>
+                            </CustomToggle>
+
+                            <Accordion.Collapse as="ul" eventKey="Nurse" className="sub-nav" id="Nurse">
+                                <>
+                                    {nurseItems.map(({ path, name, icon }) => (
                                         <li key={path}>
                                             <Link className={`nav-link ${location.pathname === path ? "active" : ""}`} to={path}>
                                                 <i className={icon}></i>
@@ -744,6 +901,47 @@ const VerticalNav = () => {
                         </div>
                     </Accordion.Item>
                 </Accordion>
+
+                {isSuperAdmin && (
+                    <>
+                        <li><hr className="hr-horizontal" /></li>
+                        <Nav.Item as="li" className="static-item ms-2">
+                            <Link className="nav-link static-item disabled text-start" tabIndex="-1">
+                                <span className="default-icon">SUPER ADMIN</span>
+                            </Link>
+                        </Nav.Item>
+                        <Nav.Item as="li">
+                            <Link to="/super-admin/dashboard" className={`nav-link ${location.pathname === "/super-admin/dashboard" ? "active" : ""}`}>
+                                <i className="ri-shield-star-fill"></i>
+                                <span className="item-name">Super Admin Dashboard</span>
+                            </Link>
+                        </Nav.Item>
+                        <Nav.Item as="li">
+                            <Link to="/super-admin/users" className={`nav-link ${location.pathname === "/super-admin/users" ? "active" : ""}`}>
+                                <i className="ri-team-fill"></i>
+                                <span className="item-name">All Users</span>
+                            </Link>
+                        </Nav.Item>
+                        <Nav.Item as="li">
+                            <Link to="/super-admin/auditors" className={`nav-link ${location.pathname.startsWith("/super-admin/auditors") ? "active" : ""}`}>
+                                <i className="ri-shield-check-fill"></i>
+                                <span className="item-name">Auditors</span>
+                            </Link>
+                        </Nav.Item>
+                        <Nav.Item as="li">
+                            <Link to="/super-admin/care-coordinators" className={`nav-link ${location.pathname.startsWith("/super-admin/care-coordinators") ? "active" : ""}`}>
+                                <i className="ri-heart-pulse-fill"></i>
+                                <span className="item-name">Care Coordinators</span>
+                            </Link>
+                        </Nav.Item>
+                        <Nav.Item as="li">
+                            <Link to="/super-admin/profile" className={`nav-link ${location.pathname === "/super-admin/profile" ? "active" : ""}`}>
+                                <i className="ri-user-settings-fill"></i>
+                                <span className="item-name">My Profile</span>
+                            </Link>
+                        </Nav.Item>
+                    </>
+                )}
 
                 <li>
                     <hr className="hr-horizontal" />

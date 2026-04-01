@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
 import { Modal, Form, Alert, Button } from "react-bootstrap";
 import { medicationApi } from "../services/api";
 import { useMedicationReminders } from "../hooks/useMedicationReminders";
@@ -12,7 +13,7 @@ import {
 
 const FREQUENCIES = ["Once daily", "Twice daily", "Three times daily", "Every 8 hours", "Weekly", "As needed"];
 
-const MedicationsCard = ({ patientId, medications: initialMeds, onUpdate, allowAdd = true }) => {
+const MedicationsCard = ({ patientId, medications: initialMeds, onUpdate, allowAdd = true, showHistoryLink = true }) => {
   const [meds, setMeds] = useState(initialMeds || []);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({
@@ -98,7 +99,7 @@ const MedicationsCard = ({ patientId, medications: initialMeds, onUpdate, allowA
     <>
       <div className="card border-0 shadow-sm" style={{ borderRadius: 14 }}>
         <div className="card-body">
-          <div className="d-flex justify-content-between align-items-center mb-3">
+          <div className="d-flex justify-content-between align-items-center mb-2">
             <h6 className="text-primary fw-bold mb-0">
               <i className="ri-capsule-line me-2"></i>Medications
             </h6>
@@ -118,6 +119,14 @@ const MedicationsCard = ({ patientId, medications: initialMeds, onUpdate, allowA
               )}
             </div>
           </div>
+          {showHistoryLink && (
+            <div className="mb-3">
+              <Link to="/dashboard-pages/patient-medication-history" className="small text-decoration-none">
+                <i className="ri-history-line me-1"></i>
+                Historique des traitements terminés
+              </Link>
+            </div>
+          )}
 
           {typeof Notification !== "undefined" && notifHint !== "granted" && meds.length > 0 && (
             <Alert variant="info" className="py-2 px-3 small mb-3">

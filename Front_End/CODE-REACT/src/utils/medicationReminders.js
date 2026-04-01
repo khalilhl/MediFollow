@@ -100,3 +100,45 @@ export function remainingSlotsToday(med, dateStr) {
   });
   return rem;
 }
+
+/** Traitement encore affiché sur la carte : pas de date de fin, ou fin ≥ jour courant (YYYY-MM-DD). */
+export function isMedicationCurrentTreatment(med, todayYmd) {
+  const end = med?.endDate ? String(med.endDate).slice(0, 10) : "";
+  if (!end) return true;
+  return compareYMD(end, todayYmd) >= 0;
+}
+
+/** Traitement terminé : date de fin strictement passée. */
+export function isMedicationPastEndDate(med, todayYmd) {
+  const end = med?.endDate ? String(med.endDate).slice(0, 10) : "";
+  if (!end) return false;
+  return compareYMD(end, todayYmd) < 0;
+}
+
+/**
+ * Historique des prises groupé par jour (clés fusionnées), du plus récent au plus ancien.
+ * Chaque entrée : { date, slots: [{ index, label }] }
+ */
+export function getIntakeHistoryByDate(med) {
+  const keys = getMergedSlotKeys(med);
+  const slotDefs = getReminderSlotsForFrequency(med.frequency);
+  const byDate = new Map();
+  for (const k of keys) {
+    const m = /^(\d{4}-\d{2}-\d{2})#(\d+)$/.exec(String(k));
+    if (!m) continue;
+    const date = m[1];
+    const idx = Number(m[2]);
+    if (!byDate.has(date)) byDate.set(date, []);
+    byDate.get(date).push(idx);
+  }
+  const sortedDates = [...byDate.keys()].sort((a, b) => b.localeCompare(a));
+  return sortedDates.map((date) => ({
+    date,
+    slots: [...new Set(byDate.get(date))]
+      .sort((a, b) => a - b)
+      .map((idx) => ({
+        index: idx,
+        label: slotDefs[idx]?.label || `Prise ${idx + 1}`,
+      })),
+  }));
+}

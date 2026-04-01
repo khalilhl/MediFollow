@@ -8,6 +8,7 @@ import AppointmentsCard from "../../components/AppointmentsCard";
 import CareTeamCard from "../../components/CareTeamCard";
 import DischargeSummaryCard from "../../components/DischargeSummaryCard";
 import { healthLogApi, medicationApi, appointmentApi, patientApi, doctorApi, nurseApi } from "../../services/api";
+import { isMedicationCurrentTreatment } from "../../utils/medicationReminders";
 
 // Local date string — avoids UTC timezone bug
 const localDateString = () => {
@@ -241,6 +242,9 @@ const PatientDashboard = () => {
     const o2 = o2Status(v.oxygenSaturation);
     const mood = moodDisplay(todayLog?.mood);
     const painLevel = todayLog?.painLevel ?? null;
+
+    const todayYmd = localDateString();
+    const activeMedications = medications.filter((m) => isMedicationCurrentTreatment(m, todayYmd));
 
     return (
         <>
@@ -485,7 +489,7 @@ const PatientDashboard = () => {
                 <Col lg={3} md={6}>
                     <MedicationsCard
                         patientId={pid}
-                        medications={medications}
+                        medications={activeMedications}
                         onUpdate={loadMedications}
                         allowAdd={false}
                     />

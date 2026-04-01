@@ -6,6 +6,7 @@ import Index from "../views"
 import HospitalDashboardOne from "../views/dashboard-pages/hospital-dashboard-one"
 import HospitalDashboardTwo from "../views/dashboard-pages/hospital-dashboard-two"
 import PatientDashboard from "../views/dashboard-pages/patient-dashboard"
+import PatientMedicationHistory from "../views/dashboard-pages/patient-medication-history"
 import NurseDashboard from "../views/dashboard-pages/nurse-dashboard"
 import Covid19Dashboard from "../views/dashboard-pages/covid-19-dashboard"
 
@@ -154,6 +155,10 @@ export const DefaultRoute = [
       {
         path: '/dashboard-pages/patient-dashboard',
         element: <PatientDashboard />
+      },
+      {
+        path: '/dashboard-pages/patient-medication-history',
+        element: <PatientMedicationHistory />
       },
       {
         path: '/dashboard-pages/nurse-dashboard',

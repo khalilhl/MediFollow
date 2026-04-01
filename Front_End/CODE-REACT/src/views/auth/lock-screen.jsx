@@ -11,6 +11,7 @@ const LockScreen = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [pending, setPending] = useState(false);
@@ -121,14 +122,29 @@ const LockScreen = () => {
                   </Form.Group>
                   <Form.Group className="form-group mb-3" controlId="password">
                     <Form.Label className="mb-2">Mot de passe</Form.Label>
-                    <Form.Control
-                      type="password"
-                      className="mb-0 border"
-                      placeholder="Mot de passe"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
+                    <div className="position-relative">
+                      <Form.Control
+                        type={showPassword ? "text" : "password"}
+                        className="mb-0 border"
+                        style={{ paddingRight: 40 }}
+                        placeholder="Mot de passe"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        data-eye-clickable
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-secondary"
+                        onClick={() => setShowPassword((v) => !v)}
+                        aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                        data-eye-clickable
+                        title={showPassword ? "Masquer" : "Afficher"}
+                        style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", zIndex: 2 }}
+                      >
+                        <i className={showPassword ? "ri-eye-off-line" : "ri-eye-line"}></i>
+                      </button>
+                    </div>
                   </Form.Group>
                   <div className="d-inline-block w-100">
                     <button type="submit" className="btn btn-primary-subtle float-end mt-3" disabled={loading}>

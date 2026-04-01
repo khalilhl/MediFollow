@@ -18,6 +18,9 @@ import AddDoctor from "../views/doctor/add-doctor"
 import DoctorList from "../views/doctor/doctor-list"
 import DoctorProfile from "../views/doctor/doctor-profile"
 import EditDoctor from "../views/doctor/edit-doctor"
+import DoctorPrescriptions from "../views/doctor/doctor-prescriptions"
+import DoctorMyPatients from "../views/doctor/doctor-my-patients"
+import DoctorDepartmentNurses from "../views/doctor/doctor-department-nurses"
 
 // Patient Page
 import AddPatient from "../views/patient/add-patient"
@@ -190,6 +193,18 @@ export const DefaultRoute = [
       {
         path: '/doctor/edit-doctor/:id',
         element: <EditDoctor />
+      },
+      {
+        path: '/doctor/prescriptions',
+        element: <DoctorPrescriptions />
+      },
+      {
+        path: '/doctor/my-patients',
+        element: <DoctorMyPatients />
+      },
+      {
+        path: '/doctor/department-nurses',
+        element: <DoctorDepartmentNurses />
       },
 
       //  ------ Patient Route ------

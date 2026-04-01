@@ -113,4 +113,20 @@ export class DepartmentService {
       nurses: nurses.map(mapNurse),
     };
   }
+
+  /** Infirmiers du même département que le médecin (champ department sur Doctor). */
+  async getNursesForDoctor(doctorId: string) {
+    const doctor = await this.doctorModel.findById(doctorId).select('department').lean().exec();
+    if (!doctor?.department?.trim()) {
+      return { department: '', nurses: [] };
+    }
+    const name = doctor.department.trim();
+    const nurses = await this.nurseModel
+      .find({ department: name })
+      .select('-password')
+      .sort({ lastName: 1, firstName: 1 })
+      .lean()
+      .exec();
+    return { department: name, nurses };
+  }
 }

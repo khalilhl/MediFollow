@@ -27,8 +27,15 @@ const VerticalNav = () => {
             return stored ? JSON.parse(stored) : null;
         } catch { return null; }
     })
+    const [doctorUser] = useState(() => {
+        try {
+            const stored = localStorage.getItem("doctorUser");
+            return stored ? JSON.parse(stored) : null;
+        } catch { return null; }
+    })
     const isPatient = !!patientUser
     const isNurse = !!nurseUser
+    const isDoctor = !!doctorUser && !isPatient && !isNurse
     const isSuperAdmin = adminUser?.role === "superadmin"
 
     const emailItems = [
@@ -36,6 +43,7 @@ const VerticalNav = () => {
         { path: "/email/email-compose", name: "Email Compose", icon: "ri-edit-2-fill" },
     ];
 
+    /** Menu accordéon « Doctor » (admin / démo) — pas les outils du médecin connecté (voir branche isDoctor). */
     const doctorItems = [
         { path: "/doctor/doctor-list", name: "All Doctor", icon: "ri-file-list-fill" },
         { path: "/doctor/add-doctor", name: "Add Doctor", icon: "ri-user-add-fill" },
@@ -183,6 +191,61 @@ const VerticalNav = () => {
                 <Nav.Item as="li">
                     <Link to={`/nurse/nurse-profile/${nurseUser?.id}`} className={`nav-link ${location.pathname === `/nurse/nurse-profile/${nurseUser?.id}` ? "active" : ""}`}>
                         <i className="ri-nurse-fill"></i>
+                        <span className="item-name">Mon profil</span>
+                    </Link>
+                </Nav.Item>
+            </ul>
+        )
+    }
+
+    if (isDoctor) {
+        const docId = doctorUser?.id || doctorUser?._id
+        return (
+            <ul className="navbar-nav iq-main-menu" id="sidebar-menu">
+                <Nav.Item as="li" className="static-item ms-2">
+                    <Link className="nav-link static-item disabled text-start" tabIndex="-1" to="#">
+                        <span className="default-icon">Espace médecin</span>
+                    </Link>
+                </Nav.Item>
+                <Nav.Item as="li">
+                    <Link to="/dashboard" className={`nav-link ${location.pathname === "/dashboard" ? "active" : ""}`}>
+                        <i className="ri-dashboard-2-fill"></i>
+                        <span className="item-name">Tableau de bord</span>
+                    </Link>
+                </Nav.Item>
+                <Nav.Item as="li">
+                    <Link
+                        to="/doctor/my-patients"
+                        className={`nav-link ${location.pathname === "/doctor/my-patients" ? "active" : ""}`}
+                    >
+                        <i className="ri-user-heart-line"></i>
+                        <span className="item-name">Mes patients</span>
+                    </Link>
+                </Nav.Item>
+                <Nav.Item as="li">
+                    <Link
+                        to="/doctor/department-nurses"
+                        className={`nav-link ${location.pathname === "/doctor/department-nurses" ? "active" : ""}`}
+                    >
+                        <i className="ri-nurse-line"></i>
+                        <span className="item-name">Infirmiers du département</span>
+                    </Link>
+                </Nav.Item>
+                <Nav.Item as="li">
+                    <Link
+                        to="/doctor/prescriptions"
+                        className={`nav-link ${location.pathname === "/doctor/prescriptions" ? "active" : ""}`}
+                    >
+                        <i className="ri-capsule-line"></i>
+                        <span className="item-name">Ordonnances</span>
+                    </Link>
+                </Nav.Item>
+                <Nav.Item as="li">
+                    <Link
+                        to={`/doctor/doctor-profile/${docId}`}
+                        className={`nav-link ${location.pathname === `/doctor/doctor-profile/${docId}` ? "active" : ""}`}
+                    >
+                        <i className="ri-profile-fill"></i>
                         <span className="item-name">Mon profil</span>
                     </Link>
                 </Nav.Item>

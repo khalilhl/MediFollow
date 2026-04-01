@@ -67,6 +67,17 @@ export class PatientService {
     return patients;
   }
 
+  /** Patients dont le médecin référent correspond à doctorId (champ doctorId). */
+  async findByAssignedDoctorId(doctorId: string) {
+    const id = String(doctorId);
+    return this.patientModel
+      .find({ doctorId: id })
+      .select('-password')
+      .sort({ lastName: 1, firstName: 1 })
+      .lean()
+      .exec();
+  }
+
   async findById(id: string) {
     const patient = await this.patientModel.findById(id).select('-password').exec();
     if (!patient) throw new NotFoundException('Patient non trouvé');

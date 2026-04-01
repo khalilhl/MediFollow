@@ -4,7 +4,7 @@ import { medicationApi } from "../services/api";
 
 const FREQUENCIES = ["Once daily", "Twice daily", "Three times daily", "Every 8 hours", "Weekly", "As needed"];
 
-const MedicationsCard = ({ patientId, medications: initialMeds, onUpdate }) => {
+const MedicationsCard = ({ patientId, medications: initialMeds, onUpdate, allowAdd = true }) => {
   const [meds, setMeds] = useState(initialMeds || []);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ name: "", dosage: "", frequency: "Once daily", prescribedBy: "", startDate: "", endDate: "", notes: "" });
@@ -41,9 +41,11 @@ const MedicationsCard = ({ patientId, medications: initialMeds, onUpdate }) => {
             <h6 className="text-primary fw-bold mb-0"><i className="ri-capsule-line me-2"></i>Medications</h6>
             <div className="d-flex align-items-center gap-2">
               {today > 0 && <span className="badge bg-warning text-dark">{today} to take</span>}
-              <button className="btn btn-sm btn-outline-primary" style={{ borderRadius: 20 }} onClick={() => setShowAdd(true)}>
-                <i className="ri-add-line"></i>
-              </button>
+              {allowAdd && (
+                <button type="button" className="btn btn-sm btn-outline-primary" style={{ borderRadius: 20 }} onClick={() => setShowAdd(true)}>
+                  <i className="ri-add-line"></i>
+                </button>
+              )}
             </div>
           </div>
 
@@ -76,8 +78,8 @@ const MedicationsCard = ({ patientId, medications: initialMeds, onUpdate }) => {
         </div>
       </div>
 
-      {/* Add Medication Modal */}
-      <Modal show={showAdd} onHide={() => setShowAdd(false)} centered>
+      {/* Add Medication Modal (staff / demo; patients use doctor prescriptions) */}
+      <Modal show={allowAdd && showAdd} onHide={() => setShowAdd(false)} centered>
         <Modal.Header closeButton className="border-0">
           <Modal.Title className="text-primary fs-6"><i className="ri-capsule-line me-2"></i>Add Medication</Modal.Title>
         </Modal.Header>

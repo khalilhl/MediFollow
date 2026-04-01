@@ -162,7 +162,7 @@ const PatientDashboard = () => {
         loadMedications();
         loadAppointments();
         loadCareTeam();
-    }, [patientUser?._id]);
+    }, [pid]);
 
     // Build chart series from history
     const chartDates = history.map(l => new Date(l.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }));
@@ -481,6 +481,7 @@ const PatientDashboard = () => {
                         patientId={pid}
                         medications={medications}
                         onUpdate={loadMedications}
+                        allowAdd={false}
                     />
                 </Col>
                 <Col lg={3} md={6}>

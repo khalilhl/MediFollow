@@ -122,6 +122,8 @@ export const doctorApi = {
 export const patientApi = {
   create: (data) => api.post("/patients", data),
   getAll: () => api.get("/patients"),
+  /** Médecin connecté : patients dont il est le référent (JWT). */
+  getMyAssignedForDoctor: () => api.get("/patients/doctor/my-patients"),
   getById: (id) => api.get(`/patients/${id}`),
   update: (id, data) => api.put(`/patients/${id}`, data),
   delete: (id) => api.delete(`/patients/${id}`),
@@ -140,6 +142,8 @@ export const nurseApi = {
 
 export const departmentApi = {
   summary: () => api.get("/departments/summary"),
+  /** Médecin connecté : infirmiers du même département (JWT). */
+  getMyNursesAsDoctor: () => api.get("/departments/doctor/my-nurses"),
   usersByDepartment: (department) =>
     api.get(`/departments/users?department=${encodeURIComponent(department)}`),
 };

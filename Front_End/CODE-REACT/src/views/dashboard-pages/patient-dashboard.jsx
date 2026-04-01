@@ -103,7 +103,13 @@ const PatientDashboard = () => {
     const chartRef = useRef(null);
     const chartInstanceRef = useRef(null);
 
-    const pid = patientUser?.id || patientUser?._id;
+    const rawId = patientUser?.id ?? patientUser?._id;
+    const pid =
+        rawId != null && typeof rawId === "object" && rawId !== null && "$oid" in rawId
+            ? String(rawId.$oid)
+            : rawId != null
+              ? String(rawId)
+              : undefined;
 
     const loadTodayLog = async () => {
         if (!pid) return;

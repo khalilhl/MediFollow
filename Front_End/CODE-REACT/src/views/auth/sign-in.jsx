@@ -17,6 +17,22 @@ const LARGE_TEXT_KEY = "medifollow_large_text_signin";
 
 const KEYWORD_STOP = ["stop", "terminer", "arrêt", "arrêter", "finish", "fin"];
 
+/** Supprime les autres rôles pour ne pas garder plusieurs JWT (sinon api.js pouvait envoyer le mauvais token). */
+function clearMedifollowSessionExcept(role) {
+  const r = role === "auditor" || role === "carecoordinator" ? "admin" : role;
+  const sessions = [
+    ["patient", "patientToken", "patientUser"],
+    ["doctor", "doctorToken", "doctorUser"],
+    ["nurse", "nurseToken", "nurseUser"],
+    ["admin", "adminToken", "adminUser"],
+  ];
+  for (const [name, tok, usr] of sessions) {
+    if (name === r) continue;
+    localStorage.removeItem(tok);
+    localStorage.removeItem(usr);
+  }
+}
+
 const isKeywordMatch = (text, keywords) => {
   const t = text.trim().toLowerCase();
   return keywords.some((kw) => t === kw || t.endsWith(" " + kw) || t.startsWith(kw + " "));
@@ -212,6 +228,7 @@ const SignIn = () => {
     try {
       try {
         const data = await authApi.doctorLogin(email, password);
+        clearMedifollowSessionExcept("doctor");
         localStorage.setItem("doctorToken", data.access_token);
         localStorage.setItem("doctorUser", JSON.stringify(data.user));
         navigate("/dashboard");
@@ -220,6 +237,7 @@ const SignIn = () => {
       } catch {
         try {
           const data = await authApi.patientLogin(email, password);
+          clearMedifollowSessionExcept("patient");
           localStorage.setItem("patientToken", data.access_token);
           localStorage.setItem("patientUser", JSON.stringify(data.user));
           navigate("/dashboard-pages/patient-dashboard");
@@ -228,6 +246,7 @@ const SignIn = () => {
         } catch {
           try {
             const data = await authApi.nurseLogin(email, password);
+            clearMedifollowSessionExcept("nurse");
             localStorage.setItem("nurseToken", data.access_token);
             localStorage.setItem("nurseUser", JSON.stringify(data.user));
             navigate("/dashboard-pages/nurse-dashboard");
@@ -235,6 +254,7 @@ const SignIn = () => {
             return;
           } catch {
             const data = await authApi.staffLogin(email, password);
+            clearMedifollowSessionExcept("admin");
             localStorage.setItem("adminToken", data.access_token);
             localStorage.setItem("adminUser", JSON.stringify(data.user));
             const role = data.user?.role;
@@ -253,6 +273,7 @@ const SignIn = () => {
   const finalizeRoleLogin = useCallback((data) => {
     const role = data?.user?.role;
     if (role === "doctor") {
+      clearMedifollowSessionExcept("doctor");
       localStorage.setItem("doctorToken", data.access_token);
       localStorage.setItem("doctorUser", JSON.stringify(data.user));
       navigate("/dashboard");
@@ -260,6 +281,7 @@ const SignIn = () => {
       return;
     }
     if (role === "patient") {
+      clearMedifollowSessionExcept("patient");
       localStorage.setItem("patientToken", data.access_token);
       localStorage.setItem("patientUser", JSON.stringify(data.user));
       navigate("/dashboard-pages/patient-dashboard");
@@ -267,6 +289,7 @@ const SignIn = () => {
       return;
     }
     if (role === "nurse") {
+      clearMedifollowSessionExcept("nurse");
       localStorage.setItem("nurseToken", data.access_token);
       localStorage.setItem("nurseUser", JSON.stringify(data.user));
       navigate("/dashboard-pages/nurse-dashboard");
@@ -274,6 +297,7 @@ const SignIn = () => {
       return;
     }
     if (role === "auditor" || role === "carecoordinator") {
+      clearMedifollowSessionExcept("admin");
       localStorage.setItem("adminToken", data.access_token);
       localStorage.setItem("adminUser", JSON.stringify(data.user));
       const path = role === "auditor" ? "/super-admin/auditors" : "/super-admin/care-coordinators";

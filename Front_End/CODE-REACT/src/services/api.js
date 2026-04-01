@@ -1,8 +1,38 @@
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
+const okToken = (t) => (t && t !== "undefined" && t !== "null" ? t : null);
+
+/**
+ * Jeton aligné sur la session affichée : évite d'envoyer le token médecin/admin
+ * alors que patientUser est encore en localStorage (ou l'inverse) → 403 / liste vide.
+ */
 const getValidToken = () => {
-  const t = localStorage.getItem("adminToken") || localStorage.getItem("doctorToken") || localStorage.getItem("patientToken") || localStorage.getItem("nurseToken");
-  return (t && t !== "undefined" && t !== "null") ? t : null;
+  try {
+    if (localStorage.getItem("patientUser")) {
+      const t = okToken(localStorage.getItem("patientToken"));
+      if (t) return t;
+    }
+    if (localStorage.getItem("doctorUser")) {
+      const t = okToken(localStorage.getItem("doctorToken"));
+      if (t) return t;
+    }
+    if (localStorage.getItem("nurseUser")) {
+      const t = okToken(localStorage.getItem("nurseToken"));
+      if (t) return t;
+    }
+    if (localStorage.getItem("adminUser")) {
+      const t = okToken(localStorage.getItem("adminToken"));
+      if (t) return t;
+    }
+  } catch {
+    /* ignore */
+  }
+  return (
+    okToken(localStorage.getItem("adminToken")) ||
+    okToken(localStorage.getItem("doctorToken")) ||
+    okToken(localStorage.getItem("patientToken")) ||
+    okToken(localStorage.getItem("nurseToken"))
+  );
 };
 
 export const api = {

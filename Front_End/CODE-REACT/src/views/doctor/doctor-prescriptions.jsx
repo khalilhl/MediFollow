@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Button, Card, Col, Container, Form, Row, Spinner, Table } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import { patientApi, medicationApi } from "../../services/api";
+import MedicationNameAutocomplete from "../../components/MedicationNameAutocomplete";
+import DosageAutocomplete from "../../components/DosageAutocomplete";
 
 const FREQUENCIES = [
   "1 fois par jour",
@@ -17,7 +19,9 @@ const newLineId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}
 const emptyMedicationLine = () => ({
   id: newLineId(),
   name: "",
+  useCustomMedication: false,
   dosage: "",
+  useCustomDosage: false,
   frequency: FREQUENCIES[0],
   startDate: "",
   endDate: "",
@@ -254,20 +258,20 @@ const DoctorPrescriptions = () => {
                       <Row className="g-2">
                         <Col md={12}>
                           <Form.Label className="small fw-semibold">Nom du médicament *</Form.Label>
-                          <Form.Control
-                            size="sm"
-                            placeholder="ex. Metoprolol"
+                          <MedicationNameAutocomplete
+                            id={`med-name-${row.id}`}
                             value={row.name}
-                            onChange={(e) => updateLine(row.id, { name: e.target.value })}
+                            useCustom={!!row.useCustomMedication}
+                            onChange={(patch) => updateLine(row.id, patch)}
                           />
                         </Col>
                         <Col md={6}>
                           <Form.Label className="small fw-semibold">Dosage</Form.Label>
-                          <Form.Control
-                            size="sm"
-                            placeholder="ex. 50 mg"
+                          <DosageAutocomplete
+                            id={`med-dose-${row.id}`}
                             value={row.dosage}
-                            onChange={(e) => updateLine(row.id, { dosage: e.target.value })}
+                            useCustom={!!row.useCustomDosage}
+                            onChange={(patch) => updateLine(row.id, patch)}
                           />
                         </Col>
                         <Col md={6}>

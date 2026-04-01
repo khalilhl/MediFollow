@@ -77,19 +77,25 @@ export class MedicationService {
       prescribedBy = `${fn} ${ln}`.trim() || (user.name as string) || prescribedBy;
     }
 
-    const { patientId: _omit, _id: __omit, ...rest } = data;
+    const { patientId: _omit, _id: __omit, isActive: _ia, ...rest } = data;
     const doc: Record<string, unknown> = {
       ...rest,
       patientId: new Types.ObjectId(patientId),
       prescribedBy: prescribedBy || undefined,
+      isActive: true,
     };
-    return this.medicationModel.create(doc);
+    const created = await this.medicationModel.create(doc);
+    return created;
   }
 
   async getByPatient(patientId: string, user?: JwtUser) {
     await this.assertAccessToPatient(patientId, user);
+    const pid = Types.ObjectId.isValid(patientId) ? new Types.ObjectId(patientId) : patientId;
     const meds = await this.medicationModel
-      .find({ patientId, isActive: true })
+      .find({
+        patientId: pid,
+        isActive: { $ne: false },
+      })
       .sort({ createdAt: -1 })
       .exec();
     const today = localDateString();

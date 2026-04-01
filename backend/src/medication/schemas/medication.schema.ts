@@ -37,6 +37,10 @@ export class Medication extends Document {
   /** Prises par créneau : "YYYY-MM-DD#0", "YYYY-MM-DD#1", … */
   @Prop({ type: [String], default: [] })
   takenSlotKeys: string[];
+
+  /** Heure d'enregistrement (ISO) par cle de creneau — meme cle que takenSlotKeys */
+  @Prop({ type: Object, default: {} })
+  takenSlotTimes: Record<string, string>;
 }
 
 export const MedicationSchema = SchemaFactory.createForClass(Medication);

@@ -115,12 +115,34 @@ export function isMedicationPastEndDate(med, todayYmd) {
   return compareYMD(end, todayYmd) < 0;
 }
 
+/** Horodatages ISO enregistrés au clic (clé = YYYY-MM-DD#index). */
+export function getMergedSlotTimes(med) {
+  const t = med?.takenSlotTimes;
+  if (!t || typeof t !== "object") return {};
+  return { ...t };
+}
+
+export function getSlotRecordedAtIso(med, dateStr, slotIndex) {
+  return getMergedSlotTimes(med)[`${dateStr}#${slotIndex}`] || null;
+}
+
+/** Affichage heure locale (ex. pour l’UI et l’historique). */
+export function formatSlotTimeLocal(iso) {
+  if (!iso) return "";
+  try {
+    return new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return "";
+  }
+}
+
 /**
  * Historique des prises groupé par jour (clés fusionnées), du plus récent au plus ancien.
- * Chaque entrée : { date, slots: [{ index, label }] }
+ * Chaque entrée : { date, slots: [{ index, label, recordedAt? }] }
  */
 export function getIntakeHistoryByDate(med) {
   const keys = getMergedSlotKeys(med);
+  const times = getMergedSlotTimes(med);
   const slotDefs = getReminderSlotsForFrequency(med.frequency);
   const byDate = new Map();
   for (const k of keys) {
@@ -139,6 +161,7 @@ export function getIntakeHistoryByDate(med) {
       .map((idx) => ({
         index: idx,
         label: slotDefs[idx]?.label || `Prise ${idx + 1}`,
+        recordedAt: times[`${date}#${idx}`] || null,
       })),
   }));
 }

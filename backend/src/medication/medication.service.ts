@@ -102,8 +102,23 @@ export class MedicationService {
     return meds.map((m) => {
       const o = m.toObject() as unknown as Record<string, unknown>;
       o.takenSlotKeys = this.mergeLegacySlotKeys(m);
+      o.takenSlotTimes = this.slotTimesToPlain(m);
       return o;
     });
+  }
+
+  private slotTimesToPlain(med: Medication): Record<string, string> {
+    const t = (med as unknown as { takenSlotTimes?: unknown }).takenSlotTimes;
+    if (!t || typeof t !== 'object') return {};
+    if (t instanceof Map) return Object.fromEntries(t as Map<string, string>);
+    return { ...(t as Record<string, string>) };
+  }
+
+  private parseRecordedAt(input: unknown): string | null {
+    if (typeof input !== 'string' || !input.trim()) return null;
+    const d = new Date(input);
+    if (Number.isNaN(d.getTime())) return null;
+    return d.toISOString();
   }
 
   private parseYmd(s: string | undefined): string | null {
@@ -135,7 +150,11 @@ export class MedicationService {
     return [...set].sort();
   }
 
-  async toggleTakenToday(id: string, user?: JwtUser, body?: { localDate?: string; slotIndex?: number }) {
+  async toggleTakenToday(
+    id: string,
+    user?: JwtUser,
+    body?: { localDate?: string; slotIndex?: number; recordedAt?: string },
+  ) {
     const { patientId } = await this.getMedicationAndPatientId(id);
     await this.assertAccessToPatient(patientId, user);
     const med = await this.medicationModel.findById(id).exec();
@@ -169,17 +188,21 @@ export class MedicationService {
 
     const slotKey = `${dateStr}#${slotIndex}`;
     let keys = this.mergeLegacySlotKeys(med);
+    const times = this.slotTimesToPlain(med);
     const alreadyTaken = keys.includes(slotKey);
     if (alreadyTaken) {
       keys = keys.filter((k) => k !== slotKey);
+      delete times[slotKey];
     } else {
       keys = [...new Set([...keys, slotKey])].sort();
+      const recorded = this.parseRecordedAt(body?.recordedAt) || new Date().toISOString();
+      times[slotKey] = recorded;
     }
 
     await this.medicationModel.updateOne(
       { _id: id },
       {
-        $set: { takenSlotKeys: keys, takenDates: [] },
+        $set: { takenSlotKeys: keys, takenDates: [], takenSlotTimes: times },
       },
     );
 
@@ -189,6 +212,7 @@ export class MedicationService {
       date: dateStr,
       slotIndex,
       takenSlotKeys: updated?.takenSlotKeys || keys,
+      takenSlotTimes: updated ? this.slotTimesToPlain(updated as Medication) : times,
     };
   }
 

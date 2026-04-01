@@ -9,6 +9,8 @@ import {
   getReminderSlotsForFrequency,
   isSlotTaken,
   remainingSlotsToday,
+  getSlotRecordedAtIso,
+  formatSlotTimeLocal,
 } from "../utils/medicationReminders";
 
 const FREQUENCIES = ["Once daily", "Twice daily", "Three times daily", "Every 8 hours", "Weekly", "As needed"];
@@ -57,7 +59,7 @@ const MedicationsCard = ({ patientId, medications: initialMeds, onUpdate, allowA
       return;
     }
     try {
-      await medicationApi.toggleTaken(id, dateStr, slotIndex);
+      await medicationApi.toggleTaken(id, dateStr, slotIndex, new Date().toISOString());
       if (onUpdate) onUpdate();
     } catch (e) {
       setToggleError(e.message || "Action impossible");
@@ -70,7 +72,10 @@ const MedicationsCard = ({ patientId, medications: initialMeds, onUpdate, allowA
     setSaving(true);
     try {
       const newMed = await medicationApi.create({ ...form, patientId });
-      setMeds((prev) => [{ ...newMed, takenSlotKeys: newMed.takenSlotKeys || [], takenDates: [] }, ...prev]);
+      setMeds((prev) => [
+        { ...newMed, takenSlotKeys: newMed.takenSlotKeys || [], takenSlotTimes: newMed.takenSlotTimes || {}, takenDates: [] },
+        ...prev,
+      ]);
       setShowAdd(false);
       setForm({
         name: "",
@@ -187,12 +192,14 @@ const MedicationsCard = ({ patientId, medications: initialMeds, onUpdate, allowA
                         slots.map((slot, idx) => {
                           const taken = isSlotTaken(m, ds, idx);
                           const label = slot.label || `Prise ${idx + 1}`;
+                          const timeIso = taken ? getSlotRecordedAtIso(m, ds, idx) : null;
+                          const timeStr = timeIso ? formatSlotTimeLocal(timeIso) : "";
                           return (
                             <button
                               key={`${m._id}-${idx}`}
                               type="button"
                               className={`btn btn-sm ${taken ? "btn-success" : "btn-outline-warning"}`}
-                              style={{ borderRadius: 20, fontSize: "0.7rem", whiteSpace: "nowrap" }}
+                              style={{ borderRadius: 20, fontSize: "0.7rem", textAlign: "center" }}
                               disabled={!canMark}
                               title={
                                 !canMark
@@ -203,8 +210,15 @@ const MedicationsCard = ({ patientId, medications: initialMeds, onUpdate, allowA
                               }
                               onClick={() => toggle(m._id, idx)}
                             >
-                              {taken ? "✓ " : ""}
-                              {label}
+                              <span className="d-inline-block" style={{ whiteSpace: "nowrap" }}>
+                                {taken ? "✓ " : ""}
+                                {label}
+                              </span>
+                              {timeStr ? (
+                                <span className="d-block" style={{ fontSize: "0.62rem", opacity: 0.95 }}>
+                                  {timeStr}
+                                </span>
+                              ) : null}
                             </button>
                           );
                         })

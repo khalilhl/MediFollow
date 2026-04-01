@@ -22,7 +22,7 @@ export class MedicationController {
   @Put(':id/toggle-taken')
   toggleTaken(
     @Param('id') id: string,
-    @Body() body: { localDate?: string; slotIndex?: number },
+    @Body() body: { localDate?: string; slotIndex?: number; recordedAt?: string },
     @Req() req: { user: any },
   ) {
     return this.medicationService.toggleTakenToday(id, req.user, body);

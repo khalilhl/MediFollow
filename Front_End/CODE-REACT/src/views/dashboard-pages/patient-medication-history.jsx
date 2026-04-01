@@ -7,6 +7,7 @@ import {
   localDateStringYMD,
   isMedicationPastEndDate,
   getIntakeHistoryByDate,
+  formatSlotTimeLocal,
 } from "../../utils/medicationReminders";
 
 function formatDisplayDate(ymd) {
@@ -73,13 +74,18 @@ const PatientMedicationHistory = () => {
 
   const todayYmd = localDateStringYMD();
 
-  const endedMedications = useMemo(() => {
-    const list = medications.filter((m) => isMedicationPastEndDate(m, todayYmd));
-    return list.sort((a, b) => {
-      const endA = String(a.endDate || "").slice(0, 10);
-      const endB = String(b.endDate || "").slice(0, 10);
+  /** Tous les traitements : en cours d’abord, puis terminés (fin la plus récente en premier). Toutes les dates de prise sont listées. */
+  const sortedMedications = useMemo(() => {
+    const list = [...medications];
+    list.sort((a, b) => {
+      const aEnded = isMedicationPastEndDate(a, todayYmd);
+      const bEnded = isMedicationPastEndDate(b, todayYmd);
+      if (aEnded !== bEnded) return aEnded ? 1 : -1;
+      const endA = String(a.endDate || "9999-12-31").slice(0, 10);
+      const endB = String(b.endDate || "9999-12-31").slice(0, 10);
       return endB.localeCompare(endA);
     });
+    return list;
   }, [medications, todayYmd]);
 
   if (!patientUser) {
@@ -99,7 +105,8 @@ const PatientMedicationHistory = () => {
             Historique des médicaments
           </h4>
           <p className="text-muted small mb-0 mt-1">
-            Traitements dont la date de fin est dépassée. Le détail des prises enregistrées est conservé ci‑dessous.
+            Tous vos traitements (en cours et terminés) : chaque jour où une prise a été cochée, avec l’heure si elle a été
+            enregistrée — y compris les dates les plus anciennes.
           </p>
         </Col>
       </Row>
@@ -112,19 +119,20 @@ const PatientMedicationHistory = () => {
 
       {!loading && error && <Alert variant="danger">{error}</Alert>}
 
-      {!loading && !error && endedMedications.length === 0 && (
+      {!loading && !error && sortedMedications.length === 0 && (
         <Card className="border-0 shadow-sm">
           <Card.Body className="text-center text-muted py-5">
-            Aucun médicament terminé pour le moment. Les traitements dont la date de fin est passée apparaîtront ici.
+            Aucun médicament enregistré.
           </Card.Body>
         </Card>
       )}
 
       {!loading &&
-        endedMedications.map((m) => {
+        sortedMedications.map((m) => {
           const intakeByDay = getIntakeHistoryByDate(m);
           const endStr = m.endDate ? String(m.endDate).slice(0, 10) : "";
           const startStr = m.startDate ? String(m.startDate).slice(0, 10) : "";
+          const isEnded = isMedicationPastEndDate(m, todayYmd);
           return (
             <Card key={m._id} className="border-0 shadow-sm mb-3">
               <Card.Body>
@@ -137,8 +145,12 @@ const PatientMedicationHistory = () => {
                       {m.prescribedBy && <span className="ms-2">Dr. {m.prescribedBy}</span>}
                     </div>
                   </div>
-                  <span className="badge bg-secondary align-self-start">
-                    Fin : {endStr ? formatDisplayDate(endStr) : "—"}
+                  <span className={`badge align-self-start ${isEnded ? "bg-secondary" : "bg-success"}`}>
+                    {isEnded ? (
+                      <>Terminé le {endStr ? formatDisplayDate(endStr) : "—"}</>
+                    ) : (
+                      <>En cours{endStr ? ` — fin prévue ${formatDisplayDate(endStr)}` : ""}</>
+                    )}
                   </span>
                 </div>
                 {(startStr || endStr) && (
@@ -156,10 +168,20 @@ const PatientMedicationHistory = () => {
                   ) : (
                     <ul className="list-unstyled small mb-0">
                       {intakeByDay.map(({ date, slots }) => (
-                        <li key={date} className="mb-2">
-                          <span className="fw-semibold">{formatDisplayDate(date)}</span>
-                          {" — "}
-                          {slots.map((s) => s.label).join(", ")}
+                        <li key={date} className="mb-3">
+                          <div className="fw-semibold mb-1">{formatDisplayDate(date)}</div>
+                          <ul className="list-unstyled ps-2 mb-0 text-muted">
+                            {slots.map((s) => (
+                              <li key={`${date}-${s.index}`}>
+                                {s.label}
+                                {s.recordedAt ? (
+                                  <span className="text-dark ms-1">— {formatSlotTimeLocal(s.recordedAt)}</span>
+                                ) : (
+                                  <span className="text-muted fst-italic ms-1">— heure non enregistrée</span>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
                         </li>
                       ))}
                     </ul>

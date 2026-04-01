@@ -2,6 +2,20 @@ const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
 const okToken = (t) => (t && t !== "undefined" && t !== "null" ? t : null);
 
+function messageFromApiErr(err) {
+  const m = err?.message;
+  if (Array.isArray(m)) return m[0] || err?.error || "Erreur API";
+  if (typeof m === "string") return m;
+  return err?.error || "Erreur API";
+}
+
+function attachApiErrorFields(error, err) {
+  if (err && typeof err === "object") {
+    if (err.code) error.code = err.code;
+    if (Array.isArray(err.suggestedSlots)) error.suggestedSlots = err.suggestedSlots;
+  }
+}
+
 /**
  * Jeton aligné sur la session affichée : évite d'envoyer le token médecin/admin
  * alors que patientUser est encore en localStorage (ou l'inverse) → 403 / liste vide.
@@ -44,8 +58,9 @@ export const api = {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({ message: res.statusText }));
-      const error = new Error(err.message || "Erreur API");
+      const error = new Error(messageFromApiErr(err));
       error.status = res.status;
+      attachApiErrorFields(error, err);
       throw error;
     }
     return res.json();
@@ -63,8 +78,9 @@ export const api = {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({ message: res.statusText }));
-      const error = new Error(err.message || "Erreur API");
+      const error = new Error(messageFromApiErr(err));
       error.status = res.status;
+      attachApiErrorFields(error, err);
       throw error;
     }
     return res.json();
@@ -82,8 +98,29 @@ export const api = {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({ message: res.statusText }));
-      const error = new Error(err.message || "Erreur API");
+      const error = new Error(messageFromApiErr(err));
       error.status = res.status;
+      attachApiErrorFields(error, err);
+      throw error;
+    }
+    return res.json();
+  },
+
+  async putWithAdminToken(endpoint, data) {
+    const token = okToken(localStorage.getItem("adminToken"));
+    const res = await fetch(`${API_BASE}${endpoint}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ message: res.statusText }));
+      const error = new Error(messageFromApiErr(err));
+      error.status = res.status;
+      attachApiErrorFields(error, err);
       throw error;
     }
     return res.json();
@@ -97,8 +134,9 @@ export const api = {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({ message: res.statusText }));
-      const error = new Error(err.message || "Erreur API");
+      const error = new Error(messageFromApiErr(err));
       error.status = res.status;
+      attachApiErrorFields(error, err);
       throw error;
     }
     return res.json().catch(() => ({}));
@@ -111,8 +149,62 @@ export const api = {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({ message: res.statusText }));
-      const error = new Error(err.message || "Erreur API");
+      const error = new Error(messageFromApiErr(err));
       error.status = res.status;
+      attachApiErrorFields(error, err);
+      throw error;
+    }
+    return res.json();
+  },
+
+  /** GET avec jeton admin uniquement (évite le conflit patient/admin dans getValidToken). */
+  async getWithAdminToken(endpoint) {
+    const token = okToken(localStorage.getItem("adminToken"));
+    const res = await fetch(`${API_BASE}${endpoint}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ message: res.statusText }));
+      const error = new Error(messageFromApiErr(err));
+      error.status = res.status;
+      attachApiErrorFields(error, err);
+      throw error;
+    }
+    return res.json();
+  },
+
+  /** GET avec jeton médecin uniquement (sinon patientToken est pris en premier si patient encore en session). */
+  async getWithDoctorToken(endpoint) {
+    const token = okToken(localStorage.getItem("doctorToken"));
+    const res = await fetch(`${API_BASE}${endpoint}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ message: res.statusText }));
+      const error = new Error(messageFromApiErr(err));
+      error.status = res.status;
+      attachApiErrorFields(error, err);
+      throw error;
+    }
+    return res.json();
+  },
+
+  /** PUT avec jeton médecin uniquement. */
+  async putWithDoctorToken(endpoint, data) {
+    const token = okToken(localStorage.getItem("doctorToken"));
+    const res = await fetch(`${API_BASE}${endpoint}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ message: res.statusText }));
+      const error = new Error(messageFromApiErr(err));
+      error.status = res.status;
+      attachApiErrorFields(error, err);
       throw error;
     }
     return res.json();
@@ -152,8 +244,8 @@ export const doctorApi = {
 export const patientApi = {
   create: (data) => api.post("/patients", data),
   getAll: () => api.get("/patients"),
-  /** Médecin connecté : patients dont il est le référent (JWT). */
-  getMyAssignedForDoctor: () => api.get("/patients/doctor/my-patients"),
+  /** Médecin connecté : patients dont il est le référent (JWT médecin obligatoire). */
+  getMyAssignedForDoctor: () => api.getWithDoctorToken("/patients/doctor/my-patients"),
   getById: (id) => api.get(`/patients/${id}`),
   update: (id, data) => api.put(`/patients/${id}`, data),
   delete: (id) => api.delete(`/patients/${id}`),
@@ -173,9 +265,9 @@ export const nurseApi = {
 export const departmentApi = {
   summary: () => api.get("/departments/summary"),
   /** Médecin connecté : infirmiers du même département (JWT). */
-  getMyNursesAsDoctor: () => api.get("/departments/doctor/my-nurses"),
+  getMyNursesAsDoctor: () => api.getWithDoctorToken("/departments/doctor/my-nurses"),
   /** Médecin connecté : médecins du même département (JWT). */
-  getMyDoctorsAsDoctor: () => api.get("/departments/doctor/my-doctors"),
+  getMyDoctorsAsDoctor: () => api.getWithDoctorToken("/departments/doctor/my-doctors"),
   usersByDepartment: (department) =>
     api.get(`/departments/users?department=${encodeURIComponent(department)}`),
 };
@@ -216,10 +308,26 @@ export const medicationApi = {
   remove: (id) => api.delete(`/medications/${id}`),
 };
 
+export const doctorAvailabilityApi = {
+  /** JWT médecin — mois au format YYYY-MM */
+  getMyMonth: (yearMonth) =>
+    api.getWithDoctorToken(`/doctor-availability/me/${encodeURIComponent(yearMonth)}`),
+  saveMyMonth: (yearMonth, slots) =>
+    api.putWithDoctorToken(`/doctor-availability/me/${encodeURIComponent(yearMonth)}`, { slots }),
+};
+
 export const appointmentApi = {
   create: (data) => api.post('/appointments', data),
   getByPatient: (patientId) => api.get(`/appointments/patient/${patientId}`),
   getUpcoming: (patientId) => api.get(`/appointments/patient/${patientId}/upcoming`),
+  /** RDV confirmés à venir (JWT médecin) */
+  getUpcomingForDoctor: () => api.getWithDoctorToken('/appointments/doctor/upcoming'),
+  /** Demandes en attente (JWT admin / superadmin) */
+  getPendingForAdmin: () => api.getWithAdminToken('/appointments/admin/pending'),
+  /** RDV confirmés à venir (JWT admin / superadmin) */
+  getConfirmedForAdmin: () => api.getWithAdminToken('/appointments/admin/confirmed'),
   update: (id, data) => api.put(`/appointments/${id}`, data),
+  /** Mise à jour côté admin (jeton admin explicite) */
+  updateAsAdmin: (id, data) => api.putWithAdminToken(`/appointments/${id}`, data),
   remove: (id) => api.delete(`/appointments/${id}`),
 };

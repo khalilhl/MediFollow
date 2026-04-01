@@ -36,6 +36,6 @@ import { FaceLoginProfile, FaceLoginProfileSchema } from './schemas/face-login-p
   ],
   controllers: [AuthController],
   providers: [AuthService, EmailService, SmsService, JwtStrategy],
-  exports: [AuthService, EmailService, SmsService],
+  exports: [AuthService, EmailService, SmsService, JwtModule, PassportModule, JwtStrategy],
 })
 export class AuthModule {}

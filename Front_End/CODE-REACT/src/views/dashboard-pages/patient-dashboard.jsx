@@ -511,11 +511,7 @@ const PatientDashboard = () => {
                     />
                 </Col>
                 <Col lg={3} md={6}>
-                    <AppointmentsCard
-                        patientId={pid}
-                        appointments={appointments}
-                        onUpdate={loadAppointments}
-                    />
+                    <AppointmentsCard appointments={appointments} />
                 </Col>
                 <Col lg={3} md={6}>
                     <CareTeamCard

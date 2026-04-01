@@ -3,7 +3,7 @@ import { Document, Types } from 'mongoose';
 
 @Schema({ timestamps: true })
 export class Appointment extends Document {
-  @Prop({ type: Types.ObjectId, required: true })
+  @Prop({ type: Types.ObjectId, ref: 'Patient', required: true })
   patientId: Types.ObjectId;
 
   @Prop()
@@ -27,8 +27,23 @@ export class Appointment extends Document {
   @Prop({ default: 'checkup' })
   type: string; // checkup | lab | specialist | imaging
 
-  @Prop({ default: 'scheduled' })
-  status: string; // scheduled | completed | cancelled
+  /** pending = demande patient ; confirmed = validé admin (date/heure finales) ; scheduled = ancien schéma (= confirmé) */
+  @Prop({ default: 'pending' })
+  status: string;
+
+  /** Souhait initial du patient (avant validation admin) */
+  @Prop()
+  requestedDate: string;
+
+  @Prop()
+  requestedTime: string;
+
+  @Prop()
+  patientMessage: string;
+
+  /** Message admin (ex. autre créneau proposé) */
+  @Prop()
+  adminNotes: string;
 
   @Prop()
   notes: string;

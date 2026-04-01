@@ -1,34 +1,151 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Appointment } from './schemas/appointment.schema';
+import {
+  DoctorAvailabilityService,
+  normalizeDateString,
+  normalizeDoctorId,
+  normalizeTime,
+} from '../doctor-availability/doctor-availability.service';
 
 @Injectable()
 export class AppointmentService {
-  constructor(@InjectModel(Appointment.name) private appointmentModel: Model<Appointment>) {}
+  constructor(
+    @InjectModel(Appointment.name) private appointmentModel: Model<Appointment>,
+    private doctorAvailabilityService: DoctorAvailabilityService,
+  ) {}
+
+  private toObjectId(id: string) {
+    if (!id) return id;
+    return Types.ObjectId.isValid(id) ? new Types.ObjectId(id) : id;
+  }
+
+  /** Date locale YYYY-MM-DD (alignée filtre rendez-vous / calendrier). */
+  private localTodayYmd(): string {
+    const t = new Date();
+    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+  }
 
   async create(data: any) {
-    return this.appointmentModel.create(data);
+    const patientId = this.toObjectId(data.patientId);
+    let status = data.status;
+    if (status === 'scheduled') status = 'confirmed';
+    if (!status) status = 'pending';
+    if (!['pending', 'confirmed', 'completed', 'cancelled'].includes(status)) status = 'pending';
+
+    const date = normalizeDateString(typeof data.date === 'string' ? data.date : String(data.date || ''));
+    const time = normalizeTime(String(data.time || ''));
+
+    if (status === 'pending') {
+      if (!String(time).trim()) {
+        throw new BadRequestException({
+          message: 'Indiquez une heure pour votre demande.',
+          code: 'TIME_REQUIRED',
+        });
+      }
+      const doctorId = normalizeDoctorId(data.doctorId);
+      if (!doctorId) {
+        throw new BadRequestException({ message: 'Médecin requis.', code: 'DOCTOR_REQUIRED' });
+      }
+      if (!date) {
+        throw new BadRequestException({ message: 'Date invalide.', code: 'DATE_REQUIRED' });
+      }
+      const ok = await this.doctorAvailabilityService.isSlotAvailableForRequest(doctorId, date, time);
+      if (!ok) {
+        const suggestedSlots = await this.doctorAvailabilityService.findSuggestedSlots(doctorId, date, 12);
+        throw new BadRequestException({
+          message:
+            'Ce créneau n’est pas disponible (hors calendrier ou déjà réservé). Choisissez un créneau proposé ou une autre date.',
+          code: 'SLOT_UNAVAILABLE',
+          suggestedSlots,
+        });
+      }
+    }
+
+    return this.appointmentModel.create({
+      patientId,
+      doctorId: normalizeDoctorId(data.doctorId) || String(data.doctorId || ''),
+      doctorName: data.doctorName || '',
+      title: data.title,
+      date,
+      time,
+      location: data.location || '',
+      type: data.type || 'checkup',
+      notes: data.notes || '',
+      patientMessage: data.patientMessage || '',
+      requestedDate: data.requestedDate || date,
+      requestedTime: data.requestedTime || time,
+      adminNotes: data.adminNotes || '',
+      status,
+    });
   }
 
   async getByPatient(patientId: string) {
     return this.appointmentModel
-      .find({ patientId })
-      .sort({ date: 1, time: 1 })
+      .find({ patientId: this.toObjectId(patientId) })
+      .sort({ createdAt: -1 })
       .exec();
   }
 
   async getUpcoming(patientId: string) {
-    const today = new Date().toISOString().split('T')[0];
+    const today = this.localTodayYmd();
     return this.appointmentModel
-      .find({ patientId, date: { $gte: today }, status: { $ne: 'cancelled' } })
+      .find({
+        patientId: this.toObjectId(patientId),
+        date: { $gte: today },
+        status: { $in: ['confirmed', 'scheduled'] },
+      })
       .sort({ date: 1, time: 1 })
       .limit(5)
       .exec();
   }
 
+  /** RDV confirmés à venir pour le médecin connecté (agenda). */
+  async findUpcomingByDoctor(doctorId: string) {
+    const id = normalizeDoctorId(doctorId);
+    const today = this.localTodayYmd();
+    return this.appointmentModel
+      .find({
+        doctorId: id,
+        date: { $gte: today },
+        status: { $in: ['confirmed', 'scheduled'] },
+      })
+      .populate('patientId', 'firstName lastName email phone')
+      .sort({ date: 1, time: 1 })
+      .limit(50)
+      .lean()
+      .exec();
+  }
+
+  /** RDV confirmés à venir (vue admin). */
+  async findConfirmedUpcomingForAdmin() {
+    const today = this.localTodayYmd();
+    return this.appointmentModel
+      .find({
+        status: { $in: ['confirmed', 'scheduled'] },
+        date: { $gte: today },
+      })
+      .populate('patientId', 'firstName lastName email phone')
+      .sort({ date: 1, time: 1 })
+      .limit(100)
+      .lean()
+      .exec();
+  }
+
+  async findPending() {
+    return this.appointmentModel
+      .find({ status: 'pending' })
+      .sort({ createdAt: -1 })
+      .populate('patientId', 'firstName lastName email phone')
+      .lean()
+      .exec();
+  }
+
   async update(id: string, data: any) {
-    return this.appointmentModel.findByIdAndUpdate(id, { $set: data }, { new: true }).exec();
+    const patch: any = { ...data };
+    if (patch.status === 'scheduled') patch.status = 'confirmed';
+    return this.appointmentModel.findByIdAndUpdate(id, { $set: patch }, { new: true }).exec();
   }
 
   async remove(id: string) {

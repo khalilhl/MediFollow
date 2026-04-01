@@ -8,6 +8,7 @@ import HospitalDashboardTwo from "../views/dashboard-pages/hospital-dashboard-tw
 import PatientDashboard from "../views/dashboard-pages/patient-dashboard"
 import PatientMedicationHistory from "../views/dashboard-pages/patient-medication-history"
 import PatientVitalsHistory from "../views/dashboard-pages/patient-vitals-history"
+import PatientAppointmentRequest from "../views/dashboard-pages/patient-appointment-request"
 import NurseDashboard from "../views/dashboard-pages/nurse-dashboard"
 import Covid19Dashboard from "../views/dashboard-pages/covid-19-dashboard"
 
@@ -24,6 +25,7 @@ import DoctorPrescriptions from "../views/doctor/doctor-prescriptions"
 import DoctorMyPatients from "../views/doctor/doctor-my-patients"
 import DoctorDepartmentNurses from "../views/doctor/doctor-department-nurses"
 import DoctorDepartmentDoctors from "../views/doctor/doctor-department-doctors"
+import DoctorAvailabilityCalendar from "../views/doctor/doctor-availability-calendar"
 
 // Patient Page
 import AddPatient from "../views/patient/add-patient"
@@ -104,6 +106,7 @@ import AdminProfile from "../views/admin/admin-profile"
 import AdminEditProfile from "../views/admin/admin-edit-profile"
 import AdminDepartments from "../views/admin/admin-departments"
 import AdminDepartmentDetail from "../views/admin/admin-department-detail"
+import AdminAppointmentRequests from "../views/admin/admin-appointment-requests"
 import SuperAdminDashboard from "../views/super-admin/super-admin-dashboard"
 import UserList from "../views/super-admin/user-list"
 import AuditorList from "../views/super-admin/auditor-list"
@@ -166,6 +169,10 @@ export const DefaultRoute = [
         element: <PatientVitalsHistory />
       },
       {
+        path: '/dashboard-pages/patient-appointment-request',
+        element: <PatientAppointmentRequest />
+      },
+      {
         path: '/dashboard-pages/nurse-dashboard',
         element: <NurseDashboard />
       },
@@ -208,6 +215,10 @@ export const DefaultRoute = [
       {
         path: '/doctor/prescriptions',
         element: <DoctorPrescriptions />
+      },
+      {
+        path: '/doctor/availability-calendar',
+        element: <DoctorAvailabilityCalendar />
       },
       {
         path: '/doctor/my-patients',
@@ -488,6 +499,10 @@ export const DefaultRoute = [
       {
         path: '/admin/departments/:departmentName',
         element: <AdminDepartmentDetail />
+      },
+      {
+        path: '/admin/appointment-requests',
+        element: <AdminAppointmentRequests />
       },
 
       //  ------ Super Admin Routes ------

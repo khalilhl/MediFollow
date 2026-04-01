@@ -9,6 +9,7 @@ import { HealthLogModule } from './health-log/health-log.module';
 import { MedicationModule } from './medication/medication.module';
 import { AppointmentModule } from './appointment/appointment.module';
 import { DepartmentModule } from './department/department.module';
+import { DoctorAvailabilityModule } from './doctor-availability/doctor-availability.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { DepartmentModule } from './department/department.module';
     MedicationModule,
     AppointmentModule,
     DepartmentModule,
+    DoctorAvailabilityModule,
   ],
 })
 export class AppModule {}

@@ -1,5 +1,17 @@
-import { Controller, Get, Post, Put, Delete, Param, Body } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Param,
+  Body,
+  Req,
+  UseGuards,
+  ForbiddenException,
+} from '@nestjs/common';
 import { AppointmentService } from './appointment.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('appointments')
 export class AppointmentController {
@@ -8,6 +20,38 @@ export class AppointmentController {
   @Post()
   create(@Body() body: any) {
     return this.appointmentService.create(body);
+  }
+
+  /** Demandes en attente de validation (admin / superadmin) */
+  @UseGuards(JwtAuthGuard)
+  @Get('admin/pending')
+  getPending(@Req() req: { user?: { role?: string } }) {
+    const role = req.user?.role;
+    if (!role || !['admin', 'superadmin'].includes(role)) {
+      throw new ForbiddenException('Accès administrateur requis');
+    }
+    return this.appointmentService.findPending();
+  }
+
+  /** RDV confirmés à venir (admin / superadmin) */
+  @UseGuards(JwtAuthGuard)
+  @Get('admin/confirmed')
+  getAdminConfirmed(@Req() req: { user?: { role?: string } }) {
+    const role = req.user?.role;
+    if (!role || !['admin', 'superadmin'].includes(role)) {
+      throw new ForbiddenException('Accès administrateur requis');
+    }
+    return this.appointmentService.findConfirmedUpcomingForAdmin();
+  }
+
+  /** RDV confirmés à venir pour le médecin connecté */
+  @UseGuards(JwtAuthGuard)
+  @Get('doctor/upcoming')
+  getDoctorUpcoming(@Req() req: { user?: { id?: string; role?: string } }) {
+    if (req.user?.role !== 'doctor') {
+      throw new ForbiddenException('Accès réservé aux médecins');
+    }
+    return this.appointmentService.findUpcomingByDoctor(String(req.user.id));
   }
 
   @Get('patient/:id')

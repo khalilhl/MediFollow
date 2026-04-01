@@ -188,6 +188,15 @@ const VerticalNav = () => {
                     </Link>
                 </Nav.Item>
                 <Nav.Item as="li">
+                    <Link
+                        to="/dashboard-pages/patient-appointment-request"
+                        className={`nav-link ${location.pathname === "/dashboard-pages/patient-appointment-request" ? "active" : ""}`}
+                    >
+                        <i className="ri-calendar-schedule-line"></i>
+                        <span className="item-name">Demande de rendez-vous</span>
+                    </Link>
+                </Nav.Item>
+                <Nav.Item as="li">
                     <Link to={`/patient/patient-profile/${patientUser?.id}`} className={`nav-link ${location.pathname === `/patient/patient-profile/${patientUser?.id}` ? "active" : ""}`}>
                         <i className="ri-user-heart-fill"></i>
                         <span className="item-name">Mon profil</span>
@@ -269,6 +278,15 @@ const VerticalNav = () => {
                 </Nav.Item>
                 <Nav.Item as="li">
                     <Link
+                        to="/doctor/availability-calendar"
+                        className={`nav-link ${location.pathname === "/doctor/availability-calendar" ? "active" : ""}`}
+                    >
+                        <i className="ri-calendar-2-line"></i>
+                        <span className="item-name">Calendrier RDV</span>
+                    </Link>
+                </Nav.Item>
+                <Nav.Item as="li">
+                    <Link
                         to={`/doctor/doctor-profile/${docId}`}
                         className={`nav-link ${location.pathname === `/doctor/doctor-profile/${docId}` ? "active" : ""}`}
                     >
@@ -332,6 +350,15 @@ const VerticalNav = () => {
                             >
                                 <i className="ri-building-2-fill"></i>
                                 <span className="item-name">Départements</span>
+                            </Link>
+                        </Nav.Item>
+                        <Nav.Item as="li">
+                            <Link
+                                to="/admin/appointment-requests"
+                                className={`nav-link ${location.pathname === "/admin/appointment-requests" ? "active" : ""}`}
+                            >
+                                <i className="ri-calendar-check-line"></i>
+                                <span className="item-name">Demandes RDV</span>
                             </Link>
                         </Nav.Item>
                     </>

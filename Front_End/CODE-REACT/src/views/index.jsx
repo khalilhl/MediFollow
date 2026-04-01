@@ -9,7 +9,7 @@ import Flatpickr from 'react-flatpickr';
 import 'flatpickr/dist/flatpickr.css';
 import Scrollbar from "smooth-scrollbar";
 import { Link } from "react-router-dom";
-import { doctorApi } from "../services/api";
+import { doctorApi, appointmentApi } from "../services/api";
 import Chart from 'react-apexcharts';
 
 const generatePath = (path) => {
@@ -20,6 +20,27 @@ const generatePath = (path) => {
 };
 
 const DEFAULT_AVATAR = generatePath("assets/images/user/11.png");
+
+function formatApptDate(iso) {
+    const p = (iso || "").split("T")[0];
+    const [y, m, d] = p.split("-");
+    if (!y || !m || !d) return p || "—";
+    return `${d}/${m}/${y}`;
+}
+
+function agendaPatientName(row) {
+    const p = row.patientId;
+    if (p && typeof p === "object") {
+        return `${p.firstName || ""} ${p.lastName || ""}`.trim() || p.email || "—";
+    }
+    return "—";
+}
+
+function agendaPatientPhone(row) {
+    const p = row.patientId;
+    if (p && typeof p === "object" && p.phone) return p.phone;
+    return "—";
+}
 
 const getDoctorImage = (doctor) => {
     if (!doctor?.profileImage) return DEFAULT_AVATAR;
@@ -50,6 +71,8 @@ const Index = () => {
         return () => window.removeEventListener("doctor-updated", onDoctorUpdated);
     }, []);
 
+    const [doctorAgenda, setDoctorAgenda] = useState([]);
+
     useEffect(() => {
         const stored = localStorage.getItem("doctorUser");
         const doctorId = stored ? (JSON.parse(stored)?.id) : null;
@@ -59,6 +82,25 @@ const Index = () => {
                 .catch(() => {});
         }
     }, []);
+
+    useEffect(() => {
+        if (!doctorUser?.id) {
+            setDoctorAgenda([]);
+            return;
+        }
+        let cancelled = false;
+        appointmentApi
+            .getUpcomingForDoctor()
+            .then((rows) => {
+                if (!cancelled) setDoctorAgenda(Array.isArray(rows) ? rows : []);
+            })
+            .catch(() => {
+                if (!cancelled) setDoctorAgenda([]);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [doctorUser?.id]);
 
     const [wavechart7, setWavechart7] = useState({
         chart: {
@@ -751,7 +793,7 @@ const Index = () => {
                 <Col lg={8}>
                     <Card>
                         <div className="card-header d-flex justify-content-between iq-new-appoinments">
-                            <h4 className="card-title">New Appointments</h4>
+                            <h4 className="card-title">{doctorUser ? "Rendez-vous confirmés (à venir)" : "New Appointments"}</h4>
                             <Dropdown className="appointments-dropdown rtl-appointments-dropdown">
                                 <Dropdown.Toggle variant="link" className="custom-toggle">
                                     <span className="ri-more-fill text-gray"></span>
@@ -772,22 +814,42 @@ const Index = () => {
                                     <thead>
                                         <tr>
                                             <th scope="col">Patient</th>
-                                            <th scope="col">Doctor</th>
+                                            <th scope="col">{doctorUser ? "Motif" : "Doctor"}</th>
                                             <th scope="col">Date</th>
-                                            <th scope="col">Timing</th>
+                                            <th scope="col">{doctorUser ? "Heure" : "Timing"}</th>
                                             <th scope="col">Contact</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {appointmentsData.map((appointment, index) => (
-                                            <tr key={index}>
-                                                <td>{appointment.patient}</td>
-                                                <td>{appointment.doctor}</td>
-                                                <td>{appointment.date}</td>
-                                                <td>{appointment.time}</td>
-                                                <td>{appointment.contact}</td>
-                                            </tr>
-                                        ))}
+                                        {doctorUser ? (
+                                            doctorAgenda.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={5} className="text-muted text-center py-4">
+                                                        Aucun rendez-vous confirmé à venir. Les demandes validées par l&apos;admin apparaissent ici.
+                                                    </td>
+                                                </tr>
+                                            ) : (
+                                                doctorAgenda.map((row) => (
+                                                    <tr key={row._id}>
+                                                        <td className="fw-semibold">{agendaPatientName(row)}</td>
+                                                        <td className="small">{row.title || "—"}</td>
+                                                        <td>{formatApptDate(row.date)}</td>
+                                                        <td>{row.time || "—"}</td>
+                                                        <td className="small">{agendaPatientPhone(row)}</td>
+                                                    </tr>
+                                                ))
+                                            )
+                                        ) : (
+                                            appointmentsData.map((appointment, index) => (
+                                                <tr key={index}>
+                                                    <td>{appointment.patient}</td>
+                                                    <td>{appointment.doctor}</td>
+                                                    <td>{appointment.date}</td>
+                                                    <td>{appointment.time}</td>
+                                                    <td>{appointment.contact}</td>
+                                                </tr>
+                                            ))
+                                        )}
                                     </tbody>
                                 </Table>
                             </div>

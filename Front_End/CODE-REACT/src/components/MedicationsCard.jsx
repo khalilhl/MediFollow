@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Modal, Form } from "react-bootstrap";
+import { medicationApi } from "../services/api";
 
 const FREQUENCIES = ["Once daily", "Twice daily", "Three times daily", "Every 8 hours", "Weekly", "As needed"];
 
@@ -13,8 +14,7 @@ const MedicationsCard = ({ patientId, medications: initialMeds, onUpdate }) => {
 
   const toggle = async (id) => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:3000/api"}/medications/${id}/toggle-taken`, { method: "PUT" });
-      const data = await res.json();
+      const data = await medicationApi.toggleTaken(id);
       setMeds(prev => prev.map(m => m._id === id ? { ...m, takenToday: data.takenToday } : m));
     } catch (e) { console.error(e); }
   };
@@ -23,12 +23,7 @@ const MedicationsCard = ({ patientId, medications: initialMeds, onUpdate }) => {
     e.preventDefault();
     setSaving(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:3000/api"}/medications`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, patientId }),
-      });
-      const newMed = await res.json();
+      const newMed = await medicationApi.create({ ...form, patientId });
       setMeds(prev => [{ ...newMed, takenToday: false }, ...prev]);
       setShowAdd(false);
       setForm({ name: "", dosage: "", frequency: "Once daily", prescribedBy: "", startDate: "", endDate: "", notes: "" });

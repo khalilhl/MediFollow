@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Modal, Form } from "react-bootstrap";
+import { appointmentApi } from "../services/api";
 
 const TYPES = ["checkup", "lab", "specialist", "imaging", "physiotherapy"];
 const TYPE_COLORS = { checkup: "#089bab", lab: "#6f42c1", specialist: "#fd7e14", imaging: "#dc3545", physiotherapy: "#28a745" };
@@ -26,12 +27,7 @@ const AppointmentsCard = ({ patientId, appointments: initialAppts, onUpdate }) =
     e.preventDefault();
     setSaving(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:3000/api"}/appointments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, patientId }),
-      });
-      const newAppt = await res.json();
+      const newAppt = await appointmentApi.create({ ...form, patientId });
       setAppts(prev => [...prev, newAppt].sort((a, b) => new Date(a.date) - new Date(b.date)));
       setShowAdd(false);
       setForm({ title: "", date: "", time: "", location: "", type: "checkup", doctorName: "", notes: "" });

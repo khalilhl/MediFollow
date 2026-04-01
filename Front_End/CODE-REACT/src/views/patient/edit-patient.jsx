@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import Card from "../../components/Card";
 import { Button, Col, Container, Form, InputGroup, Row } from "react-bootstrap";
 import { useNavigate, useParams } from "react-router-dom";
-import { patientApi } from "../../services/api";
+import { patientApi, doctorApi, nurseApi } from "../../services/api";
 
 const generatePath = (path) => window.origin + import.meta.env.BASE_URL + path;
 
@@ -51,6 +51,8 @@ const EditPatient = () => {
   const [originalProfileImage, setOriginalProfileImage] = useState("");
   const [formData, setFormData] = useState({});
   const [selectedCountry, setSelectedCountry] = useState(null);
+  const [doctors, setDoctors] = useState([]);
+  const [nurses, setNurses] = useState([]);
 
   useEffect(() => {
     const fetchPatient = async () => {
@@ -74,6 +76,17 @@ const EditPatient = () => {
           pno: data.pinCode || "",
           altconno: data.alternateContact || "",
           service: data.service || "",
+          // Care team
+          doctorId: data.doctorId || "",
+          nurseId: data.nurseId || "",
+          // Discharge
+          admissionDate: data.admissionDate || "",
+          dischargeDate: data.dischargeDate || "",
+          diagnosis: data.diagnosis || "",
+          dischargeNotes: data.dischargeNotes || "",
+          // Physical
+          weight: data.weight || "",
+          height: data.height || "",
         });
         const country = COUNTRIES.find((c) => c.name === data.country);
         setSelectedCountry(country || null);
@@ -84,6 +97,10 @@ const EditPatient = () => {
       }
     };
     if (id) fetchPatient();
+
+    // Load doctors and nurses for dropdowns
+    doctorApi.getAll().then(d => setDoctors(Array.isArray(d) ? d : [])).catch(() => {});
+    nurseApi.getAll().then(n => setNurses(Array.isArray(n) ? n : [])).catch(() => {});
   }, [id]);
 
   const handleFileChange = (e) => {
@@ -139,6 +156,17 @@ const EditPatient = () => {
       alternateContact: form.altconno?.value,
       service: form.service?.value,
       profileImage,
+      // Care team
+      doctorId: form.doctorId?.value || "",
+      nurseId: form.nurseId?.value || "",
+      // Discharge info
+      admissionDate: form.admissionDate?.value || "",
+      dischargeDate: form.dischargeDate?.value || "",
+      diagnosis: form.diagnosis?.value || "",
+      dischargeNotes: form.dischargeNotes?.value || "",
+      // Physical stats
+      weight: form.weight?.value ? Number(form.weight.value) : undefined,
+      height: form.height?.value ? Number(form.height.value) : undefined,
     };
     if (password) payload.password = password;
 
@@ -357,6 +385,60 @@ const EditPatient = () => {
                     <Col md={6} className="form-group">
                       <Form.Label className="mb-0">Code postal :</Form.Label>
                       <Form.Control type="text" className="my-2" name="pno" placeholder="Code postal" defaultValue={formData.pno} />
+                    </Col>
+                  </Row>
+                  <hr />
+                  <h5 className="mb-3">Équipe soignante</h5>
+                  <Row className="cust-form-input">
+                    <Col md={6} className="form-group">
+                      <Form.Label className="mb-0">Médecin référent :</Form.Label>
+                      <Form.Control as="select" className="my-2" name="doctorId" defaultValue={formData.doctorId}>
+                        <option value="">— Aucun —</option>
+                        {doctors.map(d => (
+                          <option key={d._id || d.id} value={d._id || d.id}>
+                            Dr. {d.firstName} {d.lastName} {d.specialty ? `(${d.specialty})` : ""}
+                          </option>
+                        ))}
+                      </Form.Control>
+                    </Col>
+                    <Col md={6} className="form-group">
+                      <Form.Label className="mb-0">Infirmier(e) assigné(e) :</Form.Label>
+                      <Form.Control as="select" className="my-2" name="nurseId" defaultValue={formData.nurseId}>
+                        <option value="">— Aucun —</option>
+                        {nurses.map(n => (
+                          <option key={n._id || n.id} value={n._id || n.id}>
+                            {n.firstName} {n.lastName} {n.department ? `(${n.department})` : ""}
+                          </option>
+                        ))}
+                      </Form.Control>
+                    </Col>
+                  </Row>
+                  <hr />
+                  <h5 className="mb-3">Informations d'hospitalisation</h5>
+                  <Row className="cust-form-input">
+                    <Col md={6} className="form-group">
+                      <Form.Label className="mb-0">Date d'admission :</Form.Label>
+                      <Form.Control type="date" className="my-2" name="admissionDate" defaultValue={formData.admissionDate} />
+                    </Col>
+                    <Col md={6} className="form-group">
+                      <Form.Label className="mb-0">Date de sortie :</Form.Label>
+                      <Form.Control type="date" className="my-2" name="dischargeDate" defaultValue={formData.dischargeDate} />
+                    </Col>
+                    <Col md={6} className="form-group">
+                      <Form.Label className="mb-0">Poids (kg) :</Form.Label>
+                      <Form.Control type="number" className="my-2" name="weight" placeholder="ex: 72" defaultValue={formData.weight} />
+                    </Col>
+                    <Col md={6} className="form-group">
+                      <Form.Label className="mb-0">Taille (cm) :</Form.Label>
+                      <Form.Control type="number" className="my-2" name="height" placeholder="ex: 175" defaultValue={formData.height} />
+                    </Col>
+                    <Col sm={12} className="form-group">
+                      <Form.Label className="mb-0">Diagnostic :</Form.Label>
+                      <Form.Control type="text" className="my-2" name="diagnosis" placeholder="ex: Insuffisance cardiaque" defaultValue={formData.diagnosis} />
+                    </Col>
+                    <Col sm={12} className="form-group">
+                      <Form.Label className="mb-0">Instructions post-sortie :</Form.Label>
+                      <Form.Control as="textarea" rows={3} className="my-2" name="dischargeNotes" placeholder="Instructions pour le patient après sa sortie..." defaultValue={formData.dischargeNotes} />
                     </Col>
                   </Row>
                   <hr />

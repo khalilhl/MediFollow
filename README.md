@@ -22,12 +22,13 @@
 3. [Fonctionnalités](#-fonctionnalités)
 4. [Technologies utilisées](#-technologies-utilisées)
 5. [Architecture du projet](#-architecture-du-projet)
-6. [Installation et lancement](#-installation-et-lancement)
-7. [Structure du projet](#-structure-du-projet)
-8. [Captures d'écran](#-captures-décran)
-9. [Équipe du projet](#-équipe-du-projet)
-10. [Améliorations futures](#-améliorations-futures)
-11. [Licence](#-licence)
+6. [Accessibilité numérique](#-accessibilité-numérique)
+7. [Installation et lancement](#-installation-et-lancement)
+8. [Structure du projet](#-structure-du-projet)
+9. [Captures d'écran](#-captures-décran)
+10. [Équipe du projet](#-équipe-du-projet)
+11. [Améliorations futures](#-améliorations-futures)
+12. [Licence](#-licence)
 
 ---
 
@@ -169,6 +170,92 @@ MediFollow
 
 ---
 
+## ♿ Accessibilité numérique
+
+MediFollow intègre dès sa conception les principes d'**accessibilité numérique** conformément aux **WCAG 2.1** (Web Content Accessibility Guidelines), afin que la plateforme soit utilisable par tous les profils d'utilisateurs, y compris les personnes en situation de handicap, les personnes âgées ou toute personne confrontée à des obstacles numériques.
+
+> *"Une solution inaccessible est une solution incomplète."*
+
+### 🧭 Les 4 piliers WCAG appliqués à MediFollow
+
+| Pilier | Principe | Application dans MediFollow |
+|---|---|---|
+| **Perceptible** | L'information doit être présentée de manière à être perçue par tous | Textes alternatifs sur les images, contraste suffisant, taille de police ≥ 16px |
+| **Utilisable** | L'interface doit être navigable par tous | Navigation complète au clavier (Tab / Maj+Tab), indicateur de focus visible |
+| **Compréhensible** | Le contenu et les interactions doivent être clairs | Labels explicites sur les formulaires, messages d'erreur descriptifs, langue HTML définie (`lang="fr"`) |
+| **Robuste** | Le contenu doit fonctionner sur différents agents utilisateurs | HTML sémantique valide, compatible avec les lecteurs d'écran et les technologies d'assistance |
+
+### ✅ Mesures d'accessibilité mises en œuvre
+
+#### Contenu perceptible
+- **Textes alternatifs** (`alt`) sur toutes les images informatives ; les images décoratives ont un `alt` vide
+- **Contraste couleur** respectant le ratio minimum de 4.5:1 entre le texte et l'arrière-plan
+- **Taille de police** lisible (minimum 16px), réglable par l'utilisateur
+- La **couleur seule** n'est jamais utilisée comme unique vecteur d'information (icônes et textes accompagnent les codes couleurs)
+
+#### Interface utilisable
+- **Navigation au clavier** complète : toutes les fonctionnalités sont accessibles sans souris
+- **Indicateur de focus** visible sur tous les éléments interactifs
+- **Délai suffisant** : les sessions affichent un avertissement avant expiration, avec possibilité de prolongation
+- **Pas de contenu clignotant** susceptible de provoquer des crises (respect du seuil de 3 flashes/seconde)
+- Liens d'**accès direct au contenu** (skip navigation) pour contourner les blocs répétitifs
+
+#### Contenu compréhensible
+- **Titres hiérarchisés** (H1, H2, H3…) structurant logiquement chaque page
+- **Libellés de liens explicites** : pas de "cliquez ici", mais des descriptions claires comme "Consulter le dossier patient"
+- **Formulaires accessibles** : chaque champ possède un label associé, les erreurs de validation sont identifiées et décrites
+- Les **éléments répétés** (navigation, zones de recherche) ont des noms cohérents sur toutes les pages
+- Langue de la page définie par programmation (`<html lang="fr">`)
+
+#### Contenu robuste
+- **HTML sémantique valide** (vérifié avec NU HTML Checker)
+- Balisage ARIA (`aria-label`, `aria-live`, `role`) pour les composants dynamiques (alertes, notifications en temps réel)
+- Compatible avec les **lecteurs d'écran** (NVDA) et les **écrans Braille**
+- Interface **responsive** adaptée aux mobiles, tablettes et PC (boutons tactiles de taille suffisante)
+
+### 🔧 Technologies d'assistance (AT) supportées
+
+| Type | Technologie |
+|---|---|
+| **Affichage alternatif** | Lecteur d'écran NVDA, Écran Braille |
+| **Saisie alternative** | Navigation clavier complète, touches rémanentes |
+| **Navigation vocale** | Web Speech API intégrée (dictée vocale) |
+| **Authentification adaptée** | Reconnaissance faciale (face-api.js) en alternative au mot de passe |
+
+### 🧪 Stratégie de test d'accessibilité
+
+MediFollow adopte une **approche combinée** d'évaluation de l'accessibilité :
+
+#### Tests automatisés
+| Outil | Description |
+|---|---|
+| **IBM Accessibility Checker** | Audit WCAG 2.1 du code HTML et des éléments interactifs |
+| **Accessibility Insights** *(Microsoft)* | Audits automatisés et manuels en temps réel pendant le développement |
+| **WebAIM WAVE** | Visualisation des erreurs d'accessibilité directement sur la page |
+| **aXe** | Détection des problèmes d'accessibilité intégrée au navigateur |
+
+#### Tests manuels
+| Outil | Usage |
+|---|---|
+| **TPG Colour Contrast Analyser** | Vérification manuelle du contraste des couleurs |
+| **NU HTML Checker** | Validation du balisage HTML pour détecter les erreurs de structure |
+
+#### Tests avec lecteur d'écran
+- Navigation avec **NVDA** pour vérifier la cohérence entre le design visuel et les informations annoncées
+- Vérification que les **états interactifs** (menu ouvert, alerte active) sont communiqués au lecteur d'écran
+- Contrôle de l'**ordre de focus** logique (SC 2.4.3) et de la **visibilité du focus** (SC 2.4.7)
+
+### 📐 Bonnes pratiques de conception inclusive appliquées
+
+- ✔ Barre de navigation **visible et constante** sur toutes les pages
+- ✔ Structuration claire avec **titres hiérarchisés**
+- ✔ **Langage simple** : phrases courtes, vocabulaire médical expliqué
+- ✔ Boutons **assez grands** pour une utilisation tactile
+- ✔ Formulaires **courts et faciles** à remplir, avec validation en temps réel
+- ✔ Prototypes testés avec des **profils variés** (personnes âgées, malvoyantes, dyslexiques)
+
+---
+
 ## 🚀 Installation et lancement
 
 ### Prérequis
@@ -296,14 +383,24 @@ MediFollow/
 
 ## 🔮 Améliorations futures
 
+### Fonctionnalités
 - [ ] Application mobile React Native pour les patients
 - [ ] Intégration de capteurs IoT pour la collecte automatique des paramètres vitaux
 - [ ] Intelligence artificielle pour la prédiction des risques de réadmission
 - [ ] Module de téléconsultation (vidéo/chat en temps réel)
 - [ ] Export des rapports médicaux en PDF personnalisé
 - [ ] Système de prescription électronique
-- [ ] Internationalisation complète (multilingue)
+- [ ] Internationalisation complète (multilingue — pictogrammes inclus)
 - [ ] Intégration avec les systèmes d'information hospitaliers (HL7/FHIR)
+
+### Accessibilité (conformité WCAG AAA)
+- [ ] Atteindre la conformité **WCAG 2.1 niveau AAA** sur l'ensemble des parcours critiques
+- [ ] Ajouter des **sous-titres et transcriptions** pour tous les contenus vidéo et audio
+- [ ] Intégrer un **mode sombre** et un mode **contraste élevé** commutables par l'utilisateur
+- [ ] Proposer une **version en langue des signes** (LSF) pour les annonces importantes
+- [ ] Audit d'accessibilité complet par une **personne en situation de handicap** (co-conception inclusive)
+- [ ] Intégration de **Voiceflow** pour un assistant vocal guidant la navigation
+- [ ] Support étendu des **technologies d'assistance** (contacteurs, commandes oculaires)
 
 ---
 

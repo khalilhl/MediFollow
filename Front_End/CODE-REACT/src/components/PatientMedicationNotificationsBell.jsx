@@ -152,15 +152,20 @@ export default function PatientMedicationNotificationsBell({
           </span>
         )}
       </Dropdown.Toggle>
-      <Dropdown.Menu drop="start" as="div" className="p-0 sub-drop dropdown-menu-end" style={{ minWidth: 320, maxWidth: 400 }}>
-        <div className="m-0 card border-0 shadow-sm overflow-hidden">
+      <Dropdown.Menu
+        drop="start"
+        as="div"
+        className="p-0 sub-drop dropdown-menu-end notif-dropdown-panel"
+        style={{ minWidth: 300, maxWidth: "min(100vw - 1.5rem, 360px)", width: "min(100vw - 1.5rem, 360px)", overflow: "hidden" }}
+      >
+        <div className="m-0 card border-0 shadow-sm" style={{ overflow: "hidden", maxWidth: "100%" }}>
           <div className="py-3 px-3 d-flex justify-content-between align-items-center bg-primary mb-0 rounded-top-3">
-            <h5 className="mb-0 text-white fw-bold d-flex align-items-center gap-2 flex-wrap">
+            <h5 className="mb-0 text-white fw-bold d-flex align-items-center gap-2 flex-wrap min-w-0">
               Toutes les notifications
               <span className="badge bg-light text-dark rounded-2 px-2 py-1 small">{totalCount}</span>
             </h5>
           </div>
-          <div className="p-0 card-body" style={{ maxHeight: 420, overflowY: "auto" }}>
+          <div className="p-0 card-body notif-dropdown-body">
             {!patientId && (
               <div className="text-muted small text-center py-4 px-3">Session patient requise.</div>
             )}
@@ -187,12 +192,13 @@ export default function PatientMedicationNotificationsBell({
                 <Link
                   key={String(id)}
                   to={href}
-                  className={`iq-sub-card d-block text-decoration-none border-bottom ${n.read === false ? "bg-primary-subtle bg-opacity-10" : ""}`}
+                  className={`iq-sub-card d-block w-100 text-decoration-none border-bottom ${n.read === false ? "bg-primary-subtle bg-opacity-10" : ""}`}
+                  style={{ maxWidth: "100%", boxSizing: "border-box" }}
                   onClick={() => {
                     if (!n.read && id && !isVirt) notificationApi.markRead(id).then(load).catch(() => {});
                   }}
                 >
-                  <div className="d-flex align-items-start px-3 py-3">
+                  <div className="d-flex align-items-start gap-2 px-3 py-3">
                     <div
                       className={`flex-shrink-0 rounded-3 d-flex align-items-center justify-content-center border ${
                         isAppt ? "bg-primary-subtle text-primary" : "bg-light text-primary"
@@ -201,20 +207,25 @@ export default function PatientMedicationNotificationsBell({
                     >
                       <i className={`${icon} fs-4`} aria-hidden />
                     </div>
-                    <div className="ms-3 flex-grow-1 text-start min-w-0">
-                      <h6 className="mb-0 text-dark fw-semibold text-truncate">{n.title || "Notification"}</h6>
-                      <div className="d-flex justify-content-between gap-2 align-items-start mt-1">
-                        <p className="mb-0 small text-muted" style={{ lineHeight: 1.35 }}>
-                          {n.body}
-                        </p>
-                        <small className="flex-shrink-0 text-muted" style={{ fontSize: "0.7rem" }}>
-                          {time}
-                        </small>
+                    <div className="flex-grow-1 text-start min-w-0" style={{ minWidth: 0 }}>
+                      <div className="d-flex align-items-start justify-content-between gap-2">
+                        <h6 className="mb-0 text-dark fw-semibold text-break flex-grow-1">{n.title || "Notification"}</h6>
+                        {time ? (
+                          <small className="flex-shrink-0 text-muted text-nowrap" style={{ fontSize: "0.7rem" }}>
+                            {time}
+                          </small>
+                        ) : null}
                       </div>
+                      <p
+                        className="mb-0 small text-muted text-break mt-1"
+                        style={{ lineHeight: 1.35, wordBreak: "break-word", overflowWrap: "anywhere" }}
+                      >
+                        {n.body}
+                      </p>
                       {!n.read && !isVirt && (
                         <button
                           type="button"
-                          className="btn btn-link btn-sm p-0 mt-1 small text-primary"
+                          className="btn btn-link btn-sm p-0 mt-1 small text-primary text-start"
                           onClick={(e) => onMarkReadApi(e, id)}
                         >
                           Marquer lu
@@ -234,24 +245,32 @@ export default function PatientMedicationNotificationsBell({
               const slotLabel = row.slot?.label ? `${row.slot.label} · ` : "";
               const subtitle = `${slotLabel}${dosage ? `${dosage} · ` : ""}Prévu ${formatSlotClock(row.slot)}`;
               return (
-                <Link key={key} to={DASHBOARD_MEDS_HASH} className="iq-sub-card d-block text-decoration-none border-bottom">
-                  <div className="d-flex align-items-start px-3 py-3">
+                <Link
+                  key={key}
+                  to={DASHBOARD_MEDS_HASH}
+                  className="iq-sub-card d-block w-100 text-decoration-none border-bottom"
+                  style={{ maxWidth: "100%", boxSizing: "border-box" }}
+                >
+                  <div className="d-flex align-items-start gap-2 px-3 py-3">
                     <div
                       className="flex-shrink-0 rounded-3 bg-light d-flex align-items-center justify-content-center text-primary border"
                       style={{ width: 50, height: 50 }}
                     >
                       <i className="ri-capsule-line fs-4" aria-hidden />
                     </div>
-                    <div className="ms-3 flex-grow-1 text-start min-w-0">
-                      <h6 className="mb-0 text-dark fw-semibold text-truncate">Rappel — {title}</h6>
-                      <div className="d-flex justify-content-between gap-2 align-items-start mt-1">
-                        <p className="mb-0 small text-muted" style={{ lineHeight: 1.35 }}>
-                          {subtitle}
-                        </p>
-                        <small className="flex-shrink-0 text-muted" style={{ fontSize: "0.7rem" }}>
+                    <div className="flex-grow-1 text-start min-w-0" style={{ minWidth: 0 }}>
+                      <div className="d-flex align-items-start justify-content-between gap-2">
+                        <h6 className="mb-0 text-dark fw-semibold text-break flex-grow-1">Rappel — {title}</h6>
+                        <small className="flex-shrink-0 text-muted text-nowrap" style={{ fontSize: "0.7rem" }}>
                           {formatLate(row.minutesPast)}
                         </small>
                       </div>
+                      <p
+                        className="mb-0 small text-muted text-break mt-1"
+                        style={{ lineHeight: 1.35, wordBreak: "break-word", overflowWrap: "anywhere" }}
+                      >
+                        {subtitle}
+                      </p>
                     </div>
                   </div>
                 </Link>

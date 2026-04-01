@@ -150,20 +150,25 @@ export default function StaffNotificationsBell({
           </span>
         )}
       </Dropdown.Toggle>
-      <Dropdown.Menu drop="start" as="div" className="p-0 sub-drop dropdown-menu-end" style={{ minWidth: 320, maxWidth: 380 }}>
-        <div className="m-0 card border-0 shadow-sm overflow-hidden">
-          <div className="py-3 px-3 d-flex justify-content-between align-items-center bg-primary mb-0 rounded-top-3">
-            <h5 className="mb-0 text-white fw-bold d-flex align-items-center gap-2 flex-wrap">
+      <Dropdown.Menu
+        drop="start"
+        as="div"
+        className="p-0 sub-drop dropdown-menu-end notif-dropdown-panel"
+        style={{ minWidth: 300, maxWidth: "min(100vw - 1.5rem, 360px)", width: "min(100vw - 1.5rem, 360px)", overflow: "hidden" }}
+      >
+        <div className="m-0 card border-0 shadow-sm" style={{ overflow: "hidden", maxWidth: "100%" }}>
+          <div className="py-3 px-3 d-flex justify-content-between align-items-center gap-2 bg-primary mb-0 rounded-top-3 flex-wrap">
+            <h5 className="mb-0 text-white fw-bold d-flex align-items-center gap-2 flex-wrap flex-grow-1 min-w-0">
               Toutes les notifications
               <span className="badge bg-light text-dark rounded-2 px-2 py-1 small">{unread}</span>
             </h5>
             {unread > 0 && (
-              <button type="button" className="btn btn-sm btn-link text-white text-decoration-none p-0 small" onClick={onMarkAll}>
+              <button type="button" className="btn btn-sm btn-link text-white text-decoration-none p-0 small flex-shrink-0" onClick={onMarkAll}>
                 Tout lu
               </button>
             )}
           </div>
-          <div className="p-0 card-body" style={{ maxHeight: 360, overflowY: "auto" }}>
+          <div className="p-0 card-body notif-dropdown-body">
             {loading && items.length === 0 && (
               <div className="text-center text-muted small py-4">Chargement…</div>
             )}
@@ -191,32 +196,38 @@ export default function StaffNotificationsBell({
                 <Link
                   key={String(id)}
                   to={href}
-                  className={`iq-sub-card d-block text-decoration-none border-bottom ${!isRead ? "bg-primary-subtle bg-opacity-10" : ""}`}
+                  className={`iq-sub-card d-block w-100 text-decoration-none border-bottom ${!isRead ? "bg-primary-subtle bg-opacity-10" : ""}`}
+                  style={{ maxWidth: "100%", boxSizing: "border-box" }}
                   onClick={() => {
                     if (!isRead && id && !virt) notificationApi.markRead(id).then(load).catch(() => {});
                   }}
                 >
-                  <div className="d-flex align-items-start px-3 py-3">
+                  <div className="d-flex align-items-start gap-2 px-3 py-3">
                     <div
                       className={`flex-shrink-0 d-flex align-items-center justify-content-center ${iconWrapClass}`}
                       style={{ width: 48, height: 48 }}
                     >
                       <i className={`${icon} fs-5`} aria-hidden />
                     </div>
-                    <div className="ms-3 flex-grow-1 text-start min-w-0">
-                      <h6 className="mb-0 text-dark text-truncate fw-semibold">{n.title || defaultTitle}</h6>
-                      <div className="d-flex justify-content-between gap-2 align-items-start mt-1">
-                        <p className="mb-0 small text-muted" style={{ lineHeight: 1.35 }}>
-                          {n.body}
-                        </p>
-                        <small className="flex-shrink-0 text-muted" style={{ fontSize: "0.7rem" }}>
-                          {time}
-                        </small>
+                    <div className="flex-grow-1 text-start min-w-0" style={{ minWidth: 0 }}>
+                      <div className="d-flex align-items-start justify-content-between gap-2">
+                        <h6 className="mb-0 text-dark fw-semibold text-break flex-grow-1">{n.title || defaultTitle}</h6>
+                        {time ? (
+                          <small className="flex-shrink-0 text-muted text-nowrap" style={{ fontSize: "0.7rem" }}>
+                            {time}
+                          </small>
+                        ) : null}
                       </div>
+                      <p
+                        className="mb-0 small text-muted text-break mt-1"
+                        style={{ lineHeight: 1.35, wordBreak: "break-word", overflowWrap: "anywhere" }}
+                      >
+                        {n.body}
+                      </p>
                       {!isRead && !virt && (
                         <button
                           type="button"
-                          className="btn btn-link btn-sm p-0 mt-1 small text-primary"
+                          className="btn btn-link btn-sm p-0 mt-1 small text-primary text-start"
                           onClick={(e) => onMarkRead(e, id)}
                         >
                           Marquer lu

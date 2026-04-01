@@ -147,7 +147,10 @@ export class NotificationService {
       String(appt.requestedDate || appt.date || ''),
       String(appt.requestedTime || appt.time || ''),
     );
-    const doctorLine = appt.doctorName ? ` · Dr. ${appt.doctorName}` : '';
+    const rawDn = String(appt.doctorName || '')
+      .trim()
+      .replace(/^Dr\.?\s+/i, '');
+    const doctorLine = rawDn ? ` · Dr. ${rawDn}` : '';
 
     for (const a of admins) {
       const rid = String((a as { _id: Types.ObjectId })._id);

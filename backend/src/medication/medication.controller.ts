@@ -20,8 +20,12 @@ export class MedicationController {
 
   @UseGuards(JwtAuthGuard)
   @Put(':id/toggle-taken')
-  toggleTaken(@Param('id') id: string, @Req() req: { user: any }) {
-    return this.medicationService.toggleTakenToday(id, req.user);
+  toggleTaken(
+    @Param('id') id: string,
+    @Body() body: { localDate?: string; slotIndex?: number },
+    @Req() req: { user: any },
+  ) {
+    return this.medicationService.toggleTakenToday(id, req.user, body);
   }
 
   @UseGuards(JwtAuthGuard)

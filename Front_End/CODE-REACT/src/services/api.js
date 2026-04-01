@@ -204,7 +204,11 @@ export const healthLogApi = {
 export const medicationApi = {
   create: (data) => api.post('/medications', data),
   getByPatient: (patientId) => api.get(`/medications/patient/${patientId}`),
-  toggleTaken: (id) => api.put(`/medications/${id}/toggle-taken`, {}),
+  toggleTaken: (id, localDate, slotIndex) =>
+    api.put(`/medications/${id}/toggle-taken`, {
+      ...(localDate ? { localDate } : {}),
+      ...(typeof slotIndex === "number" ? { slotIndex } : {}),
+    }),
   update: (id, data) => api.put(`/medications/${id}`, data),
   remove: (id) => api.delete(`/medications/${id}`),
 };

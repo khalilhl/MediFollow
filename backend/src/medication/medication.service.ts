@@ -9,6 +9,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Medication } from './schemas/medication.schema';
 import { Patient } from '../patient/schemas/patient.schema';
+import { getSlotCountForFrequency } from './medication-slots.util';
 
 const localDateString = () => {
   const d = new Date();
@@ -98,26 +99,97 @@ export class MedicationService {
       })
       .sort({ createdAt: -1 })
       .exec();
-    const today = localDateString();
-    return meds.map((m) => ({
-      ...m.toObject(),
-      takenToday: m.takenDates?.includes(today) ?? false,
-    }));
+    return meds.map((m) => {
+      const o = m.toObject() as unknown as Record<string, unknown>;
+      o.takenSlotKeys = this.mergeLegacySlotKeys(m);
+      return o;
+    });
   }
 
-  async toggleTakenToday(id: string, user?: JwtUser) {
+  private parseYmd(s: string | undefined): string | null {
+    if (!s || typeof s !== 'string') return null;
+    const t = s.trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(t)) return null;
+    return t;
+  }
+
+  /**
+   * Fusion legacy takenDates → clés par créneau.
+   * Si takenSlotKeys contient déjà au moins une clé `date#n` pour un jour, on n’expand pas
+   * takenDates pour ce jour (sinon une seule prise cochée ré-ouvrirait toute la journée).
+   */
+  private mergeLegacySlotKeys(med: Medication): string[] {
+    const set = new Set<string>([...(med.takenSlotKeys || [])]);
+    const n = getSlotCountForFrequency(med.frequency);
+    const legacy = med.takenDates || [];
+    for (const d of legacy) {
+      const base = String(d).slice(0, 10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(base)) continue;
+      if (n <= 0) continue;
+      const hasSlotKeyForDate = [...set].some((k) => String(k).startsWith(`${base}#`));
+      if (hasSlotKeyForDate) continue;
+      for (let i = 0; i < n; i++) {
+        set.add(`${base}#${i}`);
+      }
+    }
+    return [...set].sort();
+  }
+
+  async toggleTakenToday(id: string, user?: JwtUser, body?: { localDate?: string; slotIndex?: number }) {
     const { patientId } = await this.getMedicationAndPatientId(id);
     await this.assertAccessToPatient(patientId, user);
     const med = await this.medicationModel.findById(id).exec();
     if (!med) throw new NotFoundException('Médicament introuvable');
-    const today = localDateString();
-    const alreadyTaken = med.takenDates?.includes(today);
-    if (alreadyTaken) {
-      await this.medicationModel.updateOne({ _id: id }, { $pull: { takenDates: today } });
-    } else {
-      await this.medicationModel.updateOne({ _id: id }, { $addToSet: { takenDates: today } });
+
+    const clientDate = this.parseYmd(body?.localDate);
+    const dateStr = clientDate || localDateString();
+
+    const start = med.startDate ? String(med.startDate).slice(0, 10) : '';
+    const end = med.endDate ? String(med.endDate).slice(0, 10) : '';
+    if (start && dateStr < start) {
+      throw new BadRequestException(
+        'Impossible de marquer ce médicament comme pris avant la date de début du traitement.',
+      );
     }
-    return { takenToday: !alreadyTaken };
+    if (end && dateStr > end) {
+      throw new BadRequestException(
+        'La période de traitement est terminée (date de fin dépassée).',
+      );
+    }
+
+    const maxSlots = getSlotCountForFrequency(med.frequency);
+    if (maxSlots === 0) {
+      throw new BadRequestException('Ce médicament ne comporte pas de prise planifiée (si besoin).');
+    }
+
+    let slotIndex = typeof body?.slotIndex === 'number' ? Math.floor(body.slotIndex) : 0;
+    if (slotIndex < 0 || slotIndex >= maxSlots) {
+      throw new BadRequestException('Créneau de prise invalide.');
+    }
+
+    const slotKey = `${dateStr}#${slotIndex}`;
+    let keys = this.mergeLegacySlotKeys(med);
+    const alreadyTaken = keys.includes(slotKey);
+    if (alreadyTaken) {
+      keys = keys.filter((k) => k !== slotKey);
+    } else {
+      keys = [...new Set([...keys, slotKey])].sort();
+    }
+
+    await this.medicationModel.updateOne(
+      { _id: id },
+      {
+        $set: { takenSlotKeys: keys, takenDates: [] },
+      },
+    );
+
+    const updated = await this.medicationModel.findById(id).exec();
+    return {
+      taken: !alreadyTaken,
+      date: dateStr,
+      slotIndex,
+      takenSlotKeys: updated?.takenSlotKeys || keys,
+    };
   }
 
   async update(id: string, data: Record<string, unknown>, user?: JwtUser) {

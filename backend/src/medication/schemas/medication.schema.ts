@@ -30,9 +30,13 @@ export class Medication extends Document {
   @Prop({ default: true })
   isActive: boolean;
 
-  // Track which dates the patient marked this as taken (ISO date strings)
+  /** @deprecated Préférer takenSlotKeys — conservé pour migration */
   @Prop({ type: [String], default: [] })
   takenDates: string[];
+
+  /** Prises par créneau : "YYYY-MM-DD#0", "YYYY-MM-DD#1", … */
+  @Prop({ type: [String], default: [] })
+  takenSlotKeys: string[];
 }
 
 export const MedicationSchema = SchemaFactory.createForClass(Medication);

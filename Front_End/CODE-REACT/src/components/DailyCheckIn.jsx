@@ -21,10 +21,11 @@ const SYMPTOMS = [
   "Fever", "Loss of appetite", "Insomnia", "Palpitations",
 ];
 
+/** Icônes métier (pas de visages) : stable / équilibre / attention clinique */
 const MOODS = [
-  { value: "good", label: "Good 😊", color: "#28a745" },
-  { value: "fair", label: "Fair 😐", color: "#fd7e14" },
-  { value: "poor", label: "Poor 😔", color: "#dc3545" },
+  { value: "good", label: "Satisfactory", icon: "ri-shield-check-line", color: "#28a745" },
+  { value: "fair", label: "Moderate", icon: "ri-scales-3-line", color: "#fd7e14" },
+  { value: "poor", label: "Poor", icon: "ri-first-aid-kit-line", color: "#dc3545" },
 ];
 
 const STEPS = ["Vitals", "Symptoms", "Wellbeing", "Review"];
@@ -104,8 +105,18 @@ const DailyCheckIn = ({ patientId, onSubmitted, existingLog }) => {
             <h6 className="card-title text-primary mb-0 fw-bold">
               <i className="ri-heart-pulse-line me-2"></i>Daily Health Check-in
             </h6>
-            <span className={`badge ${alreadyDone || success ? "bg-success" : "bg-warning text-dark"}`}>
-              {alreadyDone || success ? "✓ Done Today" : "Pending"}
+            <span className={`badge d-inline-flex align-items-center gap-1 ${alreadyDone || success ? "bg-success" : "bg-warning text-dark"}`}>
+              {alreadyDone || success ? (
+                <>
+                  <i className="ri-checkbox-circle-line" aria-hidden />
+                  <span>Done Today</span>
+                </>
+              ) : (
+                <>
+                  <i className="ri-time-line" aria-hidden />
+                  <span>Pending</span>
+                </>
+              )}
             </span>
           </div>
 
@@ -183,8 +194,9 @@ const DailyCheckIn = ({ patientId, onSubmitted, existingLog }) => {
           <div className="mb-3">
             <div className="d-flex justify-content-between mb-1">
               {STEPS.map((s, i) => (
-                <span key={s} className={`small fw-bold ${i === step ? "text-primary" : i < step ? "text-success" : "text-muted"}`}>
-                  {i < step ? "✓ " : ""}{s}
+                <span key={s} className={`small fw-bold d-inline-flex align-items-center gap-1 ${i === step ? "text-primary" : i < step ? "text-success" : "text-muted"}`}>
+                  {i < step ? <i className="ri-checkbox-circle-fill" aria-hidden /> : null}
+                  {s}
                 </span>
               ))}
             </div>
@@ -251,11 +263,12 @@ const DailyCheckIn = ({ patientId, onSubmitted, existingLog }) => {
                   <button
                     key={s}
                     type="button"
-                    className={`btn btn-sm ${form.symptoms.includes(s) ? "btn-primary" : "btn-outline-secondary"}`}
+                    className={`btn btn-sm d-inline-flex align-items-center gap-1 ${form.symptoms.includes(s) ? "btn-primary" : "btn-outline-secondary"}`}
                     style={{ borderRadius: 20 }}
                     onClick={() => toggleSymptom(s)}
                   >
-                    {form.symptoms.includes(s) ? "✓ " : ""}{s}
+                    {form.symptoms.includes(s) ? <i className="ri-check-line" aria-hidden /> : null}
+                    {s}
                   </button>
                 ))}
               </div>
@@ -282,10 +295,11 @@ const DailyCheckIn = ({ patientId, onSubmitted, existingLog }) => {
                 <div className="d-flex gap-2">
                   {MOODS.map((m) => (
                     <button key={m.value} type="button"
-                      className={`btn flex-fill ${form.mood === m.value ? "btn-primary" : "btn-outline-secondary"}`}
+                      className={`btn flex-fill d-inline-flex align-items-center justify-content-center gap-1 ${form.mood === m.value ? "btn-primary" : "btn-outline-secondary"}`}
                       onClick={() => setForm((f) => ({ ...f, mood: m.value }))}
                     >
-                      {m.label}
+                      <i className={m.icon} aria-hidden />
+                      <span>{m.label}</span>
                     </button>
                   ))}
                 </div>
@@ -333,8 +347,15 @@ const DailyCheckIn = ({ patientId, onSubmitted, existingLog }) => {
               Next →
             </button>
           ) : (
-            <button className="btn btn-success" onClick={handleSubmit} disabled={loading}>
-              {loading ? "Submitting..." : "✓ Submit Check-in"}
+            <button className="btn btn-success d-inline-flex align-items-center gap-2" onClick={handleSubmit} disabled={loading}>
+              {loading ? (
+                "Submitting..."
+              ) : (
+                <>
+                  <i className="ri-send-plane-fill" aria-hidden />
+                  <span>Submit Check-in</span>
+                </>
+              )}
             </button>
           )}
         </Modal.Footer>

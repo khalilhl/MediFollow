@@ -123,7 +123,10 @@ const ChatData = (props) => {
                     </div>
                     <div className="chat-detail">
                         <div className="chat-message">
-                            <p>How can we help? We're here for you! 😄</p>
+                            <p className="d-flex align-items-start gap-2 mb-0">
+                                <i className="ri-stethoscope-line text-primary flex-shrink-0 mt-1" aria-hidden />
+                                <span>How can we help? We&apos;re here for you.</span>
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -137,7 +140,10 @@ const ChatData = (props) => {
                     <div className="chat-detail">
                         <div className="chat-message">
                             <p>Hey John, I am looking for the best admin template.</p>
-                            <p>Could you please help me to find it out? 🤔</p>
+                            <p className="d-flex align-items-start gap-2 mb-0">
+                                <i className="ri-question-line text-muted flex-shrink-0 mt-1" aria-hidden />
+                                <span>Could you please help me find that information?</span>
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -191,7 +197,10 @@ const ChatData = (props) => {
                     </div>
                     <div className="chat-detail">
                         <div className="chat-message">
-                            <p>I will purchase it for sure. 👍</p>
+                            <p className="d-flex align-items-start gap-2 mb-0">
+                                <i className="ri-checkbox-circle-line text-success flex-shrink-0 mt-1" aria-hidden />
+                                <span>Confirmed — I will proceed.</span>
+                            </p>
                         </div>
                     </div>
                 </div>

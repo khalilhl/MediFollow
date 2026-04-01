@@ -210,8 +210,8 @@ const MedicationsCard = ({ patientId, medications: initialMeds, onUpdate, allowA
                               }
                               onClick={() => toggle(m._id, idx)}
                             >
-                              <span className="d-inline-block" style={{ whiteSpace: "nowrap" }}>
-                                {taken ? "✓ " : ""}
+                              <span className="d-inline-flex align-items-center justify-content-center gap-1" style={{ whiteSpace: "nowrap" }}>
+                                {taken ? <i className="ri-capsule-fill" aria-hidden /> : null}
                                 {label}
                               </span>
                               {timeStr ? (

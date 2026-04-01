@@ -96,6 +96,8 @@ import AccountSetting from "../views/extra-pages/account-setting"
 import AdminDashboard from "../views/extra-pages/admin-dashboard"
 import AdminProfile from "../views/admin/admin-profile"
 import AdminEditProfile from "../views/admin/admin-edit-profile"
+import AdminDepartments from "../views/admin/admin-departments"
+import AdminDepartmentDetail from "../views/admin/admin-department-detail"
 import SuperAdminDashboard from "../views/super-admin/super-admin-dashboard"
 import UserList from "../views/super-admin/user-list"
 import AuditorList from "../views/super-admin/auditor-list"
@@ -448,6 +450,14 @@ export const DefaultRoute = [
       {
         path: '/admin/edit-profile',
         element: <AdminEditProfile />
+      },
+      {
+        path: '/admin/departments',
+        element: <AdminDepartments />
+      },
+      {
+        path: '/admin/departments/:departmentName',
+        element: <AdminDepartmentDetail />
       },
 
       //  ------ Super Admin Routes ------

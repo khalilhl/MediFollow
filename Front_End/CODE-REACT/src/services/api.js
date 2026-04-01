@@ -138,6 +138,12 @@ export const nurseApi = {
   toggleActive: (id) => api.put(`/nurses/${id}/toggle-active`, {}),
 };
 
+export const departmentApi = {
+  summary: () => api.get("/departments/summary"),
+  usersByDepartment: (department) =>
+    api.get(`/departments/users?department=${encodeURIComponent(department)}`),
+};
+
 export const superAdminApi = {
   getAllUsers: () => api.get("/auth/users"),
   toggleUserActive: (id) => api.put(`/auth/users/${id}/toggle-active`, {}),

@@ -3,6 +3,7 @@ import Card from "../../components/Card";
 import { Button, Col, Container, Form, InputGroup, Row } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { nurseApi } from "../../services/api";
+import { HOSPITAL_DEPARTMENTS } from "../../constants/hospitalDepartments";
 
 const generatePath = (path) => window.origin + import.meta.env.BASE_URL + path;
 
@@ -191,8 +192,13 @@ const AddNurse = () => {
                       <Form.Control type="text" className="my-2" name="add2" placeholder="Complément" />
                     </Col>
                     <Col sm={12} className="form-group">
-                      <Form.Label className="mb-0">Département :</Form.Label>
-                      <Form.Control type="text" className="my-2" name="cname" placeholder="Département" />
+                      <Form.Label className="mb-0">Département hospitalier :</Form.Label>
+                      <Form.Control as="select" className="my-2" name="cname" required>
+                        <option value="">Sélectionner un département</option>
+                        {HOSPITAL_DEPARTMENTS.map((d) => (
+                          <option key={d} value={d}>{d}</option>
+                        ))}
+                      </Form.Control>
                     </Col>
                     <Col sm={12} className="form-group">
                       <Form.Label className="mb-0">Pays :</Form.Label>

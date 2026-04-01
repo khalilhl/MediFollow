@@ -48,6 +48,10 @@ export class Patient extends Document {
   @Prop()
   service: string;
 
+  /** Service hospitalier / département (classification admin) */
+  @Prop()
+  department: string;
+
   @Prop({ default: 'patient' })
   role: string;
 

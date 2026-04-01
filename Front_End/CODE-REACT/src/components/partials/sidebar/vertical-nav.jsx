@@ -227,6 +227,25 @@ const VerticalNav = () => {
 
                     </Link>
                 </Nav.Item>
+                {adminUser && (
+                    <>
+                        <Nav.Item as="li">
+                            <Link to="/admin/dashboard" className={`nav-link ${location.pathname === "/admin/dashboard" ? "active" : ""}`}>
+                                <i className="ri-dashboard-2-fill"></i>
+                                <span className="item-name">Admin Dashboard</span>
+                            </Link>
+                        </Nav.Item>
+                        <Nav.Item as="li">
+                            <Link
+                                to="/admin/departments"
+                                className={`nav-link ${location.pathname.startsWith("/admin/departments") ? "active" : ""}`}
+                            >
+                                <i className="ri-building-2-fill"></i>
+                                <span className="item-name">Départements</span>
+                            </Link>
+                        </Nav.Item>
+                    </>
+                )}
                 <Nav.Item as="li">
                     <Link
                         to="/dashboard-pages/dashboard-1" className={`nav-link ${location.pathname === "/dashboard-pages/dashboard-1" ? "active" : ""}`}>

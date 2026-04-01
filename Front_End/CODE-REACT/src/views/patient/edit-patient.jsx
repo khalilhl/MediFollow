@@ -3,6 +3,7 @@ import Card from "../../components/Card";
 import { Button, Col, Container, Form, InputGroup, Row } from "react-bootstrap";
 import { useNavigate, useParams } from "react-router-dom";
 import { patientApi, doctorApi, nurseApi } from "../../services/api";
+import { HOSPITAL_DEPARTMENTS } from "../../constants/hospitalDepartments";
 
 const generatePath = (path) => window.origin + import.meta.env.BASE_URL + path;
 
@@ -18,28 +19,6 @@ const COUNTRIES = [
 
 const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 const GENDERS = ["Homme", "Femme", "Autre"];
-
-const SERVICES = [
-  "Cardiologie",
-  "Chirurgie",
-  "Chirurgie orthopédique",
-  "Dermatologie",
-  "Endocrinologie",
-  "Gastro-entérologie",
-  "Gynécologie",
-  "Médecine interne",
-  "Neurologie",
-  "Ophtalmologie",
-  "ORL",
-  "Pédiatrie",
-  "Pneumologie",
-  "Psychiatrie",
-  "Radiologie",
-  "Réanimation",
-  "Rhumatologie",
-  "Urologie",
-  "Urgences",
-];
 
 const EditPatient = () => {
   const { id } = useParams();
@@ -76,6 +55,7 @@ const EditPatient = () => {
           pno: data.pinCode || "",
           altconno: data.alternateContact || "",
           service: data.service || "",
+          department: data.department || data.service || "",
           // Care team
           doctorId: data.doctorId || "",
           nurseId: data.nurseId || "",
@@ -154,7 +134,8 @@ const EditPatient = () => {
       country: form.selectcountry?.value,
       pinCode: form.pno?.value,
       alternateContact: form.altconno?.value,
-      service: form.service?.value,
+      department: form.department?.value,
+      service: form.department?.value || form.service?.value,
       profileImage,
       // Care team
       doctorId: form.doctorId?.value || "",
@@ -193,6 +174,7 @@ const EditPatient = () => {
             country: payload.country,
             pinCode: payload.pinCode,
             service: payload.service,
+            department: payload.department,
             profileImage: payload.profileImage,
           };
           localStorage.setItem("patientUser", JSON.stringify(refreshed));
@@ -287,10 +269,10 @@ const EditPatient = () => {
                   </Form.Control>
                 </Form.Group>
                 <Form.Group className="cust-form-input">
-                  <Form.Label className="mb-0">Service / Consultation :</Form.Label>
-                  <Form.Control as="select" className="my-2" name="service" defaultValue={formData.service}>
-                    <option value="">Sélectionner le service</option>
-                    {SERVICES.map((s) => (
+                  <Form.Label className="mb-0">Département hospitalier :</Form.Label>
+                  <Form.Control as="select" className="my-2" name="department" defaultValue={formData.department}>
+                    <option value="">Sélectionner un département</option>
+                    {HOSPITAL_DEPARTMENTS.map((s) => (
                       <option key={s} value={s}>{s}</option>
                     ))}
                   </Form.Control>

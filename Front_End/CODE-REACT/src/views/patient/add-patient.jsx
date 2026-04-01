@@ -3,6 +3,7 @@ import Card from "../../components/Card";
 import { Button, Col, Container, Form, InputGroup, Row } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { patientApi } from "../../services/api";
+import { HOSPITAL_DEPARTMENTS } from "../../constants/hospitalDepartments";
 
 const generatePath = (path) => window.origin + import.meta.env.BASE_URL + path;
 
@@ -18,28 +19,6 @@ const COUNTRIES = [
 
 const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 const GENDERS = ["Homme", "Femme", "Autre"];
-
-const SERVICES = [
-  "Cardiologie",
-  "Chirurgie",
-  "Chirurgie orthopédique",
-  "Dermatologie",
-  "Endocrinologie",
-  "Gastro-entérologie",
-  "Gynécologie",
-  "Médecine interne",
-  "Neurologie",
-  "Ophtalmologie",
-  "ORL",
-  "Pédiatrie",
-  "Pneumologie",
-  "Psychiatrie",
-  "Radiologie",
-  "Réanimation",
-  "Rhumatologie",
-  "Urologie",
-  "Urgences",
-];
 
 const AddPatient = () => {
   const navigate = useNavigate();
@@ -99,7 +78,8 @@ const AddPatient = () => {
         country: form.selectcountry?.value,
         pinCode: form.pno?.value,
         alternateContact: form.altconno?.value,
-        service: form.service?.value,
+        department: form.department?.value,
+        service: form.department?.value || form.service?.value,
         password,
         profileImage,
       });
@@ -161,10 +141,10 @@ const AddPatient = () => {
                   </Form.Control>
                 </Form.Group>
                 <Form.Group className="form-group cust-form-input">
-                  <Form.Label className="mb-0">Service / Consultation :</Form.Label>
-                  <Form.Control as="select" className="my-2" name="service">
-                    <option value="">Sélectionner le service</option>
-                    {SERVICES.map((s) => (
+                  <Form.Label className="mb-0">Département hospitalier :</Form.Label>
+                  <Form.Control as="select" className="my-2" name="department" required>
+                    <option value="">Sélectionner un département</option>
+                    {HOSPITAL_DEPARTMENTS.map((s) => (
                       <option key={s} value={s}>{s}</option>
                     ))}
                   </Form.Control>

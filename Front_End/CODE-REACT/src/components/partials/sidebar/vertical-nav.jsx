@@ -179,6 +179,15 @@ const VerticalNav = () => {
                     </Link>
                 </Nav.Item>
                 <Nav.Item as="li">
+                    <Link
+                        to="/dashboard-pages/patient-vitals-history"
+                        className={`nav-link ${location.pathname === "/dashboard-pages/patient-vitals-history" ? "active" : ""}`}
+                    >
+                        <i className="ri-heart-pulse-line"></i>
+                        <span className="item-name">Historique constantes</span>
+                    </Link>
+                </Nav.Item>
+                <Nav.Item as="li">
                     <Link to={`/patient/patient-profile/${patientUser?.id}`} className={`nav-link ${location.pathname === `/patient/patient-profile/${patientUser?.id}` ? "active" : ""}`}>
                         <i className="ri-user-heart-fill"></i>
                         <span className="item-name">Mon profil</span>

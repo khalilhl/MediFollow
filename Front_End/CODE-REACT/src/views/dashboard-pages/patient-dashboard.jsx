@@ -1,4 +1,5 @@
 import React, { useEffect, useLayoutEffect, useState, useRef, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { Row, Col } from "react-bootstrap";
 import ApexCharts from 'apexcharts';
 import Card from "../../components/Card";
@@ -51,105 +52,12 @@ const generatePath = (path) => {
     return window.origin + import.meta.env.BASE_URL + path;
 };
 
-// Helper: HR status label + color
-const hrStatus = (hr) => {
-    if (!hr) return { label: "No data", color: "#6c757d" };
-    if (hr < 60) return { label: "Low — Bradycardia", color: "#dc3545" };
-    if (hr <= 100) return { label: "Normal Range", color: "#28a745" };
-    return { label: "Elevated — Tachycardia", color: "#fd7e14" };
-};
-
-// Helper: BP status
-const bpStatus = (sys) => {
-    if (!sys) return { label: "No data", color: "#6c757d" };
-    if (sys < 90) return { label: "Low Blood Pressure", color: "#dc3545" };
-    if (sys <= 120) return { label: "Normal", color: "#28a745" };
-    if (sys <= 140) return { label: "Slightly Elevated", color: "#fd7e14" };
-    return { label: "High — Monitor Closely", color: "#dc3545" };
-};
-
-// Helper: O2 status
-const o2Status = (o2) => {
-    if (!o2) return { label: "No data", color: "#6c757d" };
-    if (o2 >= 95) return { label: "Normal", color: "#28a745" };
-    if (o2 >= 90) return { label: "Low — Seek Advice", color: "#fd7e14" };
-    return { label: "Critical — Seek Help", color: "#dc3545" };
-};
-
 // Helper: mood — libellés + icônes métier (aligné sur DailyCheckIn, pas de visages)
 const moodDisplay = (mood) => {
     if (mood === "good") return { icon: "ri-shield-check-line", label: "Satisfactory", color: "#28a745" };
     if (mood === "fair") return { icon: "ri-scales-3-line", label: "Moderate", color: "#fd7e14" };
     if (mood === "poor") return { icon: "ri-first-aid-kit-line", label: "Poor", color: "#dc3545" };
     return { icon: null, label: "—", color: "#6c757d" };
-};
-
-/** Tuile constante — style dashboard médical */
-const VitalMetricTile = ({ icon, accent, title, value, unit, status, noDataMsg }) => {
-    const hasValue = value !== undefined && value !== null && value !== "";
-    return (
-        <div
-            className="h-100 position-relative overflow-hidden"
-            style={{
-                borderRadius: 16,
-                background: "linear-gradient(160deg, #ffffff 0%, #f8fafc 100%)",
-                boxShadow: "0 4px 14px rgba(15, 23, 42, 0.06)",
-                border: "1px solid rgba(148, 163, 184, 0.15)",
-                borderLeft: `4px solid ${hasValue ? accent : "#cbd5e1"}`,
-            }}
-        >
-            <div className="p-3 p-md-3">
-                <div className="d-flex align-items-center justify-content-between mb-2">
-                    <div
-                        className="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-                        style={{
-                            width: 42,
-                            height: 42,
-                            background: hasValue ? `${accent}1a` : "rgba(148, 163, 184, 0.15)",
-                        }}
-                    >
-                        <i className={icon} style={{ color: hasValue ? accent : "#94a3b8", fontSize: "1.35rem" }} />
-                    </div>
-                </div>
-                <div
-                    className="text-uppercase text-muted fw-semibold mb-1"
-                    style={{ letterSpacing: "0.06em", fontSize: "0.65rem" }}
-                >
-                    {title}
-                </div>
-                {hasValue ? (
-                    <>
-                        <div className="d-flex align-baseline flex-wrap gap-1 mb-2">
-                            <span
-                                className="fw-bold text-dark"
-                                style={{ fontSize: "1.65rem", lineHeight: 1.1, fontVariantNumeric: "tabular-nums" }}
-                            >
-                                {value}
-                            </span>
-                            <span className="text-muted align-self-end pb-1" style={{ fontSize: "0.85rem" }}>
-                                {unit}
-                            </span>
-                        </div>
-                        <span
-                            className="d-inline-block px-2 py-1 rounded-pill fw-medium"
-                            style={{
-                                color: status.color,
-                                backgroundColor: `${status.color}12`,
-                                border: `1px solid ${status.color}40`,
-                                fontSize: "0.68rem",
-                            }}
-                        >
-                            {status.label}
-                        </span>
-                    </>
-                ) : (
-                    <p className="text-muted small mb-0 fst-italic" style={{ fontSize: "0.78rem" }}>
-                        {noDataMsg || "Aucune mesure pour le moment."}
-                    </p>
-                )}
-            </div>
-        </div>
-    );
 };
 
 const PatientDashboard = () => {
@@ -362,11 +270,6 @@ const PatientDashboard = () => {
             : generatePath(`/assets/images/user/11.png`)
     };
 
-    // Today's vitals (dernier relevé du jour uniquement)
-    const v = (todayLogIsToday ? todayLog : null)?.vitals || {};
-    const hr = hrStatus(v.heartRate);
-    const bp = bpStatus(v.bloodPressureSystolic);
-    const o2 = o2Status(v.oxygenSaturation);
     const mood = moodDisplay(todayLogIsToday ? todayLog?.mood : null);
     const painLevel = todayLogIsToday ? todayLog?.painLevel ?? null : null;
 
@@ -472,107 +375,6 @@ const PatientDashboard = () => {
 
                 {/* RIGHT COLUMN */}
                 <Col lg={8}>
-                    {/* Today's Vitals — bandeau + tuiles */}
-                    <Card className="border-0 shadow-sm mb-3 overflow-hidden" style={{ borderRadius: 18 }}>
-                        <div
-                            className="px-3 px-md-4 py-3 d-flex flex-wrap align-items-center justify-content-between gap-2"
-                            style={{
-                                background: "linear-gradient(105deg, #ecfdf5 0%, #ffffff 42%, #fff7ed 100%)",
-                                borderBottom: "1px solid rgba(8, 155, 171, 0.12)",
-                            }}
-                        >
-                            <div className="d-flex align-items-center gap-3">
-                                <div
-                                    className="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-                                    style={{
-                                        width: 46,
-                                        height: 46,
-                                        background: "linear-gradient(135deg, #089bab 0%, #0d9488 100%)",
-                                        boxShadow: "0 4px 12px rgba(8, 155, 171, 0.35)",
-                                    }}
-                                >
-                                    <i className="ri-heart-pulse-fill text-white fs-5" />
-                                </div>
-                                <div>
-                                    <h6 className="mb-0 fw-bold text-primary">Constantes du jour</h6>
-                                    <small className="text-muted">Dernier relevé de votre check-in</small>
-                                </div>
-                            </div>
-                            <span
-                                className="badge rounded-pill px-3 py-2 fw-normal"
-                                style={{
-                                    background: "rgba(8, 155, 171, 0.1)",
-                                    color: "#089bab",
-                                    border: "1px solid rgba(8, 155, 171, 0.25)",
-                                    fontSize: "0.72rem",
-                                }}
-                            >
-                                <i className="ri-time-line me-1" />
-                                Mis à jour en temps réel
-                            </span>
-                        </div>
-                        <Card.Body className="p-3 p-md-4">
-                            <Row className="g-3">
-                                <Col sm={6} xl={3}>
-                                    <VitalMetricTile
-                                        icon="ri-heart-pulse-fill"
-                                        accent="#dc3545"
-                                        title="Fréquence cardiaque"
-                                        value={v.heartRate}
-                                        unit="bpm"
-                                        status={hr}
-                                        noDataMsg="Enregistrez vos constantes pour afficher la FC."
-                                    />
-                                </Col>
-                                <Col sm={6} xl={3}>
-                                    <VitalMetricTile
-                                        icon="ri-drop-fill"
-                                        accent="#089bab"
-                                        title="Tension artérielle"
-                                        value={v.bloodPressureSystolic ? `${v.bloodPressureSystolic}/${v.bloodPressureDiastolic}` : null}
-                                        unit="mmHg"
-                                        status={bp}
-                                        noDataMsg="Enregistrez vos constantes pour afficher la TA."
-                                    />
-                                </Col>
-                                <Col sm={6} xl={3}>
-                                    <VitalMetricTile
-                                        icon="ri-lungs-fill"
-                                        accent="#6f42c1"
-                                        title="Saturation O₂"
-                                        value={v.oxygenSaturation}
-                                        unit="%"
-                                        status={o2}
-                                        noDataMsg="Enregistrez vos constantes pour afficher SpO₂."
-                                    />
-                                </Col>
-                                <Col sm={6} xl={3}>
-                                    <VitalMetricTile
-                                        icon="ri-temp-hot-fill"
-                                        accent="#fd7e14"
-                                        title="Température"
-                                        value={v.temperature}
-                                        unit="°C"
-                                        status={
-                                            v.temperature
-                                                ? {
-                                                      label:
-                                                          v.temperature < 36
-                                                              ? "Bas"
-                                                              : v.temperature > 38.5
-                                                                ? "Fièvre"
-                                                                : "Normale",
-                                                      color: v.temperature < 36 || v.temperature > 38.5 ? "#dc3545" : "#28a745",
-                                                  }
-                                                : { label: "—", color: "#6c757d" }
-                                        }
-                                        noDataMsg="Enregistrez vos constantes pour afficher la température."
-                                    />
-                                </Col>
-                            </Row>
-                        </Card.Body>
-                    </Card>
-
                     {/* Vitals History Chart */}
                     <Card className="border-0 shadow-sm mb-3">
                         <Card.Body>
@@ -598,6 +400,12 @@ const PatientDashboard = () => {
                                 </p>
                             )}
                             <div ref={chartRef}></div>
+                            <div className="mt-2 pt-1">
+                                <Link to="/dashboard-pages/patient-vitals-history" className="small text-decoration-none d-inline-flex align-items-center gap-1">
+                                    <i className="ri-history-line"></i>
+                                    Historique complet des relevés (constantes)
+                                </Link>
+                            </div>
                         </Card.Body>
                     </Card>
 

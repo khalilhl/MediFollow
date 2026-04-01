@@ -50,6 +50,37 @@ function legacyDateVariants(nd: string): string[] {
   return loose === nd ? [nd] : [nd, loose];
 }
 
+function timeToMinutes(t: string): number {
+  const n = normalizeTime(t);
+  const [h, m] = n.split(':').map((x) => parseInt(x, 10));
+  if (Number.isNaN(h) || Number.isNaN(m)) return -1;
+  return h * 60 + m;
+}
+
+function minutesToTime(min: number): string {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+/** Découpe chaque plage [from, to) en créneaux de stepMinutes (ex. 30 min) pour les demandes patient. */
+export function expandRangesToTimes(ranges: { from: string; to: string }[], stepMinutes = 30): string[] {
+  const out: string[] = [];
+  for (const r of ranges || []) {
+    const from = normalizeTime(String(r.from || ''));
+    const to = normalizeTime(String(r.to || ''));
+    if (!from || !to) continue;
+    let cur = timeToMinutes(from);
+    const end = timeToMinutes(to);
+    if (end <= cur) continue;
+    while (cur < end) {
+      out.push(minutesToTime(cur));
+      cur += stepMinutes;
+    }
+  }
+  return [...new Set(out)].sort((a, b) => a.localeCompare(b));
+}
+
 function expandYearMonths(anchorDate: string, count: number): string[] {
   const segs = anchorDate.split('-');
   if (segs.length < 2) return [];
@@ -81,14 +112,27 @@ export class DoctorAvailabilityService {
     return doc || { doctorId: id, yearMonth, slots: [] };
   }
 
-  async setMonth(doctorId: string, yearMonth: string, slots: { date: string; times: string[] }[]) {
+  async setMonth(
+    doctorId: string,
+    yearMonth: string,
+    slots: { date: string; times?: string[]; ranges?: { from: string; to: string }[] }[],
+  ) {
     const id = normalizeDoctorId(doctorId);
     const ymPrefix = yearMonth;
     const cleaned = (slots || [])
-      .map((s) => ({
-        date: normalizeDateString(String(s.date || '').trim()),
-        times: (s.times || []).map((t) => normalizeTime(String(t))).filter(Boolean),
-      }))
+      .map((s) => {
+        const date = normalizeDateString(String(s.date || '').trim());
+        const ranges = (s.ranges || [])
+          .map((r) => ({
+            from: normalizeTime(String(r?.from || '')),
+            to: normalizeTime(String(r?.to || '')),
+          }))
+          .filter((r) => r.from && r.to && r.from < r.to);
+        const fromRanges = expandRangesToTimes(ranges, 30);
+        const fromManual = (s.times || []).map((t) => normalizeTime(String(t))).filter(Boolean);
+        const times = [...new Set([...fromRanges, ...fromManual])].sort((a, b) => a.localeCompare(b));
+        return { date, times, ranges };
+      })
       .filter((s) => s.date.startsWith(ymPrefix) && s.times.length > 0);
 
     return this.availabilityModel

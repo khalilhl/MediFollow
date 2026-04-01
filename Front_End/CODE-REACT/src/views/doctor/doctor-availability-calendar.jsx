@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Card, Col, Container, Form, Row, Button, Alert, Spinner, Table } from "react-bootstrap";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Card, Col, Container, Form, Row, Button, Alert, Spinner, Modal } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import { doctorAvailabilityApi } from "../../services/api";
 
@@ -19,16 +19,6 @@ function monthDates(yearMonth) {
   return out;
 }
 
-function formatDisplayDate(iso) {
-  try {
-    const [y, m, day] = iso.split("-");
-    return `${day}/${m}/${y}`;
-  } catch {
-    return iso;
-  }
-}
-
-/** Aligne les dates renvoyées par l’API (ex. 2026-4-2) sur les clés du tableau (2026-04-02). */
 function normalizeDateKey(d) {
   if (!d || typeof d !== "string") return "";
   const part = d.trim().split("T")[0];
@@ -36,6 +26,61 @@ function normalizeDateKey(d) {
   if (segs.length !== 3) return part;
   return `${segs[0]}-${segs[1].padStart(2, "0")}-${segs[2].padStart(2, "0")}`;
 }
+
+function nt(t) {
+  if (!t && t !== 0) return "";
+  const p = String(t).trim().split(":");
+  if (p.length < 2) return "";
+  const h = parseInt(p[0], 10);
+  const m = parseInt(p[1], 10);
+  if (Number.isNaN(h) || Number.isNaN(m)) return "";
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+/** Regroupe des créneaux 30 min consécutifs en plages [de, à[ pour l’affichage (données anciennes). */
+function timesToRanges(times) {
+  if (!Array.isArray(times) || times.length === 0) return [];
+  const sorted = [...new Set(times.map(nt).filter(Boolean))].sort();
+  if (sorted.length === 0) return [];
+  const toMin = (x) => {
+    const [h, m] = x.split(":").map((n) => parseInt(n, 10));
+    return h * 60 + m;
+  };
+  const toStr = (min) => `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
+  const ranges = [];
+  let start = sorted[0];
+  let prevMin = toMin(sorted[0]);
+  for (let i = 1; i < sorted.length; i += 1) {
+    const curMin = toMin(sorted[i]);
+    if (curMin - prevMin !== 30) {
+      ranges.push({ from: start, to: toStr(prevMin + 30) });
+      start = sorted[i];
+    }
+    prevMin = curMin;
+  }
+  ranges.push({ from: start, to: toStr(prevMin + 30) });
+  return ranges;
+}
+
+/** Grille calendrier : cases null = hors mois, sinon clé YYYY-MM-DD (lundi = 1ère colonne). */
+function calendarCells(yearMonth) {
+  const [y, m] = yearMonth.split("-").map(Number);
+  if (!y || !m) return [];
+  const first = new Date(y, m - 1, 1);
+  const lastDay = new Date(y, m, 0).getDate();
+  const pad = (first.getDay() + 6) % 7;
+  const cells = [];
+  for (let i = 0; i < pad; i += 1) cells.push(null);
+  for (let d = 1; d <= lastDay; d += 1) {
+    cells.push(`${yearMonth}-${String(d).padStart(2, "0")}`);
+  }
+  while (cells.length % 7 !== 0) cells.push(null);
+  return cells;
+}
+
+const WEEK_DAYS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
+
+const emptyRange = () => ({ from: "09:00", to: "12:00" });
 
 const DoctorAvailabilityCalendar = () => {
   const [doctorUser] = useState(() => {
@@ -50,14 +95,42 @@ const DoctorAvailabilityCalendar = () => {
   const now = new Date();
   const defaultYm = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const [yearMonth, setYearMonth] = useState(defaultYm);
-  const [dayText, setDayText] = useState({});
+  /** @type {Record<string, { from: string; to: string }[]>} */
+  const [rangesByDate, setRangesByDate] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [savedSummary, setSavedSummary] = useState("");
+  const [modalDate, setModalDate] = useState(null);
 
   const dates = useMemo(() => monthDates(yearMonth), [yearMonth]);
+  const cells = useMemo(() => calendarCells(yearMonth), [yearMonth]);
+
+  const localToday = useMemo(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }, []);
+
+  const loadMonthIntoState = useCallback((raw, ds) => {
+    const slots = Array.isArray(raw?.slots) ? raw.slots : [];
+    const map = {};
+    ds.forEach((d) => {
+      map[d] = [];
+    });
+    slots.forEach((s) => {
+      const key = normalizeDateKey(s?.date);
+      if (!key || !ds.includes(key)) return;
+      if (Array.isArray(s.ranges) && s.ranges.length > 0) {
+        map[key] = s.ranges
+          .map((r) => ({ from: nt(r.from), to: nt(r.to) }))
+          .filter((r) => r.from && r.to && r.from < r.to);
+      } else if (Array.isArray(s.times) && s.times.length > 0) {
+        map[key] = timesToRanges(s.times);
+      }
+    });
+    setRangesByDate(map);
+  }, []);
 
   useEffect(() => {
     if (!doctorUser) return;
@@ -69,19 +142,7 @@ const DoctorAvailabilityCalendar = () => {
       setSuccess(false);
       try {
         const raw = await doctorAvailabilityApi.getMyMonth(yearMonth);
-        const slots = Array.isArray(raw?.slots) ? raw.slots : [];
-        const map = {};
-        ds.forEach((d) => {
-          map[d] = "";
-        });
-        slots.forEach((s) => {
-          const key = normalizeDateKey(s?.date);
-          if (key && ds.includes(key)) {
-            const times = (s.times || []).join(", ");
-            map[key] = times;
-          }
-        });
-        if (!cancelled) setDayText(map);
+        if (!cancelled) loadMonthIntoState(raw, ds);
       } catch (e) {
         if (!cancelled) setError(e.message || "Chargement impossible.");
       } finally {
@@ -91,14 +152,39 @@ const DoctorAvailabilityCalendar = () => {
     return () => {
       cancelled = true;
     };
-  }, [doctorUser, yearMonth]);
+  }, [doctorUser, yearMonth, loadMonthIntoState]);
 
-  const handleMonthChange = (e) => {
-    setYearMonth(e.target.value);
+  const shiftMonth = (delta) => {
+    const [y, m] = yearMonth.split("-").map(Number);
+    const d = new Date(y, m - 1 + delta, 1);
+    setYearMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
   };
 
-  const handleDayChange = (date, value) => {
-    setDayText((prev) => ({ ...prev, [date]: value }));
+  const rangesForModal = modalDate ? rangesByDate[modalDate] || [] : [];
+
+  const updateModalRange = (index, field, value) => {
+    if (!modalDate) return;
+    setRangesByDate((prev) => {
+      const list = [...(prev[modalDate] || [])];
+      list[index] = { ...list[index], [field]: value };
+      return { ...prev, [modalDate]: list };
+    });
+  };
+
+  const addModalRange = () => {
+    if (!modalDate) return;
+    setRangesByDate((prev) => ({
+      ...prev,
+      [modalDate]: [...(prev[modalDate] || []), emptyRange()],
+    }));
+  };
+
+  const removeModalRange = (index) => {
+    if (!modalDate) return;
+    setRangesByDate((prev) => {
+      const list = [...(prev[modalDate] || [])].filter((_, i) => i !== index);
+      return { ...prev, [modalDate]: list };
+    });
   };
 
   const handleSave = async (e) => {
@@ -111,43 +197,30 @@ const DoctorAvailabilityCalendar = () => {
     try {
       const slots = [];
       dates.forEach((d) => {
-        const raw = (dayText[d] || "").trim();
-        if (!raw) return;
-        const times = raw
-          .split(/[,;]+/)
-          .map((t) => t.trim())
-          .filter(Boolean);
-        if (times.length) slots.push({ date: d, times });
+        const ranges = (rangesByDate[d] || [])
+          .map((r) => ({ from: nt(r.from), to: nt(r.to) }))
+          .filter((r) => r.from && r.to && r.from < r.to);
+        if (ranges.length) slots.push({ date: d, ranges });
       });
       if (slots.length === 0) {
         setError(
-          "Ajoutez au moins une heure sur un jour (ex. 14:00 sur la ligne du 02/04) puis enregistrez. Laisser tout vide enregistre un mois fermé."
+          "Ajoutez au moins une plage horaire sur un jour (cliquez un jour du calendrier) puis enregistrez."
         );
         setSaving(false);
         return;
       }
       await doctorAvailabilityApi.saveMyMonth(yearMonth, slots);
       setSuccess(true);
-      setSavedSummary(`${slots.length} jour(s) avec créneaux enregistré(s).`);
+      setSavedSummary(`${slots.length} jour(s) avec plages enregistré(s).`);
       const raw = await doctorAvailabilityApi.getMyMonth(yearMonth);
-      const loaded = Array.isArray(raw?.slots) ? raw.slots : [];
       const ds = monthDates(yearMonth);
-      const map = {};
-      ds.forEach((d) => {
-        map[d] = "";
-      });
-      loaded.forEach((s) => {
-        const key = normalizeDateKey(s?.date);
-        if (key && ds.includes(key)) {
-          map[key] = (s.times || []).join(", ");
-        }
-      });
-      setDayText(map);
+      loadMonthIntoState(raw, ds);
+      setModalDate(null);
     } catch (err) {
       const msg = err.message || "Enregistrement impossible.";
       if (err.status === 401 || err.status === 403) {
         setError(
-          `${msg} Si vous êtes aussi connecté comme patient, déconnectez le patient ou ouvrez le calendrier dans une fenêtre privée pour utiliser uniquement le compte médecin.`
+          `${msg} Si vous êtes aussi connecté comme patient, déconnectez le patient ou utilisez une fenêtre privée pour le compte médecin.`
         );
       } else {
         setError(msg);
@@ -155,6 +228,19 @@ const DoctorAvailabilityCalendar = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const dayBadge = (dateKey) => {
+    const n = (rangesByDate[dateKey] || []).length;
+    if (n === 0) return null;
+    return (
+      <span
+        className="position-absolute bottom-0 start-50 translate-middle-x mb-1 badge rounded-pill"
+        style={{ fontSize: "0.65rem", background: "linear-gradient(135deg, #089bab, #0d9488)" }}
+      >
+        {n} plage{n > 1 ? "s" : ""}
+      </span>
+    );
   };
 
   if (!doctorUser) {
@@ -183,21 +269,29 @@ const DoctorAvailabilityCalendar = () => {
             Calendrier de disponibilités
           </h4>
           <p className="text-muted small mb-0 mt-1">
-            Indiquez les créneaux ouverts par jour pour le mois choisi (format d&apos;heure : 09:00, 09:30, séparés par des
-            virgules). Les patients ne pourront demander un rendez-vous que sur ces créneaux libres.
+            Cliquez un jour pour définir des <strong>plages horaires</strong> (de … à …). Chaque plage est découpée en
+            créneaux de 30 minutes pour les demandes de rendez-vous patients.
           </p>
         </Col>
       </Row>
 
       <Row>
-        <Col lg={10}>
+        <Col xl={11} lg={12}>
           <Card className="border-0 shadow-sm" style={{ borderRadius: 16 }}>
             <Card.Body className="p-4">
               <Form onSubmit={handleSave}>
-                <Row className="g-3 align-items-end mb-3">
+                <Row className="g-3 align-items-end mb-4">
+                  <Col md="auto" className="d-flex gap-2">
+                    <Button type="button" variant="outline-secondary" size="sm" onClick={() => shiftMonth(-1)}>
+                      <i className="ri-arrow-left-s-line"></i>
+                    </Button>
+                    <Button type="button" variant="outline-secondary" size="sm" onClick={() => shiftMonth(1)}>
+                      <i className="ri-arrow-right-s-line"></i>
+                    </Button>
+                  </Col>
                   <Col md={4}>
                     <Form.Label className="small fw-bold">Mois</Form.Label>
-                    <Form.Control type="month" value={yearMonth} onChange={handleMonthChange} />
+                    <Form.Control type="month" value={yearMonth} onChange={(e) => setYearMonth(e.target.value)} />
                   </Col>
                   <Col md="auto">
                     <Button type="submit" variant="primary" disabled={saving || loading}>
@@ -228,30 +322,63 @@ const DoctorAvailabilityCalendar = () => {
                     <Spinner animation="border" variant="primary" />
                   </div>
                 ) : (
-                  <div className="table-responsive" style={{ maxHeight: "70vh" }}>
-                    <Table size="sm" bordered hover className="align-middle mb-0">
-                      <thead className="table-light sticky-top">
-                        <tr>
-                          <th style={{ width: "9rem" }}>Jour</th>
-                          <th>Heures disponibles (ex. 09:00, 09:30, 14:00)</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {dates.map((d) => (
-                          <tr key={d}>
-                            <td className="text-nowrap small fw-semibold">{formatDisplayDate(d)}</td>
-                            <td>
-                              <Form.Control
-                                size="sm"
-                                placeholder="Laisser vide = fermé"
-                                value={dayText[d] ?? ""}
-                                onChange={(e) => handleDayChange(d, e.target.value)}
-                              />
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </Table>
+                  <div className="doctor-cal-wrap">
+                    <div
+                      className="d-grid text-center small fw-semibold text-muted mb-2"
+                      style={{ gridTemplateColumns: "repeat(7, 1fr)", gap: "6px" }}
+                    >
+                      {WEEK_DAYS.map((w) => (
+                        <div key={w} className="py-2">
+                          {w}
+                        </div>
+                      ))}
+                    </div>
+                    <div
+                      className="d-grid"
+                      style={{
+                        gridTemplateColumns: "repeat(7, 1fr)",
+                        gap: "8px",
+                      }}
+                    >
+                      {cells.map((dateKey, idx) => {
+                        if (!dateKey) {
+                          return (
+                            <div
+                              key={`empty-${idx}`}
+                              className="rounded-3 bg-light"
+                              style={{ minHeight: 96, opacity: 0.35 }}
+                            />
+                          );
+                        }
+                        const isToday = dateKey === localToday;
+                        const n = (rangesByDate[dateKey] || []).length;
+                        const dayNum = parseInt(dateKey.split("-")[2], 10);
+                        return (
+                          <button
+                            key={dateKey}
+                            type="button"
+                            className={`doctor-cal-cell position-relative border-0 rounded-3 text-start p-2 w-100 ${
+                              n > 0 ? "doctor-cal-cell--active" : "bg-white"
+                            }`}
+                            style={{
+                              minHeight: 96,
+                              boxShadow: "0 1px 4px rgba(15,23,42,0.08)",
+                              outline: isToday ? "2px solid #089bab" : undefined,
+                              cursor: "pointer",
+                            }}
+                            onClick={() => setModalDate(dateKey)}
+                          >
+                            <span
+                              className={`fw-bold ${isToday ? "text-primary" : "text-dark"}`}
+                              style={{ fontSize: "1.05rem" }}
+                            >
+                              {dayNum}
+                            </span>
+                            {dayBadge(dateKey)}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </Form>
@@ -259,6 +386,70 @@ const DoctorAvailabilityCalendar = () => {
           </Card>
         </Col>
       </Row>
+
+      <Modal show={!!modalDate} onHide={() => setModalDate(null)} centered size="lg">
+        <Modal.Header closeButton className="border-0">
+          <Modal.Title className="text-primary fs-6">
+            <i className="ri-time-line me-2"></i>
+            Plages du {modalDate ? modalDate.split("-").reverse().join("/") : ""}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p className="small text-muted mb-3">
+            Indiquez une ou plusieurs plages continues (ex. 09:00 → 12:00). La fin est exclusive : le dernier créneau
+            commence 30 min avant l&apos;heure de fin.
+          </p>
+          {rangesForModal.length === 0 ? (
+            <p className="text-muted small">Aucune plage — ce jour est considéré comme fermé.</p>
+          ) : (
+            rangesForModal.map((r, i) => (
+              <Row key={i} className="g-2 align-items-end mb-3">
+                <Col xs={5} md={4}>
+                  <Form.Label className="small fw-bold">De</Form.Label>
+                  <Form.Control
+                    type="time"
+                    step={1800}
+                    value={r.from || ""}
+                    onChange={(e) => updateModalRange(i, "from", e.target.value)}
+                  />
+                </Col>
+                <Col xs={5} md={4}>
+                  <Form.Label className="small fw-bold">À</Form.Label>
+                  <Form.Control
+                    type="time"
+                    step={1800}
+                    value={r.to || ""}
+                    onChange={(e) => updateModalRange(i, "to", e.target.value)}
+                  />
+                </Col>
+                <Col xs="auto">
+                  <Button type="button" variant="outline-danger" size="sm" onClick={() => removeModalRange(i)}>
+                    <i className="ri-delete-bin-line"></i>
+                  </Button>
+                </Col>
+              </Row>
+            ))
+          )}
+          <Button type="button" variant="outline-primary" size="sm" onClick={addModalRange}>
+            <i className="ri-add-line me-1"></i>
+            Ajouter une plage
+          </Button>
+        </Modal.Body>
+        <Modal.Footer className="border-0">
+          <Button variant="secondary" onClick={() => setModalDate(null)}>
+            Fermer
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      <style>{`
+        .doctor-cal-cell--active {
+          background: linear-gradient(160deg, #ecfdf5 0%, #f0fdfa 100%);
+        }
+        .doctor-cal-cell:hover {
+          filter: brightness(0.98);
+        }
+      `}</style>
     </Container>
   );
 };

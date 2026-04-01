@@ -15,11 +15,17 @@ export class DoctorAvailability extends Document {
       {
         date: String,
         times: [String],
+        ranges: [
+          {
+            from: String,
+            to: String,
+          },
+        ],
       },
     ],
     default: [],
   })
-  slots: { date: string; times: string[] }[];
+  slots: { date: string; times: string[]; ranges?: { from: string; to: string }[] }[];
 }
 
 export const DoctorAvailabilitySchema = SchemaFactory.createForClass(DoctorAvailability);

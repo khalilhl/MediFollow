@@ -20,7 +20,7 @@ export class DoctorAvailabilityController {
   setMine(
     @Req() req: { user?: { id?: string; role?: string } },
     @Param('yearMonth') yearMonth: string,
-    @Body() body: { slots?: { date: string; times: string[] }[] },
+    @Body() body: { slots?: { date: string; times?: string[]; ranges?: { from: string; to: string }[] }[] },
   ) {
     if (req.user?.role !== 'doctor') {
       throw new ForbiddenException('Accès réservé aux médecins');

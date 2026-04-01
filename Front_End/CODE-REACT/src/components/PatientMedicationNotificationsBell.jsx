@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Dropdown } from "react-bootstrap";
 import { Link } from "react-router-dom";
-import { medicationApi } from "../services/api";
+import { medicationApi, notificationApi } from "../services/api";
 import {
   getMissedMedicationSlotsToday,
   formatSlotClock,
@@ -21,17 +21,33 @@ function formatLate(minutesPast) {
   return m > 0 ? `En retard de ${h} h ${m} min` : `En retard de ${h} h`;
 }
 
+function formatNotifTime(iso) {
+  if (!iso) return "";
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "";
+    const diff = Date.now() - d.getTime();
+    if (diff < 45_000) return "À l'instant";
+    if (diff < 3_600_000) return `Il y a ${Math.floor(diff / 60_000)} min`;
+    return d.toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return "";
+  }
+}
+
 const DASHBOARD_MEDS_HASH = "/dashboard-pages/patient-dashboard#patient-medications";
+const DASHBOARD_APPTS_HASH = "/dashboard-pages/patient-dashboard#patient-appointments";
 
 /**
- * Notifications patient : rappels de prise lorsque l'heure du créneau est passée et la case n'est pas cochée.
- * Style aligné sur le menu « All Notifications » (en-tête teal, badge, liste).
+ * Notifications patient : RDV (API : nouveau / rappel 24 h) + rappels médicaments (créneaux non cochés).
  */
 export default function PatientMedicationNotificationsBell({
   className = "",
   toggleClassName = "nav-link d-none d-xl-block position-relative",
 }) {
   const [medications, setMedications] = useState([]);
+  const [apiItems, setApiItems] = useState([]);
+  const [apiUnread, setApiUnread] = useState(0);
   const [now, setNow] = useState(() => new Date());
   const [loading, setLoading] = useState(false);
 
@@ -57,18 +73,37 @@ export default function PatientMedicationNotificationsBell({
     return () => window.removeEventListener("patientUserUpdated", readPatientId);
   }, [readPatientId]);
 
-  const load = useCallback(async () => {
+  const loadMeds = useCallback(async () => {
     if (!patientId) return;
-    setLoading(true);
     try {
       const meds = await medicationApi.getByPatient(patientId);
       setMedications(Array.isArray(meds) ? meds : []);
     } catch {
       setMedications([]);
+    }
+  }, [patientId]);
+
+  const loadApi = useCallback(async () => {
+    if (!patientId) return;
+    try {
+      const res = await notificationApi.getMine();
+      setApiItems(Array.isArray(res.items) ? res.items : []);
+      setApiUnread(typeof res.unread === "number" ? res.unread : 0);
+    } catch {
+      setApiItems([]);
+      setApiUnread(0);
+    }
+  }, [patientId]);
+
+  const load = useCallback(async () => {
+    if (!patientId) return;
+    setLoading(true);
+    try {
+      await Promise.all([loadMeds(), loadApi()]);
     } finally {
       setLoading(false);
     }
-  }, [patientId]);
+  }, [patientId, loadMeds, loadApi]);
 
   useEffect(() => {
     load();
@@ -94,18 +129,26 @@ export default function PatientMedicationNotificationsBell({
     () => getMissedMedicationSlotsToday(medications, now, dateStr, 1),
     [medications, now, dateStr]
   );
-  const count = missed.length;
+
+  const totalCount = apiUnread + missed.length;
+
+  const onMarkReadApi = (e, id) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!id || String(id).startsWith("virt-")) return;
+    notificationApi.markRead(id).then(load).catch(() => {});
+  };
 
   return (
     <Dropdown as="li" className={`nav-item ${className}`}>
       <Dropdown.Toggle as="a" bsPrefix=" " to="#" className={`${toggleClassName} position-relative`}>
         <i className="ri-notification-4-line" />
-        {count > 0 && (
+        {totalCount > 0 && (
           <span
             className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
             style={{ fontSize: "0.65rem", padding: "0.2em 0.45em" }}
           >
-            {count > 99 ? "99+" : count}
+            {totalCount > 99 ? "99+" : totalCount}
           </span>
         )}
       </Dropdown.Toggle>
@@ -114,35 +157,84 @@ export default function PatientMedicationNotificationsBell({
           <div className="py-3 px-3 d-flex justify-content-between align-items-center bg-primary mb-0 rounded-top-3">
             <h5 className="mb-0 text-white fw-bold d-flex align-items-center gap-2 flex-wrap">
               Toutes les notifications
-              <span className="badge bg-light text-dark rounded-2 px-2 py-1 small">{count}</span>
+              <span className="badge bg-light text-dark rounded-2 px-2 py-1 small">{totalCount}</span>
             </h5>
           </div>
-          <div className="p-0 card-body" style={{ maxHeight: 380, overflowY: "auto" }}>
+          <div className="p-0 card-body" style={{ maxHeight: 420, overflowY: "auto" }}>
             {!patientId && (
               <div className="text-muted small text-center py-4 px-3">Session patient requise.</div>
             )}
-            {patientId && loading && medications.length === 0 && (
+            {patientId && loading && apiItems.length === 0 && medications.length === 0 && (
               <div className="text-center text-muted small py-4">Chargement…</div>
             )}
-            {patientId && !loading && count === 0 && (
+            {patientId && !loading && totalCount === 0 && (
               <div className="text-muted small text-center py-4 px-3">
-                Aucun rappel de médicament pour l’instant. Les prises prévues apparaîtront ici si l’heure est passée
-                sans validation.
+                Aucune notification pour l’instant (rendez-vous, rappels médicaments).
               </div>
             )}
+
+            {apiItems.map((n) => {
+              const id = n._id || n.id;
+              const isVirt = String(id).startsWith("virt-");
+              const isAppt =
+                n.type === "appointment_reminder_24h" ||
+                n.type === "appointment_new" ||
+                isVirt;
+              const href = isAppt ? DASHBOARD_APPTS_HASH : DASHBOARD_MEDS_HASH;
+              const icon = isAppt ? "ri-calendar-event-fill" : "ri-information-line";
+              const time = formatNotifTime(n.createdAt);
+              return (
+                <Link
+                  key={String(id)}
+                  to={href}
+                  className={`iq-sub-card d-block text-decoration-none border-bottom ${n.read === false ? "bg-primary-subtle bg-opacity-10" : ""}`}
+                  onClick={() => {
+                    if (!n.read && id && !isVirt) notificationApi.markRead(id).then(load).catch(() => {});
+                  }}
+                >
+                  <div className="d-flex align-items-start px-3 py-3">
+                    <div
+                      className={`flex-shrink-0 rounded-3 d-flex align-items-center justify-content-center border ${
+                        isAppt ? "bg-primary-subtle text-primary" : "bg-light text-primary"
+                      }`}
+                      style={{ width: 50, height: 50 }}
+                    >
+                      <i className={`${icon} fs-4`} aria-hidden />
+                    </div>
+                    <div className="ms-3 flex-grow-1 text-start min-w-0">
+                      <h6 className="mb-0 text-dark fw-semibold text-truncate">{n.title || "Notification"}</h6>
+                      <div className="d-flex justify-content-between gap-2 align-items-start mt-1">
+                        <p className="mb-0 small text-muted" style={{ lineHeight: 1.35 }}>
+                          {n.body}
+                        </p>
+                        <small className="flex-shrink-0 text-muted" style={{ fontSize: "0.7rem" }}>
+                          {time}
+                        </small>
+                      </div>
+                      {!n.read && !isVirt && (
+                        <button
+                          type="button"
+                          className="btn btn-link btn-sm p-0 mt-1 small text-primary"
+                          onClick={(e) => onMarkReadApi(e, id)}
+                        >
+                          Marquer lu
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+
             {missed.map((row) => {
               const mid = row.med?._id || row.med?.id;
-              const key = `${mid}-${row.slotIndex}`;
+              const key = `med-${mid}-${row.slotIndex}`;
               const title = row.med?.name || "Médicament";
               const dosage = row.med?.dosage ? String(row.med.dosage) : "";
               const slotLabel = row.slot?.label ? `${row.slot.label} · ` : "";
               const subtitle = `${slotLabel}${dosage ? `${dosage} · ` : ""}Prévu ${formatSlotClock(row.slot)}`;
               return (
-                <Link
-                  key={key}
-                  to={DASHBOARD_MEDS_HASH}
-                  className="iq-sub-card d-block text-decoration-none border-bottom"
-                >
+                <Link key={key} to={DASHBOARD_MEDS_HASH} className="iq-sub-card d-block text-decoration-none border-bottom">
                   <div className="d-flex align-items-start px-3 py-3">
                     <div
                       className="flex-shrink-0 rounded-3 bg-light d-flex align-items-center justify-content-center text-primary border"

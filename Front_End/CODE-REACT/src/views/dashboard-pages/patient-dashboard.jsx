@@ -159,9 +159,11 @@ const PatientDashboard = () => {
 
     useEffect(() => {
         if (typeof window === "undefined") return;
-        if (window.location.hash !== "#patient-medications") return;
+        const hash = window.location.hash;
+        if (hash !== "#patient-medications" && hash !== "#patient-appointments") return;
+        const id = hash === "#patient-appointments" ? "patient-appointments" : "patient-medications";
         const t = window.setTimeout(() => {
-            document.getElementById("patient-medications")?.scrollIntoView({ behavior: "smooth", block: "start" });
+            document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
         }, 300);
         return () => window.clearTimeout(t);
     }, [pid]);

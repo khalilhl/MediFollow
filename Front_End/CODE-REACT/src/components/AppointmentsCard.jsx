@@ -34,7 +34,7 @@ const AppointmentsCard = ({ appointments: initialAppts }) => {
   const displayed = showAll ? upcoming : upcoming.slice(0, 3);
 
   return (
-    <div className="card border-0 shadow-sm" style={{ borderRadius: 14 }}>
+    <div id="patient-appointments" className="card border-0 shadow-sm" style={{ borderRadius: 14 }}>
       <div className="card-body">
         <h6 className="text-primary fw-bold mb-2">
           <i className="ri-calendar-event-line me-2"></i>Appointments

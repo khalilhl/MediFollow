@@ -16,20 +16,18 @@ export class NotificationController {
   @Get('me')
   async myNotifications(@Request() req: { user?: { id?: unknown; role?: string } }) {
     const role = req.user?.role;
-    if (role !== 'doctor' && role !== 'nurse') {
-      throw new ForbiddenException('Réservé au personnel soignant');
+    if (role !== 'doctor' && role !== 'nurse' && role !== 'patient') {
+      throw new ForbiddenException('Non autorisé');
     }
     const id = staffId(req);
-    const items = await this.notificationService.listForStaff(id, role);
-    const unread = await this.notificationService.countUnread(id, role);
-    return { items, unread };
+    return this.notificationService.getMergedNotifications(id, role);
   }
 
   @UseGuards(JwtAuthGuard)
   @Patch('read-all')
   async markAll(@Request() req: { user?: { id?: unknown; role?: string } }) {
     const role = req.user?.role;
-    if (role !== 'doctor' && role !== 'nurse') {
+    if (role !== 'doctor' && role !== 'nurse' && role !== 'patient') {
       throw new ForbiddenException();
     }
     await this.notificationService.markAllRead(staffId(req), role);
@@ -43,8 +41,11 @@ export class NotificationController {
     @Param('id') id: string,
   ) {
     const role = req.user?.role;
-    if (role !== 'doctor' && role !== 'nurse') {
+    if (role !== 'doctor' && role !== 'nurse' && role !== 'patient') {
       throw new ForbiddenException();
+    }
+    if (String(id).startsWith('virt-')) {
+      return { ok: true, skipped: true };
     }
     return this.notificationService.markRead(id, staffId(req), role);
   }

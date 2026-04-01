@@ -225,6 +225,22 @@ export const api = {
     return res.json();
   },
 
+  /** GET avec jeton patient uniquement. */
+  async getWithPatientToken(endpoint) {
+    const token = okToken(localStorage.getItem("patientToken"));
+    const res = await fetch(`${API_BASE}${endpoint}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ message: res.statusText }));
+      const error = new Error(messageFromApiErr(err));
+      error.status = res.status;
+      attachApiErrorFields(error, err);
+      throw error;
+    }
+    return res.json();
+  },
+
   /** PUT avec jeton médecin uniquement. */
   async putWithDoctorToken(endpoint, data) {
     const token = okToken(localStorage.getItem("doctorToken"));
@@ -323,7 +339,7 @@ export const superAdminApi = {
   updateCareCoordinator: (id, data) => api.put(`/auth/care-coordinators/${id}`, data),
   deleteCareCoordinator: (id) => api.delete(`/auth/care-coordinators/${id}`),
 };
-/** Notifications risque (JWT médecin ou infirmier). */
+/** Notifications (JWT médecin, infirmier ou patient). */
 export const notificationApi = {
   getMine: () => {
     if (typeof localStorage !== "undefined" && localStorage.getItem("doctorUser")) {
@@ -331,6 +347,9 @@ export const notificationApi = {
     }
     if (typeof localStorage !== "undefined" && localStorage.getItem("nurseUser")) {
       return api.getWithNurseToken("/notifications/me");
+    }
+    if (typeof localStorage !== "undefined" && localStorage.getItem("patientUser")) {
+      return api.getWithPatientToken("/notifications/me");
     }
     return api.get("/notifications/me");
   },

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuthModule } from '../auth/auth.module';
 import { DoctorAvailabilityModule } from '../doctor-availability/doctor-availability.module';
+import { NotificationModule } from '../notification/notification.module';
 import { Appointment, AppointmentSchema } from './schemas/appointment.schema';
 import { AppointmentService } from './appointment.service';
 import { AppointmentController } from './appointment.controller';
@@ -11,6 +12,7 @@ import { AppointmentController } from './appointment.controller';
     MongooseModule.forFeature([{ name: Appointment.name, schema: AppointmentSchema }]),
     AuthModule,
     DoctorAvailabilityModule,
+    NotificationModule,
   ],
   controllers: [AppointmentController],
   providers: [AppointmentService],

@@ -8,12 +8,14 @@ import {
   normalizeDoctorId,
   normalizeTime,
 } from '../doctor-availability/doctor-availability.service';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class AppointmentService {
   constructor(
     @InjectModel(Appointment.name) private appointmentModel: Model<Appointment>,
     private doctorAvailabilityService: DoctorAvailabilityService,
+    private notificationService: NotificationService,
   ) {}
 
   private toObjectId(id: string) {
@@ -63,7 +65,7 @@ export class AppointmentService {
       }
     }
 
-    return this.appointmentModel.create({
+    const doc = await this.appointmentModel.create({
       patientId,
       doctorId: normalizeDoctorId(data.doctorId) || String(data.doctorId || ''),
       doctorName: data.doctorName || '',
@@ -79,6 +81,16 @@ export class AppointmentService {
       adminNotes: data.adminNotes || '',
       status,
     });
+
+    if (status === 'confirmed' || status === 'scheduled') {
+      try {
+        await this.notificationService.notifyDoctorNewAppointment(doc.toObject());
+      } catch (e) {
+        console.error('[Appointment] notifyDoctorNewAppointment:', e);
+      }
+    }
+
+    return doc;
   }
 
   async getByPatient(patientId: string) {
@@ -167,9 +179,26 @@ export class AppointmentService {
   }
 
   async update(id: string, data: any) {
+    const prev = await this.appointmentModel.findById(id).exec();
     const patch: any = { ...data };
     if (patch.status === 'scheduled') patch.status = 'confirmed';
-    return this.appointmentModel.findByIdAndUpdate(id, { $set: patch }, { new: true }).exec();
+    const doc = await this.appointmentModel.findByIdAndUpdate(id, { $set: patch }, { new: true }).exec();
+    if (doc) {
+      const st = doc.status;
+      const prevSt = prev?.status;
+      const becameConfirmed =
+        (st === 'confirmed' || st === 'scheduled') &&
+        prevSt !== 'confirmed' &&
+        prevSt !== 'scheduled';
+      if (becameConfirmed) {
+        try {
+          await this.notificationService.notifyDoctorNewAppointment(doc.toObject());
+        } catch (e) {
+          console.error('[Appointment] notifyDoctorNewAppointment (update):', e);
+        }
+      }
+    }
+    return doc;
   }
 
   async remove(id: string) {

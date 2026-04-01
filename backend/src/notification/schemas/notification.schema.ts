@@ -7,11 +7,14 @@ export class StaffNotification extends Document {
   @Prop({ required: true })
   recipientId: string;
 
-  @Prop({ required: true, enum: ['doctor', 'nurse'] })
-  recipientRole: 'doctor' | 'nurse';
+  @Prop({ required: true, enum: ['doctor', 'nurse', 'patient'] })
+  recipientRole: 'doctor' | 'nurse' | 'patient';
 
   @Prop({ default: 'risk_alert' })
   type: string;
+
+  @Prop({ type: Types.ObjectId, ref: 'Appointment' })
+  appointmentId?: Types.ObjectId;
 
   @Prop({ required: true })
   title: string;

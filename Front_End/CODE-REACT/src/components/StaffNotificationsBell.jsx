@@ -31,6 +31,38 @@ function patientLink(role, patientIdRaw) {
   return `/dashboard`;
 }
 
+function isVirtualId(id) {
+  return id != null && String(id).startsWith("virt-");
+}
+
+function isAppointmentNotifType(type) {
+  return type === "appointment_new" || type === "appointment_reminder_24h";
+}
+
+/** Lien agenda / calendrier selon le rôle (RDV). */
+function appointmentListLink(role) {
+  if (role === "doctor") return "/doctor/availability-calendar";
+  return "/dashboard-pages/nurse-dashboard";
+}
+
+function notifMeta(n, role) {
+  const t = n.type || "";
+  const id = n._id || n.id;
+  if (isAppointmentNotifType(t) || isVirtualId(id)) {
+    const isReminder = t === "appointment_reminder_24h";
+    return {
+      href: appointmentListLink(role),
+      icon: isReminder ? "ri-alarm-line" : "ri-calendar-check-line",
+      iconWrapClass: "rounded-3 bg-primary-subtle text-primary border",
+    };
+  }
+  return {
+    href: patientLink(role, n.patientId),
+    icon: "ri-alarm-warning-fill",
+    iconWrapClass: "rounded-circle bg-danger-subtle text-danger",
+  };
+}
+
 /**
  * Liste déroulante « All Notifications » (style template) pour médecin / infirmier — alertes risque patient.
  */
@@ -74,6 +106,7 @@ export default function StaffNotificationsBell({
   const onMarkRead = async (e, id) => {
     e.preventDefault();
     e.stopPropagation();
+    if (isVirtualId(id)) return;
     try {
       await notificationApi.markRead(id);
       await load();
@@ -133,28 +166,34 @@ export default function StaffNotificationsBell({
             )}
             {items.map((n) => {
               const id = n._id || n.id;
-              const pid = patientIdFromDoc(n.patientId);
-              const href = patientLink(role, pid);
+              const { href, icon, iconWrapClass } = notifMeta(n, role);
               const isRead = n.read === true;
+              const virt = isVirtualId(id);
               const time = formatNotifTime(n.createdAt);
+              const defaultTitle =
+                n.type === "appointment_new"
+                  ? "Nouveau rendez-vous"
+                  : n.type === "appointment_reminder_24h"
+                    ? "Rappel rendez-vous"
+                    : "Alerte patient";
               return (
                 <Link
-                  key={id}
+                  key={String(id)}
                   to={href}
                   className={`iq-sub-card d-block text-decoration-none border-bottom ${!isRead ? "bg-primary-subtle bg-opacity-10" : ""}`}
                   onClick={() => {
-                    if (!isRead && id) notificationApi.markRead(id).then(load).catch(() => {});
+                    if (!isRead && id && !virt) notificationApi.markRead(id).then(load).catch(() => {});
                   }}
                 >
                   <div className="d-flex align-items-start px-3 py-3">
                     <div
-                      className="flex-shrink-0 rounded-circle bg-danger-subtle d-flex align-items-center justify-content-center text-danger"
+                      className={`flex-shrink-0 d-flex align-items-center justify-content-center ${iconWrapClass}`}
                       style={{ width: 48, height: 48 }}
                     >
-                      <i className="ri-alarm-warning-fill fs-5" aria-hidden />
+                      <i className={`${icon} fs-5`} aria-hidden />
                     </div>
                     <div className="ms-3 flex-grow-1 text-start min-w-0">
-                      <h6 className="mb-0 text-dark text-truncate fw-semibold">{n.title || "Alerte patient"}</h6>
+                      <h6 className="mb-0 text-dark text-truncate fw-semibold">{n.title || defaultTitle}</h6>
                       <div className="d-flex justify-content-between gap-2 align-items-start mt-1">
                         <p className="mb-0 small text-muted" style={{ lineHeight: 1.35 }}>
                           {n.body}
@@ -163,7 +202,7 @@ export default function StaffNotificationsBell({
                           {time}
                         </small>
                       </div>
-                      {!isRead && (
+                      {!isRead && !virt && (
                         <button
                           type="button"
                           className="btn btn-link btn-sm p-0 mt-1 small text-primary"

@@ -7,6 +7,12 @@ import {
   formatSlotClock,
   localDateStringYMD,
 } from "../utils/medicationReminders";
+import {
+  formatNotifTime,
+  CHAT_PATH,
+  DASHBOARD_APPTS_HASH,
+  DASHBOARD_MEDS_HASH,
+} from "../utils/notificationMeta";
 
 function normalizePatientId(raw) {
   if (raw == null) return "";
@@ -20,24 +26,6 @@ function formatLate(minutesPast) {
   const m = minutesPast % 60;
   return m > 0 ? `En retard de ${h} h ${m} min` : `En retard de ${h} h`;
 }
-
-function formatNotifTime(iso) {
-  if (!iso) return "";
-  try {
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return "";
-    const diff = Date.now() - d.getTime();
-    if (diff < 45_000) return "À l'instant";
-    if (diff < 3_600_000) return `Il y a ${Math.floor(diff / 60_000)} min`;
-    return d.toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-  } catch {
-    return "";
-  }
-}
-
-const DASHBOARD_MEDS_HASH = "/dashboard-pages/patient-dashboard#patient-medications";
-const DASHBOARD_APPTS_HASH = "/dashboard-pages/patient-dashboard#patient-appointments";
-const CHAT_PATH = "/chat";
 
 /**
  * Notifications patient : RDV (API : nouveau / rappel 24 h) + rappels médicaments (créneaux non cochés).
@@ -301,6 +289,11 @@ export default function PatientMedicationNotificationsBell({
                 </Link>
               );
             })}
+          </div>
+          <div className="border-top py-2 px-3 text-center bg-light rounded-bottom-3">
+            <Link to="/notifications" className="btn btn-sm btn-primary text-white w-100">
+              Voir tout
+            </Link>
           </div>
         </div>
       </Dropdown.Menu>

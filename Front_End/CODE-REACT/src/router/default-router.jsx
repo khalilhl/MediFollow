@@ -46,6 +46,7 @@ import Calendar from "../views/calendar/calendar"
 
 // Chat Page
 import Chat from "../views/chat/chat"
+import NotificationsCenterPage from "../views/notifications/notifications-center"
 
 // UI Elements
 import Alerts from "../views/ui-elements/alerts";
@@ -298,6 +299,10 @@ export const DefaultRoute = [
       {
         path: '/chat',
         element: <Chat />
+      },
+      {
+        path: '/notifications',
+        element: <NotificationsCenterPage />
       },
 
       //  ------ UI Elements Route ------ 

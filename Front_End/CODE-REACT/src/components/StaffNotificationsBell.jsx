@@ -2,97 +2,12 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Dropdown } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import { notificationApi } from "../services/api";
-
-function formatNotifTime(iso) {
-  if (!iso) return "";
-  try {
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return "";
-    const diff = Date.now() - d.getTime();
-    if (diff < 45_000) return "À l'instant";
-    if (diff < 3_600_000) return `Il y a ${Math.floor(diff / 60_000)} min`;
-    if (diff < 86_400_000) return `Il y a ${Math.floor(diff / 3_600_000)} h`;
-    return d.toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-  } catch {
-    return "";
-  }
-}
-
-function patientIdFromDoc(raw) {
-  if (raw == null) return "";
-  if (typeof raw === "object" && raw !== null && "$oid" in raw) return String(raw.$oid);
-  return String(raw);
-}
-
-function patientLink(role, patientIdRaw) {
-  const pid = patientIdFromDoc(patientIdRaw);
-  if (!pid) return "#";
-  if (role === "doctor") return `/doctor/my-patients/${pid}`;
-  if (role === "admin") return "/admin/appointment-requests";
-  return `/dashboard`;
-}
-
-function isVirtualId(id) {
-  return id != null && String(id).startsWith("virt-");
-}
-
-function isAppointmentNotifType(type) {
-  return type === "appointment_new" || type === "appointment_reminder_24h";
-}
-
-/** Lien agenda / calendrier selon le rôle (RDV). */
-function appointmentListLink(role) {
-  if (role === "admin") return "/admin/appointment-requests";
-  if (role === "doctor") return "/doctor/availability-calendar";
-  return "/dashboard-pages/nurse-dashboard";
-}
-
-const CHAT_PATH = "/chat";
-
-function notifMeta(n, role) {
-  const t = n.type || "";
-  const id = n._id || n.id;
-  if (
-    t === "chat_message" ||
-    t === "chat_message_sent" ||
-    t === "chat_call_log" ||
-    t === "chat_voice_invite"
-  ) {
-    const video = t === "chat_voice_invite" && String(n.body || "").includes("vidéo");
-    return {
-      href: CHAT_PATH,
-      icon:
-        t === "chat_voice_invite"
-          ? video
-            ? "ri-vidicon-line"
-            : "ri-phone-fill"
-          : t === "chat_message_sent"
-            ? "ri-send-plane-2-line"
-            : "ri-chat-3-line",
-      iconWrapClass: "rounded-3 bg-primary-subtle text-primary border",
-    };
-  }
-  if (t === "appointment_request") {
-    return {
-      href: "/admin/appointment-requests",
-      icon: "ri-calendar-add-line",
-      iconWrapClass: "rounded-3 bg-primary-subtle text-primary border",
-    };
-  }
-  if (isAppointmentNotifType(t) || isVirtualId(id)) {
-    const isReminder = t === "appointment_reminder_24h";
-    return {
-      href: appointmentListLink(role),
-      icon: isReminder ? "ri-alarm-line" : "ri-calendar-check-line",
-      iconWrapClass: "rounded-3 bg-primary-subtle text-primary border",
-    };
-  }
-  return {
-    href: patientLink(role, n.patientId),
-    icon: "ri-alarm-warning-fill",
-    iconWrapClass: "rounded-circle bg-danger-subtle text-danger",
-  };
-}
+import {
+  formatNotifTime,
+  staffNotifMeta,
+  staffDefaultTitle,
+  isVirtualId,
+} from "../utils/notificationMeta";
 
 /**
  * Liste déroulante « All Notifications » (style template) pour médecin / infirmier — alertes risque patient.
@@ -213,23 +128,10 @@ export default function StaffNotificationsBell({
             )}
             {items.map((n) => {
               const id = n._id || n.id;
-              const { href, icon, iconWrapClass } = notifMeta(n, role);
+              const { href, icon, iconWrapClass } = staffNotifMeta(n, role);
               const isRead = n.read === true;
               const virt = isVirtualId(id);
               const time = formatNotifTime(n.createdAt);
-              const defaultTitle =
-                n.type === "appointment_request"
-                  ? "Demande de rendez-vous"
-                  : n.type === "appointment_new"
-                    ? "Nouveau rendez-vous"
-                    : n.type === "appointment_reminder_24h"
-                      ? "Rappel rendez-vous"
-                      : n.type === "chat_message" ||
-                          n.type === "chat_message_sent" ||
-                          n.type === "chat_call_log" ||
-                          n.type === "chat_voice_invite"
-                        ? "Messagerie"
-                        : "Alerte patient";
               return (
                 <Link
                   key={String(id)}
@@ -249,7 +151,7 @@ export default function StaffNotificationsBell({
                     </div>
                     <div className="flex-grow-1 text-start min-w-0" style={{ minWidth: 0 }}>
                       <div className="d-flex align-items-start justify-content-between gap-2">
-                        <h6 className="mb-0 text-dark fw-semibold text-break flex-grow-1">{n.title || defaultTitle}</h6>
+                        <h6 className="mb-0 text-dark fw-semibold text-break flex-grow-1">{n.title || staffDefaultTitle(n)}</h6>
                         {time ? (
                           <small className="flex-shrink-0 text-muted text-nowrap" style={{ fontSize: "0.7rem" }}>
                             {time}
@@ -276,6 +178,11 @@ export default function StaffNotificationsBell({
                 </Link>
               );
             })}
+          </div>
+          <div className="border-top py-2 px-3 text-center bg-light rounded-bottom-3">
+            <Link to="/notifications" className="btn btn-sm btn-primary text-white w-100">
+              Voir tout
+            </Link>
           </div>
         </div>
       </Dropdown.Menu>

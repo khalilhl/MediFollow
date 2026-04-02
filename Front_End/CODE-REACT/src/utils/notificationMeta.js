@@ -6,19 +6,37 @@ export const CHAT_PATH = "/chat";
 export const DASHBOARD_MEDS_HASH = "/dashboard-pages/patient-dashboard#patient-medications";
 export const DASHBOARD_APPTS_HASH = "/dashboard-pages/patient-dashboard#patient-appointments";
 
-export function formatNotifTime(iso) {
+/**
+ * @param {string|Date} iso
+ * @param {import("i18next").TFunction} t
+ * @param {string} [lng] i18n language (e.g. en, fr, ar)
+ */
+export function formatNotifTime(iso, t, lng) {
   if (!iso) return "";
   try {
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return "";
     const diff = Date.now() - d.getTime();
-    if (diff < 45_000) return "À l'instant";
-    if (diff < 3_600_000) return `Il y a ${Math.floor(diff / 60_000)} min`;
-    if (diff < 86_400_000) return `Il y a ${Math.floor(diff / 3_600_000)} h`;
-    return d.toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+    const shortLng = (lng || "en").split("-")[0];
+    const locale = shortLng === "ar" ? "ar" : shortLng === "fr" ? "fr-FR" : "en-US";
+    if (diff < 45_000) return t("notifications.time.justNow");
+    if (diff < 3_600_000) return t("notifications.time.minutesAgo", { count: Math.floor(diff / 60_000) });
+    if (diff < 86_400_000) return t("notifications.time.hoursAgo", { count: Math.floor(diff / 3_600_000) });
+    return d.toLocaleString(locale, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
   } catch {
     return "";
   }
+}
+
+/**
+ * @param {number} minutesPast
+ * @param {import("i18next").TFunction} t
+ */
+export function formatNotifLate(minutesPast, t) {
+  if (minutesPast < 60) return t("notifications.lateMinutes", { count: minutesPast });
+  const h = Math.floor(minutesPast / 60);
+  const m = minutesPast % 60;
+  return m > 0 ? t("notifications.lateHoursMinutes", { count_h: h, count_m: m }) : t("notifications.lateHours", { count: h });
 }
 
 export function patientIdFromDoc(raw) {
@@ -59,7 +77,9 @@ export function staffNotifMeta(n, role) {
     t === "chat_call_log" ||
     t === "chat_voice_invite"
   ) {
-    const video = t === "chat_voice_invite" && String(n.body || "").includes("vidéo");
+    const video =
+      t === "chat_voice_invite" &&
+      (n.meta?.isVideo === true || /vidéo|video/i.test(String(n.body || "")));
     return {
       href: CHAT_PATH,
       icon:
@@ -95,19 +115,24 @@ export function staffNotifMeta(n, role) {
   };
 }
 
-export function staffDefaultTitle(n) {
-  return n.type === "appointment_request"
-    ? "Demande de rendez-vous"
-    : n.type === "appointment_new"
-      ? "Nouveau rendez-vous"
-      : n.type === "appointment_reminder_24h"
-        ? "Rappel rendez-vous"
-        : n.type === "chat_message" ||
-            n.type === "chat_message_sent" ||
-            n.type === "chat_call_log" ||
-            n.type === "chat_voice_invite"
-          ? "Messagerie"
-          : "Alerte patient";
+/**
+ * @param {object} n notification
+ * @param {import("i18next").TFunction} t
+ */
+export function staffDefaultTitle(n, t) {
+  const ty = n.type || "";
+  if (ty === "appointment_request") return t("notifications.staffTitle.appointmentRequest");
+  if (ty === "appointment_new") return t("notifications.staffTitle.appointmentNew");
+  if (ty === "appointment_reminder_24h") return t("notifications.staffTitle.appointmentReminder");
+  if (
+    ty === "chat_message" ||
+    ty === "chat_message_sent" ||
+    ty === "chat_call_log" ||
+    ty === "chat_voice_invite"
+  ) {
+    return t("notifications.staffTitle.messaging");
+  }
+  return t("notifications.staffTitle.patientAlert");
 }
 
 /** Catégorie filtre staff : danger | rdv | demande_rdv | messagerie | autres */

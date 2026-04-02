@@ -34,6 +34,10 @@ export class StaffNotification extends Document {
 
   @Prop({ default: false })
   read: boolean;
+
+  /** Données structurées pour affichage localisé côté client (titres/corps ne sont plus figés FR). */
+  @Prop({ type: Object, required: false })
+  meta?: Record<string, unknown>;
 }
 
 export const StaffNotificationSchema = SchemaFactory.createForClass(StaffNotification);

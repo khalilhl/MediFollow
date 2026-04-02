@@ -1,9 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Col, Container, Form, Row, Spinner } from "react-bootstrap";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { medicationApi, notificationApi } from "../../services/api";
 import {
   formatNotifTime,
+  formatNotifLate,
   staffNotifMeta,
   staffDefaultTitle,
   staffNotifCategory,
@@ -18,14 +20,8 @@ import {
   formatSlotClock,
   localDateStringYMD,
 } from "../../utils/medicationReminders";
+import { translateNotificationDisplay } from "../../utils/translateNotification";
 import "./notifications-center.scss";
-
-function formatLate(minutesPast) {
-  if (minutesPast < 60) return `En retard de ${minutesPast} min`;
-  const h = Math.floor(minutesPast / 60);
-  const m = minutesPast % 60;
-  return m > 0 ? `En retard de ${h} h ${m} min` : `En retard de ${h} h`;
-}
 
 function normalizePatientId(raw) {
   if (raw == null) return "";
@@ -73,13 +69,14 @@ function matchesReadFilter(n, filter) {
 }
 
 function ReadFilterButtons({ value, onChange }) {
+  const { t } = useTranslation();
   const opts = [
-    { v: "all", label: "Toutes" },
-    { v: "unread", label: "Non lues" },
-    { v: "read", label: "Lues" },
+    { v: "all", label: t("notifications.readAll") },
+    { v: "unread", label: t("notifications.readUnread") },
+    { v: "read", label: t("notifications.readRead") },
   ];
   return (
-    <div className="notifications-center__btn-group btn-group" role="group" aria-label="Filtrer par lecture">
+    <div className="notifications-center__btn-group btn-group" role="group" aria-label={t("notifications.filterReadAria")}>
       {opts.map(({ v, label }) => (
         <button
           key={v}
@@ -95,6 +92,7 @@ function ReadFilterButtons({ value, onChange }) {
 }
 
 export default function NotificationsCenterPage() {
+  const { t, i18n } = useTranslation();
   const [session] = useState(() => getSession());
   const role = session?.role;
 
@@ -115,13 +113,13 @@ export default function NotificationsCenterPage() {
       setApiItems(Array.isArray(res.items) ? res.items : []);
       setUnreadTotal(typeof res.unread === "number" ? res.unread : 0);
     } catch (e) {
-      setErr(e?.message || "Erreur");
+      setErr(e?.message || t("notifications.errorGeneric"));
       setApiItems([]);
       setUnreadTotal(0);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   const loadPatient = useCallback(async () => {
     const pid = session?.id;
@@ -137,14 +135,14 @@ export default function NotificationsCenterPage() {
       setApiItems(Array.isArray(res.items) ? res.items : []);
       setUnreadTotal(typeof res.unread === "number" ? res.unread : 0);
     } catch (e) {
-      setErr(e?.message || "Erreur");
+      setErr(e?.message || t("notifications.errorGeneric"));
       setApiItems([]);
       setMedications([]);
       setUnreadTotal(0);
     } finally {
       setLoading(false);
     }
-  }, [session?.id]);
+  }, [session?.id, t]);
 
   useEffect(() => {
     if (!session) {
@@ -236,20 +234,20 @@ export default function NotificationsCenterPage() {
 
   const roleLabel =
     role === "patient"
-      ? "Espace patient"
+      ? t("notifications.roleSpacePatient")
       : role === "doctor"
-        ? "Espace médecin"
+        ? t("notifications.roleSpaceDoctor")
         : role === "nurse"
-          ? "Espace infirmier(ère)"
-          : "Administration";
+          ? t("notifications.roleSpaceNurse")
+          : t("notifications.roleSpaceAdmin");
 
   if (!session) {
     return (
       <Container fluid className="notifications-center py-4">
         <div className="notifications-center__guest">
           <i className="ri-lock-line d-block" aria-hidden />
-          <h5 className="fw-semibold mb-2">Connexion requise</h5>
-          <p className="text-muted small mb-0">Connectez-vous pour afficher et filtrer vos notifications.</p>
+          <h5 className="fw-semibold mb-2">{t("notifications.loginRequiredTitle")}</h5>
+          <p className="text-muted small mb-0">{t("notifications.loginRequiredBody")}</p>
         </div>
       </Container>
     );
@@ -273,18 +271,18 @@ export default function NotificationsCenterPage() {
           </Col>
           <Col>
             <p className="small text-white text-opacity-75 mb-1 fw-medium">{roleLabel}</p>
-            <h1 className="notifications-center__title">Notifications</h1>
+            <h1 className="notifications-center__title">{t("notifications.pageTitle")}</h1>
             <p className="notifications-center__subtitle">
-              Consultez vos alertes, messages et rendez-vous. Filtrez par statut ou par type.
+              {t("notifications.pageSubtitle")}
             </p>
           </Col>
           <Col xs={12} md="auto" className="d-flex flex-wrap align-items-center gap-2 justify-content-md-end">
             {unreadTotal > 0 && (
-              <span className="notifications-center__badge-unread">{unreadTotal} non lue{unreadTotal > 1 ? "s" : ""}</span>
+              <span className="notifications-center__badge-unread">{t("notifications.unreadBadge", { count: unreadTotal })}</span>
             )}
             <button type="button" className="btn btn-light btn-sm fw-semibold shadow-sm" onClick={onMarkAllRead}>
               <i className="ri-check-double-line me-1" aria-hidden />
-              Tout marquer lu
+              {t("notifications.markAllRead")}
             </button>
           </Col>
         </Row>
@@ -293,36 +291,36 @@ export default function NotificationsCenterPage() {
       <div className="notifications-center__filters">
         <Row className="g-4 align-items-end">
           <Col md={6} lg={5}>
-            <div className="notifications-center__filter-label">Lecture</div>
+            <div className="notifications-center__filter-label">{t("notifications.filterRead")}</div>
             <ReadFilterButtons value={readFilter} onChange={setReadFilter} />
           </Col>
           <Col md={6} lg={4}>
-            <div className="notifications-center__filter-label">Type</div>
+            <div className="notifications-center__filter-label">{t("notifications.filterType")}</div>
             <div className="notifications-center__select-wrap">
               {role === "patient" ? (
                 <Form.Select
                   value={catFilter}
                   onChange={(e) => setCatFilter(e.target.value)}
-                  aria-label="Filtrer par type"
+                  aria-label={t("notifications.filterTypeAria")}
                 >
-                  <option value="all">Tous les types</option>
-                  <option value="messages_appels">Messages et appels</option>
-                  <option value="rdv">Rendez-vous</option>
-                  <option value="medicaments">Rappels médicaments</option>
-                  <option value="autres">Autres</option>
+                  <option value="all">{t("notifications.catAll")}</option>
+                  <option value="messages_appels">{t("notifications.catMessagesCalls")}</option>
+                  <option value="rdv">{t("notifications.catAppointments")}</option>
+                  <option value="medicaments">{t("notifications.catMedReminders")}</option>
+                  <option value="autres">{t("notifications.catOther")}</option>
                 </Form.Select>
               ) : (
                 <Form.Select
                   value={catFilter}
                   onChange={(e) => setCatFilter(e.target.value)}
-                  aria-label="Filtrer par type"
+                  aria-label={t("notifications.filterTypeAria")}
                 >
-                  <option value="all">Tous les types</option>
-                  <option value="danger">Alertes danger</option>
-                  <option value="rdv">Rendez-vous</option>
-                  <option value="demande_rdv">Demandes de rendez-vous</option>
-                  <option value="messagerie">Messagerie</option>
-                  <option value="autres">Autres</option>
+                  <option value="all">{t("notifications.catAll")}</option>
+                  <option value="danger">{t("notifications.catDanger")}</option>
+                  <option value="rdv">{t("notifications.catAppointments")}</option>
+                  <option value="demande_rdv">{t("notifications.catApptRequests")}</option>
+                  <option value="messagerie">{t("notifications.catMessaging")}</option>
+                  <option value="autres">{t("notifications.catOther")}</option>
                 </Form.Select>
               )}
             </div>
@@ -333,7 +331,7 @@ export default function NotificationsCenterPage() {
       {loading && (
         <div className="notifications-center__loading">
           <Spinner animation="border" variant="primary" role="status" className="mb-2" />
-          <p className="text-muted small mb-0">Chargement des notifications…</p>
+          <p className="text-muted small mb-0">{t("notifications.loadingList")}</p>
         </div>
       )}
 
@@ -348,16 +346,17 @@ export default function NotificationsCenterPage() {
           {listEmptyStaff ? (
             <div className="notifications-center__empty">
               <i className="ri-inbox-line" aria-hidden />
-              <p className="mb-0 fw-medium">Aucune notification pour ces filtres</p>
-              <p className="small text-muted mt-2 mb-0">Modifiez la lecture ou le type pour élargir la liste.</p>
+              <p className="mb-0 fw-medium">{t("notifications.emptyFiltered")}</p>
+              <p className="small text-muted mt-2 mb-0">{t("notifications.emptyFilteredHintStaff")}</p>
             </div>
           ) : (
             filteredStaffItems.map((n) => {
+              const disp = translateNotificationDisplay(n, t, i18n);
               const id = n._id || n.id;
               const { href, icon, iconWrapClass } = staffNotifMeta(n, staffRole);
               const isRead = n.read === true;
               const virt = isVirtualId(id);
-              const time = formatNotifTime(n.createdAt);
+              const time = formatNotifTime(n.createdAt, t, i18n.language);
               return (
                 <Link
                   key={String(id)}
@@ -374,11 +373,11 @@ export default function NotificationsCenterPage() {
                     <div className="flex-grow-1 min-w-0">
                       <div className="d-flex align-items-start justify-content-between gap-2 flex-wrap">
                         <h2 className="h6 mb-0 text-dark fw-semibold text-break pe-2">
-                          {n.title || staffDefaultTitle(n)}
+                          {disp.title || staffDefaultTitle(n, t)}
                         </h2>
                         {time ? <span className="notifications-center__time-pill">{time}</span> : null}
                       </div>
-                      <p className="mb-0 small text-muted text-break mt-1 lh-sm">{n.body}</p>
+                      <p className="mb-0 small text-muted text-break mt-1 lh-sm">{disp.body}</p>
                       {!isRead && !virt && (
                         <button
                           type="button"
@@ -389,7 +388,7 @@ export default function NotificationsCenterPage() {
                             onMarkRead(id);
                           }}
                         >
-                          Marquer comme lu
+                          {t("notifications.markAsRead")}
                         </button>
                       )}
                     </div>
@@ -406,12 +405,13 @@ export default function NotificationsCenterPage() {
           {listEmptyPatient ? (
             <div className="notifications-center__empty">
               <i className="ri-inbox-line" aria-hidden />
-              <p className="mb-0 fw-medium">Aucune notification pour ces filtres</p>
-              <p className="small text-muted mt-2 mb-0">Essayez « Toutes » en lecture ou changez le type.</p>
+              <p className="mb-0 fw-medium">{t("notifications.emptyFiltered")}</p>
+              <p className="small text-muted mt-2 mb-0">{t("notifications.emptyFilteredHintPatient")}</p>
             </div>
           ) : (
             <>
               {filteredPatientRows.api.map((n) => {
+                const disp = translateNotificationDisplay(n, t, i18n);
                 const id = n._id || n.id;
                 const isVirt = isVirtualId(id);
                 const isChat =
@@ -424,7 +424,7 @@ export default function NotificationsCenterPage() {
                 const href = isChat ? CHAT_PATH : isAppt ? DASHBOARD_APPTS_HASH : DASHBOARD_MEDS_HASH;
                 const icon = isChat
                   ? n.type === "chat_voice_invite"
-                    ? String(n.title || "").includes("vidéo")
+                    ? n.meta?.isVideo === true || /vidéo|video/i.test(String(n.title || ""))
                       ? "ri-vidicon-line"
                       : "ri-phone-fill"
                     : n.type === "chat_message_sent"
@@ -433,7 +433,7 @@ export default function NotificationsCenterPage() {
                   : isAppt
                     ? "ri-calendar-event-fill"
                     : "ri-information-line";
-                const time = formatNotifTime(n.createdAt);
+                const time = formatNotifTime(n.createdAt, t, i18n.language);
                 const unread = n.read === false;
                 return (
                   <Link
@@ -454,10 +454,10 @@ export default function NotificationsCenterPage() {
                       </div>
                       <div className="flex-grow-1 min-w-0">
                         <div className="d-flex align-items-start justify-content-between gap-2 flex-wrap">
-                          <h2 className="h6 mb-0 text-dark fw-semibold text-break pe-2">{n.title || "Notification"}</h2>
+                          <h2 className="h6 mb-0 text-dark fw-semibold text-break pe-2">{disp.title || t("notifications.fallbackTitle")}</h2>
                           {time ? <span className="notifications-center__time-pill">{time}</span> : null}
                         </div>
-                        <p className="mb-0 small text-muted text-break mt-1 lh-sm">{n.body}</p>
+                        <p className="mb-0 small text-muted text-break mt-1 lh-sm">{disp.body}</p>
                         {!n.read && !isVirt && (
                           <button
                             type="button"
@@ -468,7 +468,7 @@ export default function NotificationsCenterPage() {
                               onMarkRead(id);
                             }}
                           >
-                            Marquer comme lu
+                            {t("notifications.markAsRead")}
                           </button>
                         )}
                       </div>
@@ -479,10 +479,10 @@ export default function NotificationsCenterPage() {
               {filteredPatientRows.med.map((row) => {
                 const mid = row.med?._id || row.med?.id;
                 const key = `med-${mid}-${row.slotIndex}`;
-                const title = row.med?.name || "Médicament";
+                const title = row.med?.name || t("notifications.medDefaultName");
                 const dosage = row.med?.dosage ? String(row.med.dosage) : "";
                 const slotLabel = row.slot?.label ? `${row.slot.label} · ` : "";
-                const subtitle = `${slotLabel}${dosage ? `${dosage} · ` : ""}Prévu ${formatSlotClock(row.slot)}`;
+                const subtitle = `${slotLabel}${dosage ? `${dosage} · ` : ""}${t("notifications.medScheduled", { time: formatSlotClock(row.slot) })}`;
                 return (
                   <Link key={key} to={DASHBOARD_MEDS_HASH} className="notifications-center__item notifications-center__item--unread">
                     <div className="notifications-center__item-inner">
@@ -491,8 +491,8 @@ export default function NotificationsCenterPage() {
                       </div>
                       <div className="flex-grow-1 min-w-0">
                         <div className="d-flex align-items-start justify-content-between gap-2 flex-wrap">
-                          <h2 className="h6 mb-0 text-dark fw-semibold text-break pe-2">Rappel — {title}</h2>
-                          <span className="notifications-center__time-pill">{formatLate(row.minutesPast)}</span>
+                          <h2 className="h6 mb-0 text-dark fw-semibold text-break pe-2">{t("notifications.medReminder", { name: title })}</h2>
+                          <span className="notifications-center__time-pill">{formatNotifLate(row.minutesPast, t)}</span>
                         </div>
                         <p className="mb-0 small text-muted text-break mt-1 lh-sm">{subtitle}</p>
                       </div>

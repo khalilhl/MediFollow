@@ -58,6 +58,7 @@ export class NotificationService {
         patientName,
         healthLogId: params.healthLogId,
         read: false,
+        meta: { kind: 'risk_alert', riskScore: params.riskScore, patientName },
       });
       return;
     }
@@ -73,6 +74,7 @@ export class NotificationService {
         patientName,
         healthLogId: params.healthLogId,
         read: false,
+        meta: { kind: 'risk_alert', riskScore: params.riskScore, patientName },
       });
     }
   }
@@ -97,6 +99,11 @@ export class NotificationService {
       patientName: params.patientName,
       healthLogId: params.healthLogId,
       read: false,
+      meta: {
+        kind: 'vital_escalation',
+        nurseName: params.nurseName,
+        patientName: params.patientName,
+      },
     });
   }
 
@@ -140,6 +147,13 @@ export class NotificationService {
       patientName,
       appointmentId: appt._id,
       read: false,
+      meta: {
+        kind: 'appointment_new',
+        appointmentTitle: title,
+        date: String(appt.date || ''),
+        time: String(appt.time || ''),
+        patientName,
+      },
     });
   }
 
@@ -199,6 +213,14 @@ export class NotificationService {
         patientName,
         appointmentId: appt._id,
         read: false,
+        meta: {
+          kind: 'appointment_request',
+          appointmentTitle: titleMed,
+          date: String(appt.requestedDate || appt.date || ''),
+          time: String(appt.requestedTime || appt.time || ''),
+          patientName,
+          doctorName: rawDn || undefined,
+        },
       });
     }
   }
@@ -225,6 +247,7 @@ export class NotificationService {
       patientId: unknown;
       patientName?: string;
       appointmentId: unknown;
+      meta?: Record<string, unknown>;
     }[]
   > {
     const today = this.localTodayYmd();
@@ -257,6 +280,7 @@ export class NotificationService {
       patientId: unknown;
       patientName?: string;
       appointmentId: unknown;
+      meta?: Record<string, unknown>;
     }[] = [];
 
     for (const row of rows) {
@@ -291,6 +315,14 @@ export class NotificationService {
         patientId: pid,
         patientName: patientName || undefined,
         appointmentId: aid,
+        meta: {
+          kind: 'appointment_reminder_24h',
+          reminderRole: role === 'patient' ? 'patient' : 'doctor',
+          appointmentTitle: titleMed,
+          date: String(row.date || ''),
+          time: String(row.time || ''),
+          patientName: patientName || '',
+        },
       });
     }
 
@@ -706,6 +738,11 @@ export class NotificationService {
       title,
       body,
       read: false,
+      meta: {
+        kind: 'chat_voice_invite',
+        callerName: params.callerName,
+        isVideo: params.isVideo,
+      },
     });
   }
 }

@@ -416,6 +416,44 @@
       "oncologie": "Oncology"
     }
   },
+  "accountSettings": {
+    "pageTitle": "Account settings",
+    "pageHeading": "Account settings",
+    "cardAccount": "Account settings",
+    "cardSocial": "Social media",
+    "loading": "Loading...",
+    "loadingHidden": "Loading...",
+    "loadError": "Failed to load",
+    "backToDashboard": "Back to dashboard",
+    "userName": "User name:",
+    "email": "Email:",
+    "alternateEmail": "Alternate email:",
+    "languageKnown": "Languages:",
+    "lang": {
+      "english": "English",
+      "french": "French",
+      "hindi": "Hindi",
+      "spanish": "Spanish",
+      "arabic": "Arabic",
+      "italian": "Italian"
+    },
+    "submit": "Save",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "accountSaved": "Account settings saved.",
+    "socialSaved": "Social links saved.",
+    "updateError": "Error while updating",
+    "facebook": "Facebook:",
+    "twitter": "Twitter:",
+    "googlePlus": "Google:",
+    "instagram": "Instagram:",
+    "youtube": "YouTube:",
+    "placeholderFacebook": "www.facebook.com",
+    "placeholderTwitter": "www.twitter.com",
+    "placeholderGoogle": "www.google.com",
+    "placeholderInstagram": "www.instagram.com",
+    "placeholderYoutube": "www.youtube.com"
+  },
   "patientCards": {
     "discharge": {
       "title": "Discharge instructions",

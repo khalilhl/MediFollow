@@ -416,6 +416,44 @@
       "oncologie": "Oncologie"
     }
   },
+  "accountSettings": {
+    "pageTitle": "Paramètres du compte",
+    "pageHeading": "Paramètres du compte",
+    "cardAccount": "Paramètres du compte",
+    "cardSocial": "Réseaux sociaux",
+    "loading": "Chargement...",
+    "loadingHidden": "Chargement...",
+    "loadError": "Échec du chargement",
+    "backToDashboard": "Retour au tableau de bord",
+    "userName": "Nom d'utilisateur :",
+    "email": "Email :",
+    "alternateEmail": "Email alternatif :",
+    "languageKnown": "Langues :",
+    "lang": {
+      "english": "Anglais",
+      "french": "Français",
+      "hindi": "Hindi",
+      "spanish": "Espagnol",
+      "arabic": "Arabe",
+      "italian": "Italien"
+    },
+    "submit": "Enregistrer",
+    "saving": "Enregistrement...",
+    "cancel": "Annuler",
+    "accountSaved": "Paramètres du compte enregistrés.",
+    "socialSaved": "Réseaux sociaux enregistrés.",
+    "updateError": "Erreur lors de la mise à jour",
+    "facebook": "Facebook :",
+    "twitter": "Twitter :",
+    "googlePlus": "Google :",
+    "instagram": "Instagram :",
+    "youtube": "YouTube :",
+    "placeholderFacebook": "www.facebook.com",
+    "placeholderTwitter": "www.twitter.com",
+    "placeholderGoogle": "www.google.com",
+    "placeholderInstagram": "www.instagram.com",
+    "placeholderYoutube": "www.youtube.com"
+  },
   "patientCards": {
     "discharge": {
       "title": "Consignes de sortie",

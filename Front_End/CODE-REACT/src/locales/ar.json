@@ -420,6 +420,44 @@
       "oncologie": "الأورام"
     }
   },
+  "accountSettings": {
+    "pageTitle": "إعدادات الحساب",
+    "pageHeading": "إعدادات الحساب",
+    "cardAccount": "إعدادات الحساب",
+    "cardSocial": "وسائل التواصل",
+    "loading": "جاري التحميل...",
+    "loadingHidden": "جاري التحميل...",
+    "loadError": "فشل التحميل",
+    "backToDashboard": "العودة إلى لوحة التحكم",
+    "userName": "اسم المستخدم:",
+    "email": "البريد الإلكتروني:",
+    "alternateEmail": "بريد إلكتروني بديل:",
+    "languageKnown": "اللغات:",
+    "lang": {
+      "english": "الإنجليزية",
+      "french": "الفرنسية",
+      "hindi": "الهندية",
+      "spanish": "الإسبانية",
+      "arabic": "العربية",
+      "italian": "الإيطالية"
+    },
+    "submit": "حفظ",
+    "saving": "جاري الحفظ...",
+    "cancel": "إلغاء",
+    "accountSaved": "تم حفظ إعدادات الحساب.",
+    "socialSaved": "تم حفظ روابط التواصل.",
+    "updateError": "خطأ أثناء التحديث",
+    "facebook": "فيسبوك:",
+    "twitter": "تويتر:",
+    "googlePlus": "غوغل:",
+    "instagram": "إنستغرام:",
+    "youtube": "يوتيوب:",
+    "placeholderFacebook": "www.facebook.com",
+    "placeholderTwitter": "www.twitter.com",
+    "placeholderGoogle": "www.google.com",
+    "placeholderInstagram": "www.instagram.com",
+    "placeholderYoutube": "www.youtube.com"
+  },
   "patientCards": {
     "discharge": {
       "title": "تعليمات الخروج",

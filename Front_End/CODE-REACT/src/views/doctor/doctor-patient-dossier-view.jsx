@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { Alert, Badge, Button, Card, Col, Modal, Row, Spinner, Table } from "react-bootstrap";
+import { Alert, Badge, Button, Card, Col, Form, Modal, Row, Spinner, Table } from "react-bootstrap";
 import { healthLogApi, medicationApi, appointmentApi, questionnaireApi } from "../../services/api";
 import VitalMetricTile, { hrStatus, bpStatus, o2Status, tempStatus, weightStatus } from "../../components/VitalMetricTile";
 import {
@@ -137,9 +137,9 @@ function buildDoctorAlerts(latestLog, v) {
   return out;
 }
 
-function SectionCard({ icon, title, children, className = "" }) {
+function SectionCard({ icon, title, children, className = "", sectionId }) {
   return (
-    <Card className={`dossier-section-card mb-4 ${className}`}>
+    <Card id={sectionId || undefined} className={`dossier-section-card mb-4 ${className}`}>
       <Card.Header className="py-3 px-4 d-flex align-items-center gap-3">
         <div className="dossier-section-icon d-flex align-items-center justify-content-center flex-shrink-0">
           <i className={`${icon} fs-5`} />
@@ -182,6 +182,10 @@ export default function DoctorPatientDossierView({ patient }) {
   const [qsModalError, setQsModalError] = useState("");
   const [resolveBusyId, setResolveBusyId] = useState(null);
   const [vitalResolveErr, setVitalResolveErr] = useState("");
+  /** Consigne médecin par id de relevé (envoyée au patient à la clôture) */
+  const [resolutionNoteById, setResolutionNoteById] = useState({});
+  /** Même consigne pour « Tout clôturer » lorsque plusieurs relevés */
+  const [bulkResolutionNote, setBulkResolutionNote] = useState("");
 
   const reloadHealthLogs = useCallback(async () => {
     const pid = patient?._id || patient?.id;
@@ -212,6 +216,19 @@ export default function DoctorPatientDossierView({ patient }) {
     document.addEventListener("visibilitychange", onVis);
     return () => document.removeEventListener("visibilitychange", onVis);
   }, [patient, reloadHealthLogs]);
+
+  /** Depuis la page Urgences : ?action=appointment | medication */
+  useEffect(() => {
+    if (!patient || detailLoading) return;
+    const q = new URLSearchParams(location.search);
+    const action = q.get("action");
+    if (action === "appointment") {
+      document.getElementById("dossier-section-rdv")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    if (action === "medication") {
+      document.getElementById("dossier-section-medicaments")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [patient, detailLoading, location.search, location.key]);
 
   useEffect(() => {
     if (!patient) return;
@@ -401,10 +418,20 @@ export default function DoctorPatientDossierView({ patient }) {
   const resolveVitalAlert = async (healthLogId) => {
     const pid = patient?._id || patient?.id;
     if (!pid || !healthLogId) return;
+    const note = String(resolutionNoteById[healthLogId] ?? "").trim();
+    if (!note) {
+      setVitalResolveErr("Rédigez une consigne pour le patient avant de clôturer.");
+      return;
+    }
     setResolveBusyId(healthLogId);
     setVitalResolveErr("");
     try {
-      await healthLogApi.doctorResolveVitalAlert(healthLogId);
+      await healthLogApi.doctorResolveVitalAlert(healthLogId, { resolutionNote: note });
+      setResolutionNoteById((prev) => {
+        const next = { ...prev };
+        delete next[healthLogId];
+        return next;
+      });
       await reloadHealthLogs();
       broadcastDoctorHealthLogResolved(healthLogId, pid);
     } catch (e) {
@@ -417,13 +444,20 @@ export default function DoctorPatientDossierView({ patient }) {
   const resolveAllOpenVitalAlerts = async () => {
     const pid = patient?._id || patient?.id;
     if (!pid || openVitalAlerts.length === 0) return;
+    const note = bulkResolutionNote.trim();
+    if (!note) {
+      setVitalResolveErr("Rédigez une consigne pour le patient avant de tout clôturer.");
+      return;
+    }
     setResolveBusyId("__all__");
     setVitalResolveErr("");
     try {
       for (const log of openVitalAlerts) {
         const id = String(log._id || log.id);
-        await healthLogApi.doctorResolveVitalAlert(id);
+        await healthLogApi.doctorResolveVitalAlert(id, { resolutionNote: note });
       }
+      setBulkResolutionNote("");
+      setResolutionNoteById({});
       await reloadHealthLogs();
       const firstId = String(openVitalAlerts[0]?._id || openVitalAlerts[0]?.id || "bulk");
       broadcastDoctorHealthLogResolved(firstId, pid);
@@ -507,7 +541,7 @@ export default function DoctorPatientDossierView({ patient }) {
                                 variant="outline-danger"
                                 size="sm"
                                 className="text-nowrap"
-                                disabled={resolveBusyId != null}
+                                disabled={resolveBusyId != null || !bulkResolutionNote.trim()}
                                 onClick={resolveAllOpenVitalAlerts}
                               >
                                 {resolveBusyId === "__all__" ? (
@@ -525,13 +559,28 @@ export default function DoctorPatientDossierView({ patient }) {
                             ) : null}
                           </div>
                           <p className="dossier-vital-closure-panel__lead">
-                            Chaque ligne = un relevé urgent distinct. Une clôture sur la page « Urgences (infirmier) » ne concerne que ce
-                            relevé-là ; les autres dates restent ouvertes jusqu’à clôture ici (ou ci-dessous en une fois).
+                            Rédigez la <strong>solution ou les consignes</strong> pour le patient : elles seront envoyées dans la messagerie
+                            sécurisée (fil avec vous) au moment où vous clôturez. Chaque ligne = un relevé distinct ; « Tout clôturer »
+                            envoie la même consigne pour chaque relevé listé ci-dessous.
                           </p>
                         </div>
                       </div>
                     </div>
                     {vitalResolveErr ? <div className="dossier-vital-closure-panel__error">{vitalResolveErr}</div> : null}
+                    {openVitalAlerts.length > 1 ? (
+                      <div className="px-3 pb-2 dossier-vital-bulk-note">
+                        <Form.Label className="small fw-semibold text-secondary mb-1">Consigne patient — clôture groupée</Form.Label>
+                        <Form.Control
+                          as="textarea"
+                          rows={2}
+                          className="small"
+                          placeholder="Ex. : poursuivre le paracétamol selon les doses indiquées, surveiller la température, rappeler si fièvre au-delà de 38,5 °C…"
+                          value={bulkResolutionNote}
+                          onChange={(e) => setBulkResolutionNote(e.target.value)}
+                          disabled={resolveBusyId != null}
+                        />
+                      </div>
+                    ) : null}
                     <div className="dossier-vital-closure-panel__list">
                       {openVitalAlerts.map((log) => {
                         const lid = String(log._id || log.id);
@@ -545,39 +594,59 @@ export default function DoctorPatientDossierView({ patient }) {
                         const badgeVariant =
                           st === "escalated_to_doctor" ? "warning" : st === "alert_sent" ? "danger" : "danger";
                         const badgeTextDark = st === "escalated_to_doctor";
+                        const rowNote = resolutionNoteById[lid] ?? "";
+                        const rowNoteOk = String(rowNote).trim().length > 0;
                         return (
-                          <div key={lid} className="dossier-vital-closure-row">
-                            <div className="dossier-vital-closure-row__meta">
-                              <time className="dossier-vital-closure-row__date" dateTime={log.recordedAt || log.createdAt}>
-                                {formatDateTime(log.recordedAt || log.createdAt)}
-                              </time>
-                              <Badge bg={badgeVariant} text={badgeTextDark ? "dark" : undefined}>
-                                {stLabel}
-                              </Badge>
-                              {typeof log.riskScore === "number" ? (
-                                <span className="dossier-vital-closure-row__score">Score {log.riskScore}/100</span>
-                              ) : null}
+                          <div key={lid} className="dossier-vital-closure-row dossier-vital-closure-row--stack">
+                            <div className="d-flex flex-wrap align-items-start justify-content-between gap-2 w-100">
+                              <div className="dossier-vital-closure-row__meta">
+                                <time className="dossier-vital-closure-row__date" dateTime={log.recordedAt || log.createdAt}>
+                                  {formatDateTime(log.recordedAt || log.createdAt)}
+                                </time>
+                                <Badge bg={badgeVariant} text={badgeTextDark ? "dark" : undefined}>
+                                  {stLabel}
+                                </Badge>
+                                {typeof log.riskScore === "number" ? (
+                                  <span className="dossier-vital-closure-row__score">Score {log.riskScore}/100</span>
+                                ) : null}
+                              </div>
                             </div>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="primary"
-                              className="dossier-vital-closure-row__action"
-                              disabled={resolveBusyId != null && resolveBusyId !== lid}
-                              onClick={() => resolveVitalAlert(lid)}
-                            >
-                              {resolveBusyId === lid ? (
-                                <>
-                                  <Spinner animation="border" size="sm" className="me-1" />
-                                  Clôture…
-                                </>
-                              ) : (
-                                <>
-                                  <i className="ri-checkbox-circle-line me-1" />
-                                  Marquer comme résolu
-                                </>
-                              )}
-                            </Button>
+                            <Form.Group className="mb-0 w-100 mt-1">
+                              <Form.Label className="small text-muted mb-1">Consigne au patient (obligatoire)</Form.Label>
+                              <Form.Control
+                                as="textarea"
+                                rows={3}
+                                className="small"
+                                placeholder="Votre solution : traitement, surveillance, quand rappeler les urgences…"
+                                value={rowNote}
+                                onChange={(e) =>
+                                  setResolutionNoteById((prev) => ({ ...prev, [lid]: e.target.value }))
+                                }
+                                disabled={resolveBusyId != null}
+                              />
+                            </Form.Group>
+                            <div className="d-flex justify-content-end w-100">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="primary"
+                                className="dossier-vital-closure-row__action"
+                                disabled={!rowNoteOk || resolveBusyId != null}
+                                onClick={() => resolveVitalAlert(lid)}
+                              >
+                                {resolveBusyId === lid ? (
+                                  <>
+                                    <Spinner animation="border" size="sm" className="me-1" />
+                                    Envoi…
+                                  </>
+                                ) : (
+                                  <>
+                                    <i className="ri-checkbox-circle-line me-1" />
+                                    Marquer comme résolu et envoyer
+                                  </>
+                                )}
+                              </Button>
+                            </div>
                           </div>
                         );
                       })}
@@ -672,7 +741,11 @@ export default function DoctorPatientDossierView({ patient }) {
             )}
           </SectionCard>
 
-          <SectionCard icon="ri-medicine-bottle-line" title="Traitements et médicaments">
+          <SectionCard
+            sectionId="dossier-section-medicaments"
+            icon="ri-medicine-bottle-line"
+            title="Traitements et médicaments"
+          >
             {sortedMedications.length === 0 ? (
               <p className="text-muted small mb-0">
                 <i className="ri-medicine-bottle-line me-1 opacity-50" />
@@ -939,7 +1012,7 @@ export default function DoctorPatientDossierView({ patient }) {
             )}
           </SectionCard>
 
-          <SectionCard icon="ri-calendar-check-line" title="Prochains rendez-vous">
+          <SectionCard sectionId="dossier-section-rdv" icon="ri-calendar-check-line" title="Prochains rendez-vous">
             {upcomingAppointments.length === 0 ? (
               <p className="text-muted small mb-0">Aucun rendez-vous à venir enregistré.</p>
             ) : (

@@ -818,9 +818,11 @@ export const healthLogApi = {
     api.postWithNurseToken(`/health-logs/${encodeURIComponent(String(healthLogId))}/escalate-to-doctor`, {
       note: note != null ? String(note) : '',
     }),
-  /** JWT médecin référent — clôture l’alerte constantes pour ce relevé. */
-  doctorResolveVitalAlert: (healthLogId) =>
-    api.patchWithDoctorToken(`/health-logs/${encodeURIComponent(String(healthLogId))}/resolve`, {}),
+  /** JWT médecin référent — clôture + envoi de la consigne au patient (body.resolutionNote obligatoire). */
+  doctorResolveVitalAlert: (healthLogId, body = {}) =>
+    api.patchWithDoctorToken(`/health-logs/${encodeURIComponent(String(healthLogId))}/resolve`, {
+      resolutionNote: String(body.resolutionNote ?? '').trim(),
+    }),
   /** JWT médecin — historique des escalades infirmier → médecin (patients suivis). status: all | pending | resolved */
   doctorNurseEscalations: (status) => {
     const q =

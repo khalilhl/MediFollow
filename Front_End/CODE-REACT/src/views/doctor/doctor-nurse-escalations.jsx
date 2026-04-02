@@ -6,13 +6,57 @@ import {
   Card,
   Col,
   Container,
+  Dropdown,
+  Form,
+  Modal,
   Row,
   Spinner,
   Table,
 } from "react-bootstrap";
 import { Link } from "react-router-dom";
-import { healthLogApi } from "../../services/api";
+import { appointmentApi, healthLogApi, medicationApi } from "../../services/api";
+import MedicationNameAutocomplete from "../../components/MedicationNameAutocomplete";
+import DosageAutocomplete from "../../components/DosageAutocomplete";
 import { broadcastDoctorHealthLogResolved, subscribeDoctorHealthLogResolved } from "../../utils/healthLogResolveBroadcast";
+
+const FREQUENCIES = [
+  "1 fois par jour",
+  "2 fois par jour",
+  "3 fois par jour",
+  "Toutes les 8 heures",
+  "Hebdomadaire",
+  "Si besoin",
+];
+
+const newMedLineId = () => `med-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+
+const emptyMedLine = () => ({
+  id: newMedLineId(),
+  name: "",
+  useCustomMedication: false,
+  dosage: "",
+  useCustomDosage: false,
+  frequency: FREQUENCIES[0],
+  startDate: "",
+  endDate: "",
+  notes: "",
+});
+
+const defaultRdvForm = () => ({
+  title: "Rendez-vous urgent — suivi constantes",
+  type: "checkup",
+  date: new Date().toISOString().slice(0, 10),
+  time: "09:00",
+  notes: "",
+});
+
+const APPOINTMENT_TYPES = [
+  { value: "checkup", label: "Consultation de suivi" },
+  { value: "lab", label: "Analyses" },
+  { value: "specialist", label: "Spécialiste" },
+  { value: "imaging", label: "Imagerie" },
+  { value: "physiotherapy", label: "Rééducation" },
+];
 
 const VITALS_TZ = "Africa/Tunis";
 
@@ -67,6 +111,22 @@ const DoctorNurseEscalations = () => {
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("all");
   const [resolveBusyId, setResolveBusyId] = useState(null);
+  const [resolveModal, setResolveModal] = useState(null);
+  const [modalNote, setModalNote] = useState("");
+  const [rdvModal, setRdvModal] = useState(null);
+  const [rdvForm, setRdvForm] = useState(() => defaultRdvForm());
+  const [rdvSaving, setRdvSaving] = useState(false);
+  const [rdvError, setRdvError] = useState("");
+  const [medModal, setMedModal] = useState(null);
+  const [medLine, setMedLine] = useState(() => emptyMedLine());
+  const [medSaving, setMedSaving] = useState(false);
+  const [medError, setMedError] = useState("");
+
+  const doctorDisplayName = useMemo(() => {
+    if (!doctorUser) return "";
+    const ln = doctorUser.lastName ? `Dr. ${doctorUser.firstName || ""} ${doctorUser.lastName}`.trim() : "";
+    return ln || doctorUser.firstName || "Médecin";
+  }, [doctorUser]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -110,16 +170,125 @@ const DoctorNurseEscalations = () => {
     return { pending, resolved, total: items.length };
   }, [items]);
 
-  const resolveOne = async (healthLogId, patientId) => {
+  const closeResolveModal = () => {
+    setResolveModal(null);
+    setModalNote("");
+  };
+
+  const resolveOne = async (healthLogId, patientId, resolutionNote) => {
+    const note = String(resolutionNote ?? "").trim();
+    if (!note) {
+      window.alert("Rédigez une consigne pour le patient avant de clôturer.");
+      return;
+    }
     setResolveBusyId(healthLogId);
     try {
-      await healthLogApi.doctorResolveVitalAlert(healthLogId);
+      await healthLogApi.doctorResolveVitalAlert(healthLogId, { resolutionNote: note });
+      closeResolveModal();
       await load();
       broadcastDoctorHealthLogResolved(healthLogId, patientId);
     } catch (e) {
       window.alert(e.message || "Clôture impossible");
     } finally {
       setResolveBusyId(null);
+    }
+  };
+
+  const confirmResolveFromModal = () => {
+    if (!resolveModal) return;
+    void resolveOne(resolveModal.id, resolveModal.patientId, modalNote);
+  };
+
+  const closeRdvModal = () => {
+    setRdvModal(null);
+    setRdvForm(defaultRdvForm());
+    setRdvError("");
+  };
+
+  const openRdvModal = (patientId, patientName) => {
+    setRdvForm(defaultRdvForm());
+    setRdvError("");
+    setRdvModal({ patientId, patientName });
+  };
+
+  const submitUrgentRdv = async (e) => {
+    e.preventDefault();
+    if (!rdvModal || !doctorId) return;
+    const date = String(rdvForm.date || "").trim();
+    const time = String(rdvForm.time || "").trim();
+    if (!date) {
+      setRdvError("Indiquez une date.");
+      return;
+    }
+    if (!time) {
+      setRdvError("Indiquez une heure.");
+      return;
+    }
+    setRdvSaving(true);
+    setRdvError("");
+    try {
+      await appointmentApi.create({
+        patientId: rdvModal.patientId,
+        doctorId: String(doctorId),
+        doctorName: doctorDisplayName,
+        title: String(rdvForm.title || "").trim() || "Rendez-vous urgent",
+        type: rdvForm.type || "checkup",
+        date,
+        time,
+        location: "",
+        patientMessage: "",
+        notes: String(rdvForm.notes || "").trim(),
+        status: "confirmed",
+      });
+      closeRdvModal();
+    } catch (err) {
+      setRdvError(err.message || "Création impossible.");
+    } finally {
+      setRdvSaving(false);
+    }
+  };
+
+  const closeMedModal = () => {
+    setMedModal(null);
+    setMedLine(emptyMedLine());
+    setMedError("");
+  };
+
+  const openMedModal = (patientId, patientName) => {
+    setMedLine(emptyMedLine());
+    setMedError("");
+    setMedModal({ patientId, patientName });
+  };
+
+  const patchMedLine = (patch) => {
+    setMedLine((prev) => ({ ...prev, ...patch }));
+  };
+
+  const submitNewMedication = async (e) => {
+    e.preventDefault();
+    if (!medModal) return;
+    const name = String(medLine.name || "").trim();
+    if (!name) {
+      setMedError("Saisissez le nom du médicament.");
+      return;
+    }
+    setMedSaving(true);
+    setMedError("");
+    try {
+      await medicationApi.create({
+        patientId: medModal.patientId,
+        name,
+        dosage: String(medLine.dosage || "").trim(),
+        frequency: medLine.frequency,
+        startDate: medLine.startDate || "",
+        endDate: medLine.endDate || "",
+        notes: String(medLine.notes || "").trim(),
+      });
+      closeMedModal();
+    } catch (err) {
+      setMedError(err.message || "Enregistrement impossible.");
+    } finally {
+      setMedSaving(false);
     }
   };
 
@@ -146,7 +315,8 @@ const DoctorNurseEscalations = () => {
           </h4>
           <p className="text-muted mb-0">
             Historique des cas où un infirmier a sollicité votre avis (patients dont vous êtes le médecin référent).
-            Statuts : <strong>en attente</strong> (action requise) ou <strong>résolu</strong> après clôture.
+            Utilisez le bouton <strong>+</strong> pour la <strong>consigne</strong> (clôture), un <strong>rendez-vous urgent</strong> ou un{" "}
+            <strong>nouveau médicament</strong> via les fenêtres dédiées. Statuts : <strong>en attente</strong> ou <strong>résolu</strong>.
           </p>
         </Col>
         <Col md={4} className="text-md-end mt-3 mt-md-0">
@@ -224,6 +394,7 @@ const DoctorNurseEscalations = () => {
             </p>
           ) : (
             <div className="table-responsive">
+              {/* popper fixed sur Dropdown.Menu : sinon .table-responsive masque le 3e item */}
               <Table hover className="mb-0 align-middle small">
                 <thead className="table-light">
                   <tr>
@@ -268,35 +439,60 @@ const DoctorNurseEscalations = () => {
                             "—"
                           )}
                         </td>
-                        <td>
-                          <div className="d-flex flex-wrap gap-1">
+                        <td style={{ minWidth: 260 }}>
+                          {pending ? (
+                            <div className="d-flex flex-wrap align-items-center gap-1">
+                              <Link
+                                to={`/doctor/my-patients/${encodeURIComponent(pid)}`}
+                                className="btn btn-outline-primary btn-sm"
+                              >
+                                Dossier
+                              </Link>
+                              <Dropdown as={ButtonGroup}>
+                                <Dropdown.Toggle
+                                  variant="primary"
+                                  size="sm"
+                                  id={`urg-actions-${row.id}`}
+                                  disabled={resolveBusyId != null}
+                                  className="d-inline-flex align-items-center px-2"
+                                  title="Actions"
+                                >
+                                  <i className="ri-add-line fs-6" />
+                                </Dropdown.Toggle>
+                                <Dropdown.Menu
+                                  align="end"
+                                  popperConfig={{ strategy: "fixed" }}
+                                  className="shadow-sm"
+                                >
+                                  <Dropdown.Item
+                                    onClick={() => {
+                                      setResolveModal({ id: row.id, patientId: pid });
+                                      setModalNote("");
+                                    }}
+                                  >
+                                    <i className="ri-file-text-line me-2 text-primary" />
+                                    Consigne au patient (clôturer)
+                                  </Dropdown.Item>
+                                  <Dropdown.Item onClick={() => openRdvModal(pid, row.patientName)}>
+                                    <i className="ri-calendar-event-line me-2 text-warning" />
+                                    Rendez-vous urgent
+                                  </Dropdown.Item>
+                                  <Dropdown.Divider />
+                                  <Dropdown.Item onClick={() => openMedModal(pid, row.patientName)}>
+                                    <i className="ri-medicine-bottle-line me-2 text-success" />
+                                    Ajouter un médicament
+                                  </Dropdown.Item>
+                                </Dropdown.Menu>
+                              </Dropdown>
+                            </div>
+                          ) : (
                             <Link
                               to={`/doctor/my-patients/${encodeURIComponent(pid)}`}
                               className="btn btn-outline-primary btn-sm"
                             >
                               Dossier
                             </Link>
-                            {pending && (
-                              <Button
-                                variant="primary"
-                                size="sm"
-                                disabled={resolveBusyId === row.id}
-                                onClick={() => resolveOne(row.id, pid)}
-                              >
-                                {resolveBusyId === row.id ? (
-                                  <>
-                                    <Spinner animation="border" size="sm" className="me-1" />
-                                    Clôture…
-                                  </>
-                                ) : (
-                                  <>
-                                    <i className="ri-checkbox-circle-line me-1" />
-                                    Marquer comme résolu
-                                  </>
-                                )}
-                              </Button>
-                            )}
-                          </div>
+                          )}
                         </td>
                       </tr>
                     );
@@ -307,6 +503,259 @@ const DoctorNurseEscalations = () => {
           )}
         </Card.Body>
       </Card>
+
+      <Modal show={resolveModal != null} onHide={closeResolveModal} centered backdrop="static">
+        <Modal.Header closeButton>
+          <Modal.Title>Consigne pour le patient</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p className="small text-muted mb-2">
+            Ce message est envoyé au patient dans la messagerie sécurisée et <strong>clôture</strong> cette alerte.
+          </p>
+          <Form.Control
+            as="textarea"
+            rows={5}
+            className="small"
+            placeholder="Votre solution : traitement, surveillance, consignes…"
+            value={modalNote}
+            onChange={(e) => setModalNote(e.target.value)}
+            disabled={resolveBusyId != null}
+          />
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" size="sm" onClick={closeResolveModal} disabled={resolveBusyId != null}>
+            Annuler
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
+            disabled={!modalNote.trim() || resolveBusyId != null}
+            onClick={confirmResolveFromModal}
+          >
+            {resolveBusyId != null ? (
+              <>
+                <Spinner animation="border" size="sm" className="me-1" />
+                Envoi…
+              </>
+            ) : (
+              <>
+                <i className="ri-send-plane-line me-1" />
+                Envoyer et clôturer
+              </>
+            )}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      <Modal show={rdvModal != null} onHide={closeRdvModal} centered backdrop="static" size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>
+            <i className="ri-calendar-event-line me-2 text-warning" />
+            Rendez-vous urgent
+          </Modal.Title>
+        </Modal.Header>
+        <Form onSubmit={submitUrgentRdv}>
+          <Modal.Body>
+            {rdvModal && (
+              <p className="small text-muted mb-3">
+                Patient : <strong>{rdvModal.patientName}</strong>. Le rendez-vous est créé comme <strong>confirmé</strong>.
+              </p>
+            )}
+            {rdvError && (
+              <div className="alert alert-danger py-2 small" role="alert">
+                {rdvError}
+              </div>
+            )}
+            <Row className="g-2 mb-2">
+              <Col md={12}>
+                <Form.Label className="small fw-semibold">Motif / titre</Form.Label>
+                <Form.Control
+                  size="sm"
+                  value={rdvForm.title}
+                  onChange={(e) => setRdvForm((f) => ({ ...f, title: e.target.value }))}
+                  disabled={rdvSaving}
+                />
+              </Col>
+              <Col md={6}>
+                <Form.Label className="small fw-semibold">Type</Form.Label>
+                <Form.Select
+                  size="sm"
+                  value={rdvForm.type}
+                  onChange={(e) => setRdvForm((f) => ({ ...f, type: e.target.value }))}
+                  disabled={rdvSaving}
+                >
+                  {APPOINTMENT_TYPES.map((t) => (
+                    <option key={t.value} value={t.value}>
+                      {t.label}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Col>
+              <Col md={6} className="d-none d-md-block" aria-hidden />
+              <Col md={6}>
+                <Form.Label className="small fw-semibold">Date *</Form.Label>
+                <Form.Control
+                  type="date"
+                  size="sm"
+                  required
+                  value={rdvForm.date}
+                  onChange={(e) => setRdvForm((f) => ({ ...f, date: e.target.value }))}
+                  disabled={rdvSaving}
+                />
+              </Col>
+              <Col md={6}>
+                <Form.Label className="small fw-semibold">Heure *</Form.Label>
+                <Form.Control
+                  type="time"
+                  size="sm"
+                  required
+                  value={rdvForm.time}
+                  onChange={(e) => setRdvForm((f) => ({ ...f, time: e.target.value }))}
+                  disabled={rdvSaving}
+                />
+              </Col>
+              <Col md={12}>
+                <Form.Label className="small fw-semibold">Notes (interne)</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={2}
+                  size="sm"
+                  placeholder="Optionnel"
+                  value={rdvForm.notes}
+                  onChange={(e) => setRdvForm((f) => ({ ...f, notes: e.target.value }))}
+                  disabled={rdvSaving}
+                />
+              </Col>
+            </Row>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" size="sm" type="button" onClick={closeRdvModal} disabled={rdvSaving}>
+              Annuler
+            </Button>
+            <Button variant="warning" size="sm" type="submit" disabled={rdvSaving}>
+              {rdvSaving ? (
+                <>
+                  <Spinner animation="border" size="sm" className="me-1" />
+                  Enregistrement…
+                </>
+              ) : (
+                <>
+                  <i className="ri-check-line me-1" />
+                  Créer le rendez-vous
+                </>
+              )}
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
+
+      <Modal show={medModal != null} onHide={closeMedModal} centered backdrop="static" size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>
+            <i className="ri-medicine-bottle-line me-2 text-success" />
+            Nouveau médicament
+          </Modal.Title>
+        </Modal.Header>
+        <Form onSubmit={submitNewMedication}>
+          <Modal.Body>
+            {medModal && (
+              <p className="small text-muted mb-3">
+                Patient : <strong>{medModal.patientName}</strong>. Le traitement sera visible sur le tableau de bord patient.
+              </p>
+            )}
+            {medError && (
+              <div className="alert alert-danger py-2 small" role="alert">
+                {medError}
+              </div>
+            )}
+            <Row className="g-2">
+              <Col md={12}>
+                <Form.Label className="small fw-semibold">Nom du médicament *</Form.Label>
+                <MedicationNameAutocomplete
+                  id={`esc-med-name-${medLine.id}`}
+                  value={medLine.name}
+                  useCustom={!!medLine.useCustomMedication}
+                  onChange={(patch) => patchMedLine(patch)}
+                />
+              </Col>
+              <Col md={6}>
+                <Form.Label className="small fw-semibold">Dosage</Form.Label>
+                <DosageAutocomplete
+                  id={`esc-med-dose-${medLine.id}`}
+                  value={medLine.dosage}
+                  useCustom={!!medLine.useCustomDosage}
+                  onChange={(patch) => patchMedLine(patch)}
+                />
+              </Col>
+              <Col md={6}>
+                <Form.Label className="small fw-semibold">Fréquence</Form.Label>
+                <Form.Select
+                  size="sm"
+                  value={medLine.frequency}
+                  onChange={(e) => patchMedLine({ frequency: e.target.value })}
+                  disabled={medSaving}
+                >
+                  {FREQUENCIES.map((fr) => (
+                    <option key={fr} value={fr}>
+                      {fr}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Col>
+              <Col md={6}>
+                <Form.Label className="small fw-semibold">Date de début</Form.Label>
+                <Form.Control
+                  type="date"
+                  size="sm"
+                  value={medLine.startDate}
+                  onChange={(e) => patchMedLine({ startDate: e.target.value })}
+                  disabled={medSaving}
+                />
+              </Col>
+              <Col md={6}>
+                <Form.Label className="small fw-semibold">Date de fin</Form.Label>
+                <Form.Control
+                  type="date"
+                  size="sm"
+                  value={medLine.endDate}
+                  onChange={(e) => patchMedLine({ endDate: e.target.value })}
+                  disabled={medSaving}
+                />
+              </Col>
+              <Col md={12}>
+                <Form.Label className="small fw-semibold">Notes</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={2}
+                  size="sm"
+                  placeholder="ex. Pendant les repas"
+                  value={medLine.notes}
+                  onChange={(e) => patchMedLine({ notes: e.target.value })}
+                  disabled={medSaving}
+                />
+              </Col>
+            </Row>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" size="sm" type="button" onClick={closeMedModal} disabled={medSaving}>
+              Annuler
+            </Button>
+            <Button variant="success" size="sm" type="submit" disabled={medSaving}>
+              {medSaving ? (
+                <>
+                  <Spinner animation="border" size="sm" className="me-1" />
+                  Enregistrement…
+                </>
+              ) : (
+                <>
+                  <i className="ri-check-line me-1" />
+                  Enregistrer le médicament
+                </>
+              )}
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
     </Container>
   );
 };

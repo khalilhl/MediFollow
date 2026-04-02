@@ -63,6 +63,10 @@ export class HealthLog extends Document {
 
   @Prop()
   resolvedByDoctorId?: string;
+
+  /** Consigne / solution rédigée par le médecin à l’envoi au patient lors de la clôture */
+  @Prop({ default: '' })
+  doctorResolutionNote?: string;
 }
 
 export const HealthLogSchema = SchemaFactory.createForClass(HealthLog);

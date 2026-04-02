@@ -1078,7 +1078,7 @@ export class ChatService {
     });
   }
 
-  /** Fil patient–médecin : clôture par le médecin. */
+  /** Fil patient–médecin : clôture par le médecin (notif patient comme un message classique). */
   async insertDoctorResolutionCloture(patientId: string, doctorId: string, body: string, healthLogId: Types.ObjectId) {
     const pid = this.pid(patientId);
     const key = patientStaffThreadKey(patientId, 'doctor', doctorId);
@@ -1091,5 +1091,18 @@ export class ChatService {
       senderId: doctorId,
       healthLogId,
     });
+    const text = String(body || '');
+    const senderName = await this.notificationService.resolveChatSenderName('doctor', String(doctorId));
+    await this.notificationService
+      .notifyChatDispatch({
+        senderRole: 'doctor',
+        senderId: String(doctorId),
+        senderName,
+        routing: { patientId: String(patientId) },
+        kind: 'text',
+        bodyText: text.slice(0, 500),
+        mappedPatientId: String(patientId),
+      })
+      .catch(() => {});
   }
 }

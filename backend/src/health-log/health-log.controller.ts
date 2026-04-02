@@ -82,7 +82,11 @@ export class HealthLogController {
 
   @UseGuards(JwtAuthGuard)
   @Patch(':id/resolve')
-  async resolveEscalation(@Request() req: any, @Param('id') id: string) {
-    return this.healthLogService.resolveEscalation(req.user, id);
+  async resolveEscalation(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body() body: { resolutionNote?: string },
+  ) {
+    return this.healthLogService.resolveEscalation(req.user, id, body?.resolutionNote);
   }
 }

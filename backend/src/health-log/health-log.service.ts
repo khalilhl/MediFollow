@@ -249,10 +249,19 @@ export class HealthLogService {
     return { ok: true };
   }
 
-  /** Médecin référent : clôture l’alerte (et message dans le fil patient–médecin). */
-  async resolveEscalation(user: JwtLike, healthLogId: string) {
+  /** Médecin référent : clôture l’alerte (message au patient avec la consigne du médecin). */
+  async resolveEscalation(user: JwtLike, healthLogId: string, resolutionNote?: string) {
     if (String(user.role) !== 'doctor') throw new ForbiddenException();
     const uid = this.uid(user);
+    const note = String(resolutionNote ?? '')
+      .trim()
+      .slice(0, 4000);
+    if (!note) {
+      throw new BadRequestException(
+        'Rédigez une consigne ou une solution pour le patient avant de clôturer cette alerte.',
+      );
+    }
+
     const log = await this.healthLogModel.findById(healthLogId).lean().exec();
     if (!log) throw new NotFoundException('Relevé introuvable');
 
@@ -275,21 +284,34 @@ export class HealthLogService {
     const patientName =
       `${(patient as any).firstName || ''} ${(patient as any).lastName || ''}`.trim() || 'Patient';
     const pid = String((log as any).patientId);
+    const recorded = (log as any).recordedAt
+      ? new Date((log as any).recordedAt).toLocaleString('fr-FR')
+      : String((log as any).date || '—');
 
     const cloture = [
-      '✅ CLÔTURE ALERTE CONSTANTES',
+      '✅ Alerte constantes — consigne de votre médecin',
       '',
-      `Patient : ${patientName}`,
-      `Le médecin confirme que la situation liée à ce relevé (réf. ${healthLogId}) est prise en charge ou résolue.`,
+      `Bonjour ${patientName},`,
       '',
-      'L’équipe peut poursuivre le suivi habituel.',
+      note,
+      '',
+      '—',
+      `Relevé concerné : ${recorded} (réf. ${healthLogId}).`,
+      'Cette alerte est clôturée dans votre dossier. En cas de nouveau symptôme inquiétant, contactez l’équipe soignante ou les urgences.',
     ].join('\n');
 
     await this.chatService.insertDoctorResolutionCloture(pid, uid, cloture, new Types.ObjectId(healthLogId));
 
     await this.healthLogModel.updateOne(
       { _id: new Types.ObjectId(healthLogId) },
-      { $set: { escalationStatus: 'resolved', resolvedAt: new Date(), resolvedByDoctorId: uid } },
+      {
+        $set: {
+          escalationStatus: 'resolved',
+          resolvedAt: new Date(),
+          resolvedByDoctorId: uid,
+          doctorResolutionNote: note,
+        },
+      },
     );
 
     return { ok: true };

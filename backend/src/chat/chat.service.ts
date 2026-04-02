@@ -7,6 +7,7 @@ import { ChatReadState } from './schemas/chat-read-state.schema';
 import { Patient } from '../patient/schemas/patient.schema';
 import { Doctor } from '../doctor/schemas/doctor.schema';
 import { Nurse } from '../nurse/schemas/nurse.schema';
+import { NotificationService } from '../notification/notification.service';
 
 type JwtUser = {
   id: unknown;
@@ -36,6 +37,7 @@ export class ChatService {
     @InjectModel(Doctor.name) private doctorModel: Model<Doctor>,
     @InjectModel(Nurse.name) private nurseModel: Model<Nurse>,
     private readonly messageCrypto: ChatMessageCryptoService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   private pid(patientId: string): Types.ObjectId {
@@ -553,7 +555,9 @@ export class ChatService {
         senderRole: 'patient',
         senderId: uid,
       });
-      return this.mapCreatedMessage(doc.toObject());
+      const mapped = this.mapCreatedMessage(doc.toObject());
+      await this.notifyRecipientsAfterMessage(user, routing, { kind, text }, mapped).catch(() => {});
+      return mapped;
     }
 
     if (routing.peerRole && routing.peerId && role !== 'patient') {
@@ -566,7 +570,9 @@ export class ChatService {
         senderRole: role,
         senderId: uid,
       });
-      return this.mapCreatedMessage(doc.toObject());
+      const mapped = this.mapCreatedMessage(doc.toObject());
+      await this.notifyRecipientsAfterMessage(user, routing, { kind, text }, mapped).catch(() => {});
+      return mapped;
     }
 
     if (role === 'patient' && routing.patientId && !routing.peerRole) {
@@ -579,7 +585,9 @@ export class ChatService {
         senderRole: 'patient',
         senderId: uid,
       });
-      return this.mapCreatedMessage(doc.toObject());
+      const mapped = this.mapCreatedMessage(doc.toObject());
+      await this.notifyRecipientsAfterMessage(user, routing, { kind, text }, mapped).catch(() => {});
+      return mapped;
     }
 
     const patientId = String(routing.patientId || '');
@@ -595,7 +603,29 @@ export class ChatService {
       senderRole: staffRole,
       senderId: uid,
     });
-    return this.mapCreatedMessage(doc.toObject());
+    const mapped = this.mapCreatedMessage(doc.toObject());
+    await this.notifyRecipientsAfterMessage(user, routing, { kind, text }, mapped).catch(() => {});
+    return mapped;
+  }
+
+  private async notifyRecipientsAfterMessage(
+    user: JwtUser,
+    routing: { patientId?: string; peerRole?: 'doctor' | 'nurse'; peerId?: string },
+    payload: { kind: string; text: string },
+    mapped: { patientId?: string },
+  ) {
+    const ur = user.role as string;
+    if (!['patient', 'doctor', 'nurse'].includes(ur)) return;
+    const senderName = await this.notificationService.resolveChatSenderName(ur, this.uid(user));
+    await this.notificationService.notifyChatDispatch({
+      senderRole: ur as 'patient' | 'doctor' | 'nurse',
+      senderId: this.uid(user),
+      senderName,
+      routing,
+      kind: payload.kind as 'text' | 'voice' | 'image' | 'video' | 'document' | 'call',
+      bodyText: payload.text,
+      mappedPatientId: mapped.patientId,
+    });
   }
 
   private async fetchMessagesQuery(

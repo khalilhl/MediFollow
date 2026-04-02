@@ -37,6 +37,7 @@ function formatNotifTime(iso) {
 
 const DASHBOARD_MEDS_HASH = "/dashboard-pages/patient-dashboard#patient-medications";
 const DASHBOARD_APPTS_HASH = "/dashboard-pages/patient-dashboard#patient-appointments";
+const CHAT_PATH = "/chat";
 
 /**
  * Notifications patient : RDV (API : nouveau / rappel 24 h) + rappels médicaments (créneaux non cochés).
@@ -108,8 +109,10 @@ export default function PatientMedicationNotificationsBell({
   useEffect(() => {
     load();
     const onRefresh = () => load();
+    const onNotif = () => load();
     window.addEventListener("patient-medications-updated", onRefresh);
-    const t = setInterval(load, 60_000);
+    window.addEventListener("medifollow-notifications-refresh", onNotif);
+    const t = setInterval(load, 25_000);
     const tick = setInterval(() => setNow(new Date()), 30_000);
     const onFocus = () => {
       load();
@@ -118,6 +121,7 @@ export default function PatientMedicationNotificationsBell({
     window.addEventListener("focus", onFocus);
     return () => {
       window.removeEventListener("patient-medications-updated", onRefresh);
+      window.removeEventListener("medifollow-notifications-refresh", onNotif);
       window.removeEventListener("focus", onFocus);
       clearInterval(t);
       clearInterval(tick);
@@ -140,7 +144,13 @@ export default function PatientMedicationNotificationsBell({
   };
 
   return (
-    <Dropdown as="li" className={`nav-item ${className}`}>
+    <Dropdown
+      as="li"
+      className={`nav-item ${className}`}
+      onToggle={(open) => {
+        if (open) load();
+      }}
+    >
       <Dropdown.Toggle as="a" bsPrefix=" " to="#" className={`${toggleClassName} position-relative`}>
         <i className="ri-notification-4-line" />
         {totalCount > 0 && (
@@ -174,19 +184,34 @@ export default function PatientMedicationNotificationsBell({
             )}
             {patientId && !loading && totalCount === 0 && (
               <div className="text-muted small text-center py-4 px-3">
-                Aucune notification pour l’instant (rendez-vous, rappels médicaments).
+                Aucune notification pour l’instant (rendez-vous, rappels médicaments, messages, appels).
               </div>
             )}
 
             {apiItems.map((n) => {
               const id = n._id || n.id;
               const isVirt = String(id).startsWith("virt-");
+              const isChat =
+                n.type === "chat_message" ||
+                n.type === "chat_message_sent" ||
+                n.type === "chat_call_log" ||
+                n.type === "chat_voice_invite";
               const isAppt =
                 n.type === "appointment_reminder_24h" ||
                 n.type === "appointment_new" ||
                 isVirt;
-              const href = isAppt ? DASHBOARD_APPTS_HASH : DASHBOARD_MEDS_HASH;
-              const icon = isAppt ? "ri-calendar-event-fill" : "ri-information-line";
+              const href = isChat ? CHAT_PATH : isAppt ? DASHBOARD_APPTS_HASH : DASHBOARD_MEDS_HASH;
+              const icon = isChat
+                ? n.type === "chat_voice_invite"
+                  ? String(n.title || "").includes("vidéo")
+                    ? "ri-vidicon-line"
+                    : "ri-phone-fill"
+                  : n.type === "chat_message_sent"
+                    ? "ri-send-plane-2-line"
+                    : "ri-chat-3-line"
+                : isAppt
+                  ? "ri-calendar-event-fill"
+                  : "ri-information-line";
               const time = formatNotifTime(n.createdAt);
               return (
                 <Link
@@ -201,7 +226,7 @@ export default function PatientMedicationNotificationsBell({
                   <div className="d-flex align-items-start gap-2 px-3 py-3">
                     <div
                       className={`flex-shrink-0 rounded-3 d-flex align-items-center justify-content-center border ${
-                        isAppt ? "bg-primary-subtle text-primary" : "bg-light text-primary"
+                        isAppt || isChat ? "bg-primary-subtle text-primary" : "bg-light text-primary"
                       }`}
                       style={{ width: 50, height: 50 }}
                     >

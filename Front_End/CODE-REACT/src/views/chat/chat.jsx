@@ -478,6 +478,7 @@ const Chat = () => {
                     body: text,
                 });
             }
+            window.dispatchEvent(new CustomEvent("medifollow-notifications-refresh"));
             await loadThread(activeKey);
         } catch (e) {
             setLoadError(e?.message || "Envoi impossible");
@@ -501,6 +502,7 @@ const Chat = () => {
                 fd.append("peerId", def.peerId);
             }
             await chatApi.sendVoiceMessage(fd);
+            window.dispatchEvent(new CustomEvent("medifollow-notifications-refresh"));
             await loadThread(activeKey);
         } catch (e) {
             setLoadError(e?.message || "Envoi vocal impossible");
@@ -526,6 +528,7 @@ const Chat = () => {
                 fd.append("peerId", def.peerId);
             }
             await chatApi.sendMediaMessage(fd);
+            window.dispatchEvent(new CustomEvent("medifollow-notifications-refresh"));
             await loadThread(activeKey);
         } catch (e) {
             const msg = e?.message || "Envoi du fichier impossible";

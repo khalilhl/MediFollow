@@ -8,9 +8,11 @@ import { Nurse, NurseSchema } from '../nurse/schemas/nurse.schema';
 import { ChatController } from './chat.controller';
 import { ChatMessageCryptoService } from './chat-message-crypto.service';
 import { ChatService } from './chat.service';
+import { NotificationModule } from '../notification/notification.module';
 
 @Module({
   imports: [
+    NotificationModule,
     MongooseModule.forFeature([
       { name: CareMessage.name, schema: CareMessageSchema },
       { name: ChatReadState.name, schema: ChatReadStateSchema },

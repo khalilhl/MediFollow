@@ -20,28 +20,33 @@ import { startIncomingRingtone, startOutgoingRingback } from "./callRingtone";
 
 /** Routage messagerie aligné sur POST /chat/messages (patient seul, patient+staff, ou pair). */
 function sendCallLogToThread(routing, bodyJson) {
+    const notifyBell = () => window.dispatchEvent(new CustomEvent("medifollow-notifications-refresh"));
     if (!routing) return Promise.resolve();
+    let p;
     if (routing.patientId && routing.peerRole && routing.peerId) {
-        return chatApi.sendMessage({
+        p = chatApi.sendMessage({
             patientId: routing.patientId,
             peerRole: routing.peerRole,
             peerId: routing.peerId,
             body: bodyJson,
             kind: "call",
         });
-    }
-    if (routing.patientId && !routing.peerRole) {
-        return chatApi.sendMessage({ patientId: routing.patientId, body: bodyJson, kind: "call" });
-    }
-    if (routing.peerRole && routing.peerId) {
-        return chatApi.sendMessage({
+    } else if (routing.patientId && !routing.peerRole) {
+        p = chatApi.sendMessage({ patientId: routing.patientId, body: bodyJson, kind: "call" });
+    } else if (routing.peerRole && routing.peerId) {
+        p = chatApi.sendMessage({
             peerRole: routing.peerRole,
             peerId: routing.peerId,
             body: bodyJson,
             kind: "call",
         });
+    } else {
+        return Promise.resolve();
     }
-    return Promise.resolve();
+    return Promise.resolve(p).then((res) => {
+        notifyBell();
+        return res;
+    });
 }
 
 /** Détecte une offre WebRTC vidéo même si le champ socket `video` est absent (récepteur). */
@@ -231,7 +236,7 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
     }, [phase, mediaMode]);
 
     const enqueueHangup = useCallback(
-        (notifyPeer) => {
+        async (notifyPeer) => {
             const ph = phaseRef.current;
             const t0 = connectedAtRef.current;
             const routing = peerContext?.routing;
@@ -241,13 +246,19 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
                 if (ph === "connected") {
                     outcome = "ended";
                     durationSec = t0 != null ? Math.max(0, Math.floor((Date.now() - t0) / 1000)) : 0;
-                } else if (ph === "outgoing" || ph === "ringing") {
+                } else if (ph === "outgoing") {
+                    /* Pas de réponse côté appelé → appel manqué (notif + libellé chat-data). */
+                    outcome = "missed";
+                } else if (ph === "ringing") {
                     outcome = "cancelled";
                 }
                 const bodyJson = JSON.stringify({ outcome, durationSec });
-                void sendCallLogToThread(routing, bodyJson)
-                    .then(() => onAfterCallLogged?.())
-                    .catch((e) => console.warn("Historique appel", e));
+                try {
+                    await sendCallLogToThread(routing, bodyJson);
+                    onAfterCallLogged?.();
+                } catch (e) {
+                    console.warn("Historique appel", e);
+                }
             }
             runHangupBody(notifyPeer);
         },
@@ -263,7 +274,7 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
                     mr.stop();
                 } catch {
                     pendingHangupAfterRecordRef.current = null;
-                    enqueueHangup(notifyPeer);
+                    void enqueueHangup(notifyPeer);
                 }
                 return;
             }
@@ -276,7 +287,7 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
                 callRecordAudioContextRef.current = null;
             }
             callRecordChunksRef.current = [];
-            enqueueHangup(notifyPeer);
+            void enqueueHangup(notifyPeer);
         },
         [enqueueHangup],
     );
@@ -359,7 +370,7 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
                     const pending = pendingHangupAfterRecordRef.current;
                     pendingHangupAfterRecordRef.current = null;
                     if (pending) {
-                        enqueueHangup(pending.notifyPeer);
+                        void enqueueHangup(pending.notifyPeer);
                     }
                 };
                 recorder.start(1000);
@@ -399,6 +410,7 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
             const ph = phaseRef.current;
             if (ph !== "idle" && ph !== "ringing") return;
             if (!payload?.fromUserId || !payload?.offer) return;
+            window.dispatchEvent(new CustomEvent("medifollow-notifications-refresh"));
             const isVideo = !!payload.video || sdpOfferIndicatesVideo(payload.offer);
             setMediaMode(isVideo ? "video" : "audio");
             callMediaRef.current = isVideo ? "video" : "audio";

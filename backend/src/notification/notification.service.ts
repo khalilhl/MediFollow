@@ -5,6 +5,8 @@ import { StaffNotification } from './schemas/notification.schema';
 import { Patient } from '../patient/schemas/patient.schema';
 import { Appointment } from '../appointment/schemas/appointment.schema';
 import { User } from '../auth/schemas/user.schema';
+import { Doctor } from '../doctor/schemas/doctor.schema';
+import { Nurse } from '../nurse/schemas/nurse.schema';
 import {
   appointmentDateTimeLocal,
   formatApptLineFr,
@@ -22,6 +24,8 @@ export class NotificationService {
     @InjectModel(Patient.name) private patientModel: Model<Patient>,
     @InjectModel(Appointment.name) private appointmentModel: Model<Appointment>,
     @InjectModel(User.name) private userModel: Model<User>,
+    @InjectModel(Doctor.name) private doctorModel: Model<Doctor>,
+    @InjectModel(Nurse.name) private nurseModel: Model<Nurse>,
   ) {}
 
   async createRiskAlertsForPatient(params: {
@@ -321,5 +325,327 @@ export class NotificationService {
 
     const unread = unreadDb + virtuals.length;
     return { items: merged, unread };
+  }
+
+  /** Rôle du compte (JWT sub) pour les notifications. */
+  async resolveRecipientRoleForId(
+    id: string,
+  ): Promise<'doctor' | 'nurse' | 'patient' | 'admin' | null> {
+    const s = String(id).trim();
+    if (!Types.ObjectId.isValid(s)) return null;
+    const oid = new Types.ObjectId(s);
+    const [p, d, n] = await Promise.all([
+      this.patientModel.exists({ _id: oid }),
+      this.doctorModel.exists({ _id: oid }),
+      this.nurseModel.exists({ _id: oid }),
+    ]);
+    if (p) return 'patient';
+    if (d) return 'doctor';
+    if (n) return 'nurse';
+    const u = await this.userModel.findById(oid).select('role').lean().exec();
+    const role = (u as { role?: string } | null)?.role;
+    if (role === 'admin' || role === 'superadmin') return 'admin';
+    return null;
+  }
+
+  async resolveChatSenderName(senderRole: string, senderId: string): Promise<string> {
+    const s = String(senderId).trim();
+    if (!Types.ObjectId.isValid(s)) return 'Contact';
+    const oid = new Types.ObjectId(s);
+    if (senderRole === 'patient') {
+      const p = await this.patientModel.findById(oid).select('firstName lastName email').lean().exec();
+      if (!p) return 'Patient';
+      const name = `${(p as any).firstName || ''} ${(p as any).lastName || ''}`.trim();
+      return name || (p as any).email || 'Patient';
+    }
+    if (senderRole === 'doctor') {
+      const d = await this.doctorModel.findById(oid).select('firstName lastName').lean().exec();
+      if (!d) return 'Médecin';
+      const name = `${(d as any).firstName || ''} ${(d as any).lastName || ''}`.trim();
+      return name ? `Dr. ${name}` : 'Médecin';
+    }
+    if (senderRole === 'nurse') {
+      const n = await this.nurseModel.findById(oid).select('firstName lastName').lean().exec();
+      if (!n) return 'Infirmier(ère)';
+      const name = `${(n as any).firstName || ''} ${(n as any).lastName || ''}`.trim();
+      return name || 'Infirmier(ère)';
+    }
+    return 'Contact';
+  }
+
+  private buildChatNotificationContent(
+    kind: string,
+    bodyText: string,
+    senderName: string,
+  ): { type: string; title: string; body: string } {
+    if (kind === 'call') {
+      try {
+        const j = JSON.parse(bodyText) as { outcome?: string; durationSec?: number };
+        const o = String(j?.outcome || '');
+        const line =
+          o === 'ended'
+            ? j.durationSec != null && typeof j.durationSec === 'number'
+              ? `Appel terminé (${Math.round(j.durationSec)} s)`
+              : 'Appel terminé'
+            : o === 'missed'
+              ? 'Appel manqué'
+              : o === 'declined'
+                ? 'Appel refusé'
+                : o === 'cancelled'
+                  ? 'Appel annulé'
+                  : 'Appel';
+        return { type: 'chat_call_log', title: `${line} — ${senderName}`, body: line };
+      } catch {
+        return { type: 'chat_call_log', title: `Appel — ${senderName}`, body: 'Appel' };
+      }
+    }
+    if (kind === 'voice') {
+      return { type: 'chat_message', title: `Message vocal — ${senderName}`, body: 'Message vocal' };
+    }
+    if (kind === 'image') {
+      return { type: 'chat_message', title: `Photo — ${senderName}`, body: 'Photo' };
+    }
+    if (kind === 'video') {
+      return { type: 'chat_message', title: `Vidéo — ${senderName}`, body: 'Vidéo' };
+    }
+    if (kind === 'document') {
+      return { type: 'chat_message', title: `Document — ${senderName}`, body: 'Document' };
+    }
+    const t = bodyText.slice(0, 160);
+    return { type: 'chat_message', title: `Message — ${senderName}`, body: t || 'Nouveau message' };
+  }
+
+  /** Libellé du destinataire pour la copie « message envoyé » (expéditeur). */
+  private async resolveOutboundRecipientLabel(
+    routing: { patientId?: string; peerRole?: 'doctor' | 'nurse'; peerId?: string },
+    senderRole: string,
+    senderId: string,
+  ): Promise<string> {
+    if (senderRole === 'patient' && routing.peerRole && routing.peerId) {
+      if (routing.peerRole === 'doctor') {
+        const d = await this.doctorModel.findById(routing.peerId).select('firstName lastName').lean().exec();
+        if (!d) return 'Médecin';
+        const name = `${(d as any).firstName || ''} ${(d as any).lastName || ''}`.trim();
+        return name ? `Dr. ${name}` : 'Médecin';
+      }
+      const n = await this.nurseModel.findById(routing.peerId).select('firstName lastName').lean().exec();
+      if (!n) return 'Infirmier(ère)';
+      return `${(n as any).firstName || ''} ${(n as any).lastName || ''}`.trim() || 'Infirmier(ère)';
+    }
+    if (routing.peerRole && routing.peerId && senderRole !== 'patient') {
+      if (routing.peerRole === 'doctor') {
+        const d = await this.doctorModel.findById(routing.peerId).select('firstName lastName').lean().exec();
+        if (!d) return 'Médecin';
+        const name = `${(d as any).firstName || ''} ${(d as any).lastName || ''}`.trim();
+        return name ? `Dr. ${name}` : 'Médecin';
+      }
+      const n = await this.nurseModel.findById(routing.peerId).select('firstName lastName').lean().exec();
+      if (!n) return 'Infirmier(ère)';
+      return `${(n as any).firstName || ''} ${(n as any).lastName || ''}`.trim() || 'Infirmier(ère)';
+    }
+    if (senderRole === 'patient' && routing.patientId && !routing.peerRole) {
+      const pid = String(routing.patientId);
+      if (pid !== senderId) return '';
+      return 'Équipe soignante';
+    }
+    if (senderRole === 'doctor' || senderRole === 'nurse') {
+      const pid = String(routing.patientId || '');
+      if (pid) {
+        const p = await this.patientModel.findById(pid).select('firstName lastName email').lean().exec();
+        if (!p) return 'Patient';
+        const name = `${(p as any).firstName || ''} ${(p as any).lastName || ''}`.trim();
+        return name || (p as any).email || 'Patient';
+      }
+    }
+    return '';
+  }
+
+  private buildSenderOutboxContent(
+    kind: string,
+    bodyText: string,
+    recipientLabel: string,
+  ): { type: string; title: string; body: string } {
+    if (kind === 'call') {
+      try {
+        const j = JSON.parse(bodyText) as { outcome?: string; durationSec?: number };
+        const o = String(j?.outcome || '');
+        if (o === 'missed') {
+          return {
+            type: 'chat_message_sent',
+            title: `Appel sans réponse — ${recipientLabel}`,
+            body: 'Appel non décroché',
+          };
+        }
+        const line =
+          o === 'ended'
+            ? j.durationSec != null && typeof j.durationSec === 'number'
+              ? `Appel terminé (${Math.round(j.durationSec)} s)`
+              : 'Appel terminé'
+            : o === 'declined'
+              ? 'Appel refusé'
+              : o === 'cancelled'
+                ? 'Appel annulé'
+                : 'Appel';
+        return { type: 'chat_message_sent', title: `${line} — ${recipientLabel}`, body: line };
+      } catch {
+        return { type: 'chat_message_sent', title: `Appel — ${recipientLabel}`, body: 'Appel' };
+      }
+    }
+    if (kind === 'voice') {
+      return {
+        type: 'chat_message_sent',
+        title: `Message vocal envoyé à ${recipientLabel}`,
+        body: 'Message vocal',
+      };
+    }
+    if (kind === 'image') {
+      return { type: 'chat_message_sent', title: `Photo envoyée à ${recipientLabel}`, body: 'Photo' };
+    }
+    if (kind === 'video') {
+      return { type: 'chat_message_sent', title: `Vidéo envoyée à ${recipientLabel}`, body: 'Vidéo' };
+    }
+    if (kind === 'document') {
+      return { type: 'chat_message_sent', title: `Document envoyé à ${recipientLabel}`, body: 'Document' };
+    }
+    const t = bodyText.slice(0, 160);
+    return {
+      type: 'chat_message_sent',
+      title: `Message envoyé à ${recipientLabel}`,
+      body: t || 'Message',
+    };
+  }
+
+  private async resolveChatRecipients(params: {
+    senderRole: string;
+    senderId: string;
+    routing: { patientId?: string; peerRole?: 'doctor' | 'nurse'; peerId?: string };
+  }): Promise<{ recipientId: string; recipientRole: 'doctor' | 'nurse' | 'patient' }[]> {
+    const { senderRole, senderId, routing } = params;
+    const out: { recipientId: string; recipientRole: 'doctor' | 'nurse' | 'patient' }[] = [];
+
+    if (senderRole === 'patient' && routing.peerRole && routing.peerId) {
+      out.push({ recipientId: routing.peerId, recipientRole: routing.peerRole });
+      return out;
+    }
+
+    if (routing.peerRole && routing.peerId && senderRole !== 'patient') {
+      out.push({ recipientId: routing.peerId, recipientRole: routing.peerRole });
+      return out;
+    }
+
+    if (senderRole === 'patient' && routing.patientId && !routing.peerRole) {
+      const pid = String(routing.patientId);
+      if (pid !== senderId) return [];
+      const pat = await this.patientModel.findById(pid).select('doctorId nurseId').lean().exec();
+      if (!pat) return [];
+      const docId = (pat as any).doctorId ? String((pat as any).doctorId) : '';
+      const nurseId = (pat as any).nurseId ? String((pat as any).nurseId) : '';
+      if (docId) out.push({ recipientId: docId, recipientRole: 'doctor' });
+      if (nurseId) out.push({ recipientId: nurseId, recipientRole: 'nurse' });
+      return out;
+    }
+
+    if (senderRole === 'doctor' || senderRole === 'nurse') {
+      const pid = String(routing.patientId || '');
+      if (pid) {
+        out.push({ recipientId: pid, recipientRole: 'patient' });
+        return out;
+      }
+    }
+
+    return [];
+  }
+
+  async notifyChatDispatch(params: {
+    senderRole: 'patient' | 'doctor' | 'nurse';
+    senderId: string;
+    senderName: string;
+    routing: { patientId?: string; peerRole?: 'doctor' | 'nurse'; peerId?: string };
+    kind: 'text' | 'voice' | 'image' | 'video' | 'document' | 'call';
+    bodyText: string;
+    mappedPatientId?: string;
+  }) {
+    const recipients = await this.resolveChatRecipients({
+      senderRole: params.senderRole,
+      senderId: params.senderId,
+      routing: params.routing,
+    });
+    const { type, title, body } = this.buildChatNotificationContent(
+      params.kind,
+      params.bodyText,
+      params.senderName,
+    );
+
+    let patientOid: Types.ObjectId | undefined;
+    const mp = params.mappedPatientId || params.routing.patientId;
+    if (mp && Types.ObjectId.isValid(String(mp))) {
+      patientOid = new Types.ObjectId(String(mp));
+    }
+
+    const tasks: Promise<unknown>[] = [];
+    for (const r of recipients) {
+      if (r.recipientId === params.senderId) continue;
+      tasks.push(
+        this.notificationModel.create({
+          recipientId: r.recipientId,
+          recipientRole: r.recipientRole,
+          type,
+          title,
+          body,
+          patientId: patientOid,
+          patientName: undefined,
+          read: false,
+        }),
+      );
+    }
+    await Promise.all(tasks);
+
+    /* Copie pour l’expéditeur : visible dans la cloche (sinon seul le destinataire est notifié). */
+    const label = await this.resolveOutboundRecipientLabel(
+      params.routing,
+      params.senderRole,
+      params.senderId,
+    );
+    if (label) {
+      const out = this.buildSenderOutboxContent(params.kind, params.bodyText, label);
+      let senderPatientOid: Types.ObjectId | undefined;
+      const mp = params.mappedPatientId || params.routing.patientId;
+      if (mp && Types.ObjectId.isValid(String(mp))) {
+        senderPatientOid = new Types.ObjectId(String(mp));
+      }
+      await this.notificationModel.create({
+        recipientId: params.senderId,
+        recipientRole: params.senderRole,
+        type: out.type,
+        title: out.title,
+        body: out.body,
+        patientId: senderPatientOid,
+        read: false,
+      });
+    }
+  }
+
+  /** Appel WebRTC entrant (socket voice:invite). */
+  async notifyVoiceInvite(params: {
+    calleeUserId: string;
+    callerName: string;
+    isVideo: boolean;
+  }) {
+    const role = await this.resolveRecipientRoleForId(params.calleeUserId);
+    if (!role || role === 'admin') return;
+
+    const title = params.isVideo
+      ? `Appel vidéo — ${params.callerName}`
+      : `Appel vocal — ${params.callerName}`;
+    const body = `Appel entrant${params.isVideo ? ' (vidéo)' : ''}`;
+
+    await this.notificationModel.create({
+      recipientId: params.calleeUserId,
+      recipientRole: role,
+      type: 'chat_voice_invite',
+      title,
+      body,
+      read: false,
+    });
   }
 }

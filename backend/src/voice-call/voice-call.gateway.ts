@@ -10,6 +10,7 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 @WebSocketGateway({
@@ -22,7 +23,10 @@ import { Server, Socket } from 'socket.io';
 export class VoiceCallGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() server: Server;
 
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly notificationService: NotificationService,
+  ) {}
 
   async handleConnection(client: Socket) {
     try {
@@ -48,13 +52,22 @@ export class VoiceCallGateway implements OnGatewayConnection, OnGatewayDisconnec
   }
 
   @SubscribeMessage('voice:invite')
-  invite(
+  async invite(
     @ConnectedSocket() client: Socket,
     @MessageBody()
     body: { roomId: string; toUserId: string; offer: unknown; callerName?: string; video?: boolean },
   ) {
     const from = client.data?.userId as string | undefined;
     if (!from || !body?.toUserId || !body?.roomId || body.offer == null) return;
+    try {
+      await this.notificationService.notifyVoiceInvite({
+        calleeUserId: body.toUserId,
+        callerName: body.callerName || 'Appel',
+        isVideo: !!body.video,
+      });
+    } catch {
+      /* ne pas bloquer la signalisation */
+    }
     this.server.to(`user:${body.toUserId}`).emit('voice:incoming', {
       roomId: body.roomId,
       fromUserId: from,

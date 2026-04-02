@@ -22,8 +22,9 @@ export class StaffNotification extends Document {
   @Prop({ required: true })
   body: string;
 
-  @Prop({ type: Types.ObjectId, ref: 'Patient', required: true })
-  patientId: Types.ObjectId;
+  /** Présent pour la plupart des alertes ; optionnel pour messagerie pair (sans fil patient). */
+  @Prop({ type: Types.ObjectId, ref: 'Patient', required: false })
+  patientId?: Types.ObjectId;
 
   @Prop()
   patientName?: string;

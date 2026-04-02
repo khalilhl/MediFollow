@@ -47,9 +47,31 @@ function appointmentListLink(role) {
   return "/dashboard-pages/nurse-dashboard";
 }
 
+const CHAT_PATH = "/chat";
+
 function notifMeta(n, role) {
   const t = n.type || "";
   const id = n._id || n.id;
+  if (
+    t === "chat_message" ||
+    t === "chat_message_sent" ||
+    t === "chat_call_log" ||
+    t === "chat_voice_invite"
+  ) {
+    const video = t === "chat_voice_invite" && String(n.body || "").includes("vidéo");
+    return {
+      href: CHAT_PATH,
+      icon:
+        t === "chat_voice_invite"
+          ? video
+            ? "ri-vidicon-line"
+            : "ri-phone-fill"
+          : t === "chat_message_sent"
+            ? "ri-send-plane-2-line"
+            : "ri-chat-3-line",
+      iconWrapClass: "rounded-3 bg-primary-subtle text-primary border",
+    };
+  }
   if (t === "appointment_request") {
     return {
       href: "/admin/appointment-requests",
@@ -103,12 +125,15 @@ export default function StaffNotificationsBell({
 
   useEffect(() => {
     load();
-    const t = setInterval(load, 60_000);
+    const t = setInterval(load, 25_000);
     const onFocus = () => load();
+    const onNotif = () => load();
     window.addEventListener("focus", onFocus);
+    window.addEventListener("medifollow-notifications-refresh", onNotif);
     return () => {
       clearInterval(t);
       window.removeEventListener("focus", onFocus);
+      window.removeEventListener("medifollow-notifications-refresh", onNotif);
     };
   }, [load]);
 
@@ -138,7 +163,13 @@ export default function StaffNotificationsBell({
   const unread = data.unread;
 
   return (
-    <Dropdown as="li" className={`nav-item ${className}`}>
+    <Dropdown
+      as="li"
+      className={`nav-item ${className}`}
+      onToggle={(open) => {
+        if (open) load();
+      }}
+    >
       <Dropdown.Toggle as="a" bsPrefix=" " to="#" className={`${toggleClassName} position-relative`}>
         <i className="ri-notification-4-line" />
         {unread > 0 && (
@@ -176,7 +207,9 @@ export default function StaffNotificationsBell({
               <div className="text-danger small px-3 py-2">{err}</div>
             )}
             {!loading && items.length === 0 && !err && (
-              <div className="text-muted small text-center py-4 px-3">Aucune alerte pour le moment.</div>
+              <div className="text-muted small text-center py-4 px-3">
+                Aucune notification pour l’instant (rendez-vous, messages, appels).
+              </div>
             )}
             {items.map((n) => {
               const id = n._id || n.id;
@@ -191,7 +224,12 @@ export default function StaffNotificationsBell({
                     ? "Nouveau rendez-vous"
                     : n.type === "appointment_reminder_24h"
                       ? "Rappel rendez-vous"
-                      : "Alerte patient";
+                      : n.type === "chat_message" ||
+                          n.type === "chat_message_sent" ||
+                          n.type === "chat_call_log" ||
+                          n.type === "chat_voice_invite"
+                        ? "Messagerie"
+                        : "Alerte patient";
               return (
                 <Link
                   key={String(id)}

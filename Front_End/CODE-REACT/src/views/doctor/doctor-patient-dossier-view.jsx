@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Alert, Button, Card, Col, Modal, Row, Spinner, Table } from "react-bootstrap";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
+import { Alert, Badge, Button, Card, Col, Modal, Row, Spinner, Table } from "react-bootstrap";
 import { healthLogApi, medicationApi, appointmentApi, questionnaireApi } from "../../services/api";
 import VitalMetricTile, { hrStatus, bpStatus, o2Status, tempStatus, weightStatus } from "../../components/VitalMetricTile";
 import {
@@ -8,6 +9,7 @@ import {
   getIntakeHistoryByDate,
   formatSlotTimeLocal,
 } from "../../utils/medicationReminders";
+import { broadcastDoctorHealthLogResolved, subscribeDoctorHealthLogResolved } from "../../utils/healthLogResolveBroadcast";
 import "./doctor-patient-dossier.css";
 
 const VITALS_TZ = "Africa/Tunis";
@@ -152,7 +154,12 @@ function SectionCard({ icon, title, children, className = "" }) {
 /**
  * Corps du dossier patient : constantes, traitements, historiques, RDV.
  */
+function isHealthLogResolved(log) {
+  return String(log?.escalationStatus ?? "").toLowerCase() === "resolved";
+}
+
 export default function DoctorPatientDossierView({ patient }) {
+  const location = useLocation();
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState("");
   const [latestLog, setLatestLog] = useState(null);
@@ -173,6 +180,38 @@ export default function DoctorPatientDossierView({ patient }) {
   const [qsModalLoading, setQsModalLoading] = useState(false);
   const [qsModalData, setQsModalData] = useState(null);
   const [qsModalError, setQsModalError] = useState("");
+  const [resolveBusyId, setResolveBusyId] = useState(null);
+  const [vitalResolveErr, setVitalResolveErr] = useState("");
+
+  const reloadHealthLogs = useCallback(async () => {
+    const pid = patient?._id || patient?.id;
+    if (!pid) return;
+    const [log, hist] = await Promise.all([
+      healthLogApi.getLatest(pid).catch(() => null),
+      healthLogApi.getHistory(pid).catch(() => []),
+    ]);
+    setLatestLog(log && typeof log === "object" ? log : null);
+    setHealthHistory(Array.isArray(hist) ? hist : []);
+  }, [patient]);
+
+  useEffect(() => {
+    if (!patient) return;
+    const pid = String(patient._id || patient.id);
+    if (!pid) return;
+    return subscribeDoctorHealthLogResolved((detail) => {
+      if (detail.patientId && String(detail.patientId) !== pid) return;
+      void reloadHealthLogs();
+    });
+  }, [patient, reloadHealthLogs]);
+
+  useEffect(() => {
+    if (!patient) return;
+    const onVis = () => {
+      if (document.visibilityState === "visible") void reloadHealthLogs();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, [patient, reloadHealthLogs]);
 
   useEffect(() => {
     if (!patient) return;
@@ -209,7 +248,7 @@ export default function DoctorPatientDossierView({ patient }) {
     return () => {
       cancelled = true;
     };
-  }, [patient]);
+  }, [patient, location.key]);
 
   useEffect(() => {
     if (!patient) return;
@@ -343,6 +382,58 @@ export default function DoctorPatientDossierView({ patient }) {
     return h.slice(0, 15);
   }, [healthHistory, latestLog]);
 
+  const openVitalAlerts = useMemo(() => {
+    const rows = [];
+    const seen = new Set();
+    const push = (log) => {
+      if (!log?.flagged) return;
+      if (isHealthLogResolved(log)) return;
+      const id = String(log._id || log.id);
+      if (!id || seen.has(id)) return;
+      seen.add(id);
+      rows.push(log);
+    };
+    if (latestLog) push(latestLog);
+    for (const log of healthHistory || []) push(log);
+    return rows;
+  }, [latestLog, healthHistory]);
+
+  const resolveVitalAlert = async (healthLogId) => {
+    const pid = patient?._id || patient?.id;
+    if (!pid || !healthLogId) return;
+    setResolveBusyId(healthLogId);
+    setVitalResolveErr("");
+    try {
+      await healthLogApi.doctorResolveVitalAlert(healthLogId);
+      await reloadHealthLogs();
+      broadcastDoctorHealthLogResolved(healthLogId, pid);
+    } catch (e) {
+      setVitalResolveErr(e.message || "Impossible de clôturer l’alerte");
+    } finally {
+      setResolveBusyId(null);
+    }
+  };
+
+  const resolveAllOpenVitalAlerts = async () => {
+    const pid = patient?._id || patient?.id;
+    if (!pid || openVitalAlerts.length === 0) return;
+    setResolveBusyId("__all__");
+    setVitalResolveErr("");
+    try {
+      for (const log of openVitalAlerts) {
+        const id = String(log._id || log.id);
+        await healthLogApi.doctorResolveVitalAlert(id);
+      }
+      await reloadHealthLogs();
+      const firstId = String(openVitalAlerts[0]?._id || openVitalAlerts[0]?.id || "bulk");
+      broadcastDoctorHealthLogResolved(firstId, pid);
+    } catch (e) {
+      setVitalResolveErr(e.message || "Impossible de tout clôturer");
+    } finally {
+      setResolveBusyId(null);
+    }
+  };
+
   if (!patient) return null;
 
   return (
@@ -398,6 +489,100 @@ export default function DoctorPatientDossierView({ patient }) {
                     <i className="ri-information-line me-2" />
                     Dernier check-in sans mesures de constantes détaillées.
                   </Alert>
+                )}
+
+                {openVitalAlerts.length > 0 && (
+                  <div className="dossier-vital-closure-panel mb-3" role="region" aria-label="Alertes constantes à clôturer">
+                    <div className="dossier-vital-closure-panel__head">
+                      <div className="d-flex align-items-start gap-3">
+                        <span className="dossier-vital-closure-panel__icon" aria-hidden>
+                          <i className="ri-nurse-line" />
+                        </span>
+                        <div className="min-w-0 flex-grow-1">
+                          <div className="d-flex flex-wrap align-items-start justify-content-between gap-2">
+                            <div className="dossier-vital-closure-panel__title">Chaîne d’alerte constantes — clôture</div>
+                            {openVitalAlerts.length > 1 ? (
+                              <Button
+                                type="button"
+                                variant="outline-danger"
+                                size="sm"
+                                className="text-nowrap"
+                                disabled={resolveBusyId != null}
+                                onClick={resolveAllOpenVitalAlerts}
+                              >
+                                {resolveBusyId === "__all__" ? (
+                                  <>
+                                    <Spinner animation="border" size="sm" className="me-1" />
+                                    Clôture…
+                                  </>
+                                ) : (
+                                  <>
+                                    <i className="ri-stack-line me-1" />
+                                    Tout clôturer ({openVitalAlerts.length})
+                                  </>
+                                )}
+                              </Button>
+                            ) : null}
+                          </div>
+                          <p className="dossier-vital-closure-panel__lead">
+                            Chaque ligne = un relevé urgent distinct. Une clôture sur la page « Urgences (infirmier) » ne concerne que ce
+                            relevé-là ; les autres dates restent ouvertes jusqu’à clôture ici (ou ci-dessous en une fois).
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    {vitalResolveErr ? <div className="dossier-vital-closure-panel__error">{vitalResolveErr}</div> : null}
+                    <div className="dossier-vital-closure-panel__list">
+                      {openVitalAlerts.map((log) => {
+                        const lid = String(log._id || log.id);
+                        const st = log.escalationStatus;
+                        const stLabel =
+                          st === "escalated_to_doctor"
+                            ? "Escalade infirmier → médecin"
+                            : st === "alert_sent"
+                            ? "Alerte envoyée (suivi)"
+                            : "Urgent";
+                        const badgeVariant =
+                          st === "escalated_to_doctor" ? "warning" : st === "alert_sent" ? "danger" : "danger";
+                        const badgeTextDark = st === "escalated_to_doctor";
+                        return (
+                          <div key={lid} className="dossier-vital-closure-row">
+                            <div className="dossier-vital-closure-row__meta">
+                              <time className="dossier-vital-closure-row__date" dateTime={log.recordedAt || log.createdAt}>
+                                {formatDateTime(log.recordedAt || log.createdAt)}
+                              </time>
+                              <Badge bg={badgeVariant} text={badgeTextDark ? "dark" : undefined}>
+                                {stLabel}
+                              </Badge>
+                              {typeof log.riskScore === "number" ? (
+                                <span className="dossier-vital-closure-row__score">Score {log.riskScore}/100</span>
+                              ) : null}
+                            </div>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="primary"
+                              className="dossier-vital-closure-row__action"
+                              disabled={resolveBusyId != null && resolveBusyId !== lid}
+                              onClick={() => resolveVitalAlert(lid)}
+                            >
+                              {resolveBusyId === lid ? (
+                                <>
+                                  <Spinner animation="border" size="sm" className="me-1" />
+                                  Clôture…
+                                </>
+                              ) : (
+                                <>
+                                  <i className="ri-checkbox-circle-line me-1" />
+                                  Marquer comme résolu
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 )}
 
                 <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4 pb-3 dossier-recorded-bar">

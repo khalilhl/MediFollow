@@ -28,10 +28,15 @@ export class NotificationService {
     @InjectModel(Nurse.name) private nurseModel: Model<Nurse>,
   ) {}
 
+  /**
+   * Alerte constantes : priorité infirmier assigné (pas le médecin en parallèle).
+   * Si pas d’infirmier, notification au médecin référent uniquement.
+   */
   async createRiskAlertsForPatient(params: {
     patientId: Types.ObjectId;
     healthLogId: Types.ObjectId;
     riskScore: number;
+    hasAssignedNurse: boolean;
   }) {
     const patient = await this.patientModel.findById(params.patientId).exec();
     if (!patient) return;
@@ -39,44 +44,60 @@ export class NotificationService {
     const p = patient as Patient & { _id: Types.ObjectId };
     const patientName =
       `${p.firstName || ''} ${p.lastName || ''}`.trim() || p.email || 'Patient';
-    const title = `Urgence — ${patientName}`;
-    const body = `Score de risque ${params.riskScore}/100 · constantes ou symptômes à surveiller.`;
+    const title = `Urgence constantes — ${patientName}`;
+    const body = `Score ${params.riskScore}/100 · relevé urgent · voir aussi la messagerie.`;
 
-    const tasks: Promise<unknown>[] = [];
+    if (params.hasAssignedNurse && p.nurseId) {
+      await this.notificationModel.create({
+        recipientId: String(p.nurseId),
+        recipientRole: 'nurse',
+        type: 'risk_alert',
+        title,
+        body,
+        patientId: params.patientId,
+        patientName,
+        healthLogId: params.healthLogId,
+        read: false,
+      });
+      return;
+    }
 
     if (p.doctorId) {
-      tasks.push(
-        this.notificationModel.create({
-          recipientId: String(p.doctorId),
-          recipientRole: 'doctor',
-          type: 'risk_alert',
-          title,
-          body,
-          patientId: params.patientId,
-          patientName,
-          healthLogId: params.healthLogId,
-          read: false,
-        }),
-      );
+      await this.notificationModel.create({
+        recipientId: String(p.doctorId),
+        recipientRole: 'doctor',
+        type: 'risk_alert',
+        title,
+        body,
+        patientId: params.patientId,
+        patientName,
+        healthLogId: params.healthLogId,
+        read: false,
+      });
     }
+  }
 
-    if (p.nurseId) {
-      tasks.push(
-        this.notificationModel.create({
-          recipientId: String(p.nurseId),
-          recipientRole: 'nurse',
-          type: 'risk_alert',
-          title,
-          body,
-          patientId: params.patientId,
-          patientName,
-          healthLogId: params.healthLogId,
-          read: false,
-        }),
-      );
-    }
-
-    await Promise.all(tasks);
+  /** Escalade infirmier → médecin (messagerie + notification médecin). */
+  async notifyDoctorVitalEscalation(params: {
+    doctorId: string;
+    patientId: Types.ObjectId;
+    healthLogId: Types.ObjectId;
+    patientName: string;
+    nurseName: string;
+  }) {
+    const title = `Escalade infirmier — ${params.patientName}`;
+    const body = `${params.nurseName} sollicite votre avis pour un cas de constantes vitales critiques.`;
+    await this.notificationModel.create({
+      recipientId: params.doctorId,
+      recipientRole: 'doctor',
+      type: 'vital_escalation',
+      title,
+      body,
+      patientId: params.patientId,
+      patientName: params.patientName,
+      healthLogId: params.healthLogId,
+      read: false,
+    });
   }
 
   /** Nouveau RDV confirmé / ajouté à l’agenda du médecin. */

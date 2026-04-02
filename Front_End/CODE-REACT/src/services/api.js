@@ -812,6 +812,23 @@ export const healthLogApi = {
     api.get(`/health-logs/patient/${encodeURIComponent(String(patientId))}`),
   getLatest: (patientId) =>
     api.get(`/health-logs/patient/${encodeURIComponent(String(patientId))}/latest`),
+  /** JWT infirmier — relevés urgents encore ouverts (suivi ou escaladés au médecin). */
+  nursePendingAlerts: () => api.getWithNurseToken('/health-logs/nurse/pending-alerts'),
+  escalateToDoctor: (healthLogId, note) =>
+    api.postWithNurseToken(`/health-logs/${encodeURIComponent(String(healthLogId))}/escalate-to-doctor`, {
+      note: note != null ? String(note) : '',
+    }),
+  /** JWT médecin référent — clôture l’alerte constantes pour ce relevé. */
+  doctorResolveVitalAlert: (healthLogId) =>
+    api.patchWithDoctorToken(`/health-logs/${encodeURIComponent(String(healthLogId))}/resolve`, {}),
+  /** JWT médecin — historique des escalades infirmier → médecin (patients suivis). status: all | pending | resolved */
+  doctorNurseEscalations: (status) => {
+    const q =
+      status && String(status) !== 'all'
+        ? `?status=${encodeURIComponent(String(status))}`
+        : '';
+    return api.getWithDoctorToken(`/health-logs/doctor/nurse-escalations${q}`);
+  },
 };
 
 export const medicationApi = {

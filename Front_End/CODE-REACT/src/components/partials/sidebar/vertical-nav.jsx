@@ -283,6 +283,15 @@ const VerticalNav = () => {
                 </Nav.Item>
                 <Nav.Item as="li">
                     <Link
+                        to="/doctor/urgent-nurse-escalations"
+                        className={`nav-link ${location.pathname === "/doctor/urgent-nurse-escalations" ? "active" : ""}`}
+                    >
+                        <i className="ri-alarm-warning-fill"></i>
+                        <span className="item-name">Urgences (infirmier)</span>
+                    </Link>
+                </Nav.Item>
+                <Nav.Item as="li">
+                    <Link
                         to="/doctor/department-nurses"
                         className={`nav-link ${location.pathname === "/doctor/department-nurses" ? "active" : ""}`}
                     >

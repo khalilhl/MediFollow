@@ -28,6 +28,7 @@ import DoctorPatientDossierPage from "../views/doctor/doctor-patient-dossier"
 import DoctorDepartmentNurses from "../views/doctor/doctor-department-nurses"
 import DoctorDepartmentDoctors from "../views/doctor/doctor-department-doctors"
 import DoctorAvailabilityCalendar from "../views/doctor/doctor-availability-calendar"
+import DoctorNurseEscalations from "../views/doctor/doctor-nurse-escalations"
 
 // Patient Page
 import AddPatient from "../views/patient/add-patient"
@@ -231,6 +232,10 @@ export const DefaultRoute = [
       {
         path: '/doctor/my-patients',
         element: <DoctorMyPatients />
+      },
+      {
+        path: '/doctor/urgent-nurse-escalations',
+        element: <DoctorNurseEscalations />
       },
       {
         path: '/doctor/my-patients/:patientId',

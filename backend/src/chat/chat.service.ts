@@ -374,6 +374,8 @@ export class ChatService {
     if (kind === 'image') return 'Photo';
     if (kind === 'video') return 'Vidéo';
     if (kind === 'document') return 'Document';
+    if (kind === 'vital_alert') return 'Alerte constantes vitales';
+    if (kind === 'escalation') return 'Escalade infirmier → médecin';
     if (kind === 'call') {
       const raw = this.messageCrypto.decryptField(String((doc as any).body || ''));
       try {
@@ -398,7 +400,7 @@ export class ChatService {
   /** Chiffre les champs sensibles avant insertion (si clé configurée). */
   private sealForDb(payload: {
     body: string;
-    kind: 'text' | 'voice' | 'image' | 'video' | 'document' | 'call';
+    kind: 'text' | 'voice' | 'image' | 'video' | 'document' | 'call' | 'vital_alert' | 'escalation';
     audioUrl?: string;
     mediaUrl?: string;
     mimeType?: string;
@@ -422,7 +424,7 @@ export class ChatService {
     }
     return out as {
       body: string;
-      kind: 'text' | 'voice' | 'image' | 'video' | 'document' | 'call';
+      kind: 'text' | 'voice' | 'image' | 'video' | 'document' | 'call' | 'vital_alert' | 'escalation';
       audioUrl?: string;
       mediaUrl?: string;
       mimeType?: string;
@@ -566,8 +568,10 @@ export class ChatService {
     const mtRaw = m.mimeType != null && m.mimeType !== '' ? String(m.mimeType) : undefined;
     const fnRaw = m.fileName != null && m.fileName !== '' ? String(m.fileName) : undefined;
     const body = this.messageCrypto.decryptField(String(m.body ?? ''));
-    let kind = (m.kind as 'text' | 'voice' | 'image' | 'video' | 'document' | 'call') || 'text';
-    if (kind === 'text') {
+    let kind = (m.kind as 'text' | 'voice' | 'image' | 'video' | 'document' | 'call' | 'vital_alert' | 'escalation') || 'text';
+    if (kind === 'vital_alert' || kind === 'escalation') {
+      /* garder le kind pour l’UI */
+    } else if (kind === 'text') {
       try {
         const t = body.trim();
         if (t.startsWith('{')) {
@@ -584,6 +588,7 @@ export class ChatService {
       id: String(m._id),
       patientId: m.patientId ? String(m.patientId) : undefined,
       groupId: m.groupId ? String(m.groupId) : undefined,
+      healthLogId: m.healthLogId ? String(m.healthLogId) : undefined,
       peerThreadKey: m.peerThreadKey,
       senderRole: m.senderRole,
       senderId: m.senderId,
@@ -1020,5 +1025,71 @@ export class ChatService {
       { upsert: true, new: true },
     );
     return { ok: true, lastReadAt: now };
+  }
+
+  /** Fil patient–infirmier : message auto (alerte constantes), expéditeur = patient. */
+  async insertVitalAlertPatientToNurse(patientId: string, nurseId: string, body: string, healthLogId: Types.ObjectId) {
+    const pid = this.pid(patientId);
+    const key = patientStaffThreadKey(patientId, 'nurse', nurseId);
+    const sealed = this.sealForDb({ body, kind: 'vital_alert' });
+    await this.messageModel.create({
+      ...sealed,
+      peerThreadKey: key,
+      patientId: pid,
+      senderRole: 'patient',
+      senderId: String(patientId),
+      healthLogId,
+    });
+  }
+
+  /** Pas d’infirmier assigné : même contenu sur le fil patient–médecin. */
+  async insertVitalAlertPatientToDoctor(patientId: string, doctorId: string, body: string, healthLogId: Types.ObjectId) {
+    const pid = this.pid(patientId);
+    const key = patientStaffThreadKey(patientId, 'doctor', doctorId);
+    const sealed = this.sealForDb({ body, kind: 'vital_alert' });
+    await this.messageModel.create({
+      ...sealed,
+      peerThreadKey: key,
+      patientId: pid,
+      senderRole: 'patient',
+      senderId: String(patientId),
+      healthLogId,
+    });
+  }
+
+  /** Fil patient–médecin : escalade infirmier → médecin. */
+  async insertEscalationNurseToDoctor(
+    patientId: string,
+    doctorId: string,
+    nurseId: string,
+    body: string,
+    healthLogId: Types.ObjectId,
+  ) {
+    const pid = this.pid(patientId);
+    const key = patientStaffThreadKey(patientId, 'doctor', doctorId);
+    const sealed = this.sealForDb({ body, kind: 'escalation' });
+    await this.messageModel.create({
+      ...sealed,
+      peerThreadKey: key,
+      patientId: pid,
+      senderRole: 'nurse',
+      senderId: nurseId,
+      healthLogId,
+    });
+  }
+
+  /** Fil patient–médecin : clôture par le médecin. */
+  async insertDoctorResolutionCloture(patientId: string, doctorId: string, body: string, healthLogId: Types.ObjectId) {
+    const pid = this.pid(patientId);
+    const key = patientStaffThreadKey(patientId, 'doctor', doctorId);
+    const sealed = this.sealForDb({ body, kind: 'text' });
+    await this.messageModel.create({
+      ...sealed,
+      peerThreadKey: key,
+      patientId: pid,
+      senderRole: 'doctor',
+      senderId: doctorId,
+      healthLogId,
+    });
   }
 }

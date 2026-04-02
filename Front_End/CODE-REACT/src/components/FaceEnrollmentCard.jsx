@@ -1,9 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import Card from "./Card";
 import { authApi } from "../services/api";
 import { captureFaceDescriptor } from "../services/face-auth";
 
 const FaceEnrollmentCard = () => {
+  const { t } = useTranslation();
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const [status, setStatus] = useState({ enrolled: false });
@@ -57,11 +59,11 @@ const FaceEnrollmentCard = () => {
           setCameraReady(true);
         }
       } catch {
-        setError("Impossible d'afficher le flux camera.");
+        setError(t("faceEnrollment.streamError"));
       }
     };
     bindStreamToVideo();
-  }, [cameraOn]);
+  }, [cameraOn, t]);
 
   const startCamera = async () => {
     setError("");
@@ -75,7 +77,7 @@ const FaceEnrollmentCard = () => {
       streamRef.current = stream;
       setCameraOn(true);
     } catch (e) {
-      setError(e?.message || "Impossible d'acceder a la camera.");
+      setError(e?.message || t("faceEnrollment.accessError"));
       setCameraOn(false);
       setCameraReady(false);
     } finally {
@@ -91,10 +93,10 @@ const FaceEnrollmentCard = () => {
     try {
       const descriptor = await captureFaceDescriptor(videoRef.current);
       await authApi.faceEnroll(descriptor);
-      setMessage("Visage enregistre avec succes.");
+      setMessage(t("faceEnrollment.enrollSuccess"));
       await refreshStatus();
     } catch (e) {
-      setError(e?.message || "Echec de l'enregistrement du visage.");
+      setError(e?.message || t("faceEnrollment.enrollFail"));
     } finally {
       setLoading(false);
     }
@@ -106,10 +108,10 @@ const FaceEnrollmentCard = () => {
     setMessage("");
     try {
       await authApi.faceDisable();
-      setMessage("Connexion visage desactivee.");
+      setMessage(t("faceEnrollment.disableSuccess"));
       await refreshStatus();
     } catch (e) {
-      setError(e?.message || "Echec de la desactivation.");
+      setError(e?.message || t("faceEnrollment.disableFail"));
     } finally {
       setLoading(false);
     }
@@ -121,16 +123,16 @@ const FaceEnrollmentCard = () => {
     <Card>
       <Card.Header className="d-flex justify-content-between">
         <Card.Header.Title>
-          <h4 className="card-title mb-0">Connexion avec visage (camera)</h4>
+          <h4 className="card-title mb-0">{t("faceEnrollment.title")}</h4>
         </Card.Header.Title>
       </Card.Header>
       <Card.Body>
         <p className="text-muted mb-2">
-          Enregistrez votre visage pendant votre session pour pouvoir vous connecter plus tard avec la camera.
+          {t("faceEnrollment.intro")}
         </p>
         <div className="mb-2">
           <span className={`badge ${status?.enrolled ? "text-bg-success" : "text-bg-secondary"}`}>
-            {status?.enrolled ? "Visage enregistre" : "Aucun visage enregistre"}
+            {status?.enrolled ? t("faceEnrollment.enrolled") : t("faceEnrollment.none")}
           </span>
         </div>
         {error ? <div className="alert alert-danger py-2">{error}</div> : null}
@@ -163,7 +165,7 @@ const FaceEnrollmentCard = () => {
                   className="text-white d-flex align-items-center justify-content-center"
                   style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.35)" }}
                 >
-                  Initialisation camera...
+                  {t("faceEnrollment.initCamera")}
                 </div>
               ) : null}
             </div>
@@ -173,21 +175,21 @@ const FaceEnrollmentCard = () => {
         <div className="d-flex gap-2 flex-wrap">
           {!cameraOn ? (
             <button type="button" className="btn btn-outline-primary btn-sm" onClick={startCamera} disabled={loading || cameraBooting}>
-              <i className="ri-camera-line me-1"></i>{cameraBooting ? "Ouverture..." : "Ouvrir camera"}
+              <i className="ri-camera-line me-1"></i>{cameraBooting ? t("faceEnrollment.opening") : t("faceEnrollment.openCamera")}
             </button>
           ) : (
             <>
               <button type="button" className="btn btn-primary btn-sm" onClick={enrollFace} disabled={loading}>
-                <i className="ri-user-add-line me-1"></i>{loading ? "Enregistrement..." : "Enregistrer mon visage"}
+                <i className="ri-user-add-line me-1"></i>{loading ? t("faceEnrollment.enrolling") : t("faceEnrollment.enroll")}
               </button>
               <button type="button" className="btn btn-outline-secondary btn-sm" onClick={stopCamera} disabled={loading}>
-                <i className="ri-camera-off-line me-1"></i>Fermer camera
+                <i className="ri-camera-off-line me-1"></i>{t("faceEnrollment.closeCamera")}
               </button>
             </>
           )}
           {status?.enrolled ? (
             <button type="button" className="btn btn-outline-danger btn-sm" onClick={disableFace} disabled={loading}>
-              <i className="ri-close-circle-line me-1"></i>Desactiver visage
+              <i className="ri-close-circle-line me-1"></i>{t("faceEnrollment.disableFace")}
             </button>
           ) : null}
         </div>

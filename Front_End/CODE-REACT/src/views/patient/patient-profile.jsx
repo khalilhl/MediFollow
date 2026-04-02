@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { Col, Row } from "react-bootstrap";
 import { useParams, Link } from "react-router-dom";
 import Card from "../../components/Card";
@@ -10,6 +11,7 @@ import img11 from "/assets/images/user/11.png";
 const generatePath = (path) => window.origin + import.meta.env.BASE_URL + path;
 
 const PatientProfile = () => {
+  const { t } = useTranslation();
   const { id } = useParams();
   const [patient, setPatient] = useState(null);
   const [loading, setLoading] = useState(!!id);
@@ -30,13 +32,26 @@ const PatientProfile = () => {
         setDoctors(Array.isArray(dList) ? dList : []);
         setNurses(Array.isArray(nList) ? nList : []);
       } catch (err) {
-        setError(err.message || "Patient non trouvé");
+        setError(err.message || t("patientProfile.notFound"));
       } finally {
         setLoading(false);
       }
     };
     fetchPatient();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- t stable; refetch only when id changes
   }, [id]);
+
+  const displayGender = useCallback(
+    (g) => {
+      if (g == null || String(g).trim() === "") return null;
+      const s = String(g).trim().toLowerCase();
+      if (["homme", "male", "m", "man"].includes(s)) return t("patientDashboard.genderMale");
+      if (["femme", "female", "f", "woman"].includes(s)) return t("patientDashboard.genderFemale");
+      if (["other", "autre", "o"].includes(s)) return t("patientDashboard.genderOther");
+      return String(g).trim();
+    },
+    [t],
+  );
 
   const assignedDoctor = patient?.doctorId
     ? doctors.find((d) => (d._id || d.id)?.toString() === patient.doctorId?.toString())
@@ -58,9 +73,9 @@ const PatientProfile = () => {
           <Card>
             <Card.Body className="text-center py-5">
               <div className="spinner-border text-primary" role="status">
-                <span className="visually-hidden">Chargement...</span>
+                <span className="visually-hidden">{t("patientProfile.loadingHidden")}</span>
               </div>
-              <p className="mt-3 mb-0">Chargement du profil...</p>
+              <p className="mt-3 mb-0">{t("patientProfile.loading")}</p>
             </Card.Body>
           </Card>
         </Col>
@@ -75,7 +90,7 @@ const PatientProfile = () => {
           <Card>
             <Card.Body className="text-center py-5">
               <p className="text-danger mb-3">{error}</p>
-              <Link to="/patient/patient-list" className="btn btn-primary-subtle">Retour à la liste</Link>
+              <Link to="/patient/patient-list" className="btn btn-primary-subtle">{t("patientProfile.backToList")}</Link>
             </Card.Body>
           </Card>
         </Col>
@@ -98,7 +113,7 @@ const PatientProfile = () => {
                 <div className="doc-profile-bg bg-primary rounded-top-2" style={{ height: "150px" }}>
                 </div>
                 <div className="docter-profile text-center">
-                  <img src={profileImg} alt="profile-img" className="avatar-130 img-fluid" style={{ objectFit: "cover" }} />
+                  <img src={profileImg} alt={t("patientProfile.profileAlt")} className="avatar-130 img-fluid" style={{ objectFit: "cover" }} />
                 </div>
                 <div className="text-center mt-3 ps-3 pe-3">
                   <h4><b>{displayPatient.firstName} {displayPatient.lastName}</b></h4>
@@ -107,15 +122,15 @@ const PatientProfile = () => {
                 <hr />
                 <ul className="doctoe-sedual d-flex align-items-center justify-content-between p-0 m-0">
                   <li className="text-center">
-                    <h6 className="mb-0">Groupe sanguin</h6>
+                    <h6 className="mb-0">{t("patientProfile.bloodType")}</h6>
                     <span>{displayPatient.bloodType || "—"}</span>
                   </li>
                   <li className="text-center">
-                    <h6 className="mb-0">Genre</h6>
-                    <span>{displayPatient.gender || "—"}</span>
+                    <h6 className="mb-0">{t("patientProfile.gender")}</h6>
+                    <span>{displayGender(displayPatient.gender) ?? "—"}</span>
                   </li>
                   <li className="text-center">
-                    <h6 className="mb-0">Date de naissance</h6>
+                    <h6 className="mb-0">{t("patientProfile.dateOfBirth")}</h6>
                     <span>{displayPatient.dateOfBirth || "—"}</span>
                   </li>
                 </ul>
@@ -127,36 +142,36 @@ const PatientProfile = () => {
           <Card>
             <Card.Header className="d-flex justify-content-between">
               <Card.Header.Title>
-                <h4 className="card-title">Informations personnelles</h4>
+                <h4 className="card-title">{t("patientProfile.personalInfo")}</h4>
               </Card.Header.Title>
-              <Link to={`/patient/edit-patient/${id}`} className="btn btn-primary-subtle btn-sm">Modifier</Link>
+              <Link to={`/patient/edit-patient/${id}`} className="btn btn-primary-subtle btn-sm">{t("patientProfile.edit")}</Link>
             </Card.Header>
             <Card.Body>
               <div className="about-info m-0 p-0">
                 <Row>
-                  <Col xs={4}>Prénom :</Col>
+                  <Col xs={4}>{t("patientProfile.fieldFirstName")}</Col>
                   <Col xs={8}>{displayPatient.firstName || "—"}</Col>
-                  <Col xs={4}>Nom :</Col>
+                  <Col xs={4}>{t("patientProfile.fieldLastName")}</Col>
                   <Col xs={8}>{displayPatient.lastName || "—"}</Col>
-                  <Col xs={4}>Email :</Col>
+                  <Col xs={4}>{t("patientProfile.fieldEmail")}</Col>
                   <Col xs={8}>
                     <a href={`mailto:${displayPatient.email || ""}`}>{displayPatient.email || "—"}</a>
                   </Col>
-                  <Col xs={4}>Téléphone :</Col>
+                  <Col xs={4}>{t("patientProfile.fieldPhone")}</Col>
                   <Col xs={8}>
                     <a href={`tel:${displayPatient.phone || ""}`}>{displayPatient.phone || "—"}</a>
                   </Col>
-                  <Col xs={4}>Contact alternatif :</Col>
+                  <Col xs={4}>{t("patientProfile.fieldAlternate")}</Col>
                   <Col xs={8}>{displayPatient.alternateContact || "—"}</Col>
-                  <Col xs={4}>Département / service :</Col>
+                  <Col xs={4}>{t("patientProfile.fieldDepartment")}</Col>
                   <Col xs={8}>{displayPatient.department || displayPatient.service || "—"}</Col>
-                  <Col xs={4}>Adresse :</Col>
+                  <Col xs={4}>{t("patientProfile.fieldAddress")}</Col>
                   <Col xs={8}>{displayPatient.address || "—"}</Col>
-                  <Col xs={4}>Ville :</Col>
+                  <Col xs={4}>{t("patientProfile.fieldCity")}</Col>
                   <Col xs={8}>{displayPatient.city || "—"}</Col>
-                  <Col xs={4}>Pays :</Col>
+                  <Col xs={4}>{t("patientProfile.fieldCountry")}</Col>
                   <Col xs={8}>{displayPatient.country || "—"}</Col>
-                  <Col xs={4}>Code postal :</Col>
+                  <Col xs={4}>{t("patientProfile.fieldPostal")}</Col>
                   <Col xs={8}>{displayPatient.pinCode || "—"}</Col>
                 </Row>
               </div>
@@ -165,14 +180,14 @@ const PatientProfile = () => {
           <Card className="mt-4">
             <Card.Header>
               <Card.Header.Title>
-                <h4 className="card-title mb-0">Équipe soignante</h4>
+                <h4 className="card-title mb-0">{t("patientProfile.careTeam")}</h4>
               </Card.Header.Title>
             </Card.Header>
             <Card.Body>
               <Row className="g-3">
                 <Col md={6}>
                   <div className="border rounded-3 p-3 h-100 bg-light-subtle">
-                    <div className="text-muted small text-uppercase mb-1">Médecin référent</div>
+                    <div className="text-muted small text-uppercase mb-1">{t("patientProfile.physician")}</div>
                     {assignedDoctor ? (
                       <>
                         <div className="fw-semibold">
@@ -186,13 +201,13 @@ const PatientProfile = () => {
                         )}
                       </>
                     ) : (
-                      <span className="text-muted">Non assigné</span>
+                      <span className="text-muted">{t("patientProfile.notAssignedPhysician")}</span>
                     )}
                   </div>
                 </Col>
                 <Col md={6}>
                   <div className="border rounded-3 p-3 h-100 bg-light-subtle">
-                    <div className="text-muted small text-uppercase mb-1">Infirmier(e)</div>
+                    <div className="text-muted small text-uppercase mb-1">{t("patientProfile.nurse")}</div>
                     {assignedNurse ? (
                       <>
                         <div className="fw-semibold">
@@ -206,7 +221,7 @@ const PatientProfile = () => {
                         )}
                       </>
                     ) : (
-                      <span className="text-muted">Non assigné(e)</span>
+                      <span className="text-muted">{t("patientProfile.notAssignedNurse")}</span>
                     )}
                   </div>
                 </Col>

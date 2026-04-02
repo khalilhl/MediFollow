@@ -667,5 +667,22 @@
       "alertMic": "Could not access the microphone. Check permissions.",
       "documentFallback": "Document"
     }
+  },
+  "patientMedicationHistory": {
+    "backToDashboard": "Back to dashboard",
+    "title": "Medication history",
+    "intro": "All your treatments (ongoing and completed): for each day a dose was checked, with the time if recorded — including the oldest dates.",
+    "loadError": "Could not load medication history.",
+    "empty": "No medications on record.",
+    "endedOn": "Ended on {{date}}",
+    "ongoing": "Ongoing",
+    "ongoingWithEnd": "Ongoing — end planned {{date}}",
+    "periodPrefix": "Period:",
+    "notePrefix": "Note:",
+    "intakeTracking": "Intake tracking",
+    "noIntakesInPeriod": "No doses recorded during this period.",
+    "timeNotRecorded": "— time not recorded",
+    "prescribedBy": "Dr. {{name}}",
+    "dash": "—"
   }
 }

@@ -667,5 +667,22 @@
       "alertMic": "Impossible d'accéder au microphone. Vérifiez les autorisations du navigateur.",
       "documentFallback": "Document"
     }
+  },
+  "patientMedicationHistory": {
+    "backToDashboard": "Retour au tableau de bord",
+    "title": "Historique des médicaments",
+    "intro": "Tous vos traitements (en cours et terminés) : pour chaque jour où une prise a été cochée, avec l'heure si elle a été enregistrée — y compris les dates les plus anciennes.",
+    "loadError": "Impossible de charger l'historique des médicaments.",
+    "empty": "Aucun médicament enregistré.",
+    "endedOn": "Terminé le {{date}}",
+    "ongoing": "En cours",
+    "ongoingWithEnd": "En cours — fin prévue {{date}}",
+    "periodPrefix": "Période :",
+    "notePrefix": "Note :",
+    "intakeTracking": "Suivi des prises",
+    "noIntakesInPeriod": "Aucune prise enregistrée pendant cette période.",
+    "timeNotRecorded": "— heure non enregistrée",
+    "prescribedBy": "Dr {{name}}",
+    "dash": "—"
   }
 }

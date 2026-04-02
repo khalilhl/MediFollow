@@ -671,5 +671,22 @@
       "alertMic": "تعذّر الوصول إلى الميكروفون. تحقق من الأذونات.",
       "documentFallback": "مستند"
     }
+  },
+  "patientMedicationHistory": {
+    "backToDashboard": "العودة إلى لوحة التحكم",
+    "title": "سجل الأدوية",
+    "intro": "جميع علاجاتك (الجارية والمنتهية): لكل يوم تم فيه تسجيل جرعة، مع الوقت إن وُجد — بما في ذلك أقدم التواريخ.",
+    "loadError": "تعذّر تحميل سجل الأدوية.",
+    "empty": "لا توجد أدوية مسجّلة.",
+    "endedOn": "انتهى في {{date}}",
+    "ongoing": "قيد العلاج",
+    "ongoingWithEnd": "قيد العلاج — نهاية مخطّطة {{date}}",
+    "periodPrefix": "الفترة:",
+    "notePrefix": "ملاحظة:",
+    "intakeTracking": "متابعة الجرعات",
+    "noIntakesInPeriod": "لا توجد جرعات مسجّلة خلال هذه الفترة.",
+    "timeNotRecorded": "— لم يُسجّل الوقت",
+    "prescribedBy": "د. {{name}}",
+    "dash": "—"
   }
 }

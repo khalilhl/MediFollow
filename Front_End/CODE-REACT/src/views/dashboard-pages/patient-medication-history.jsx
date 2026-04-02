@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Container, Row, Col, Spinner, Alert } from "react-bootstrap";
 import Card from "../../components/Card";
 import { medicationApi } from "../../services/api";
@@ -10,10 +11,17 @@ import {
   formatSlotTimeLocal,
 } from "../../utils/medicationReminders";
 
-function formatDisplayDate(ymd) {
+function dateLocaleFromI18n(lang) {
+  const base = String(lang || "en").split("-")[0];
+  if (base === "fr") return "fr-FR";
+  if (base === "ar") return "ar";
+  return "en-US";
+}
+
+function formatDisplayDate(ymd, locale) {
   if (!ymd || !/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return ymd;
   try {
-    return new Date(`${ymd}T12:00:00`).toLocaleDateString("fr-FR", {
+    return new Date(`${ymd}T12:00:00`).toLocaleDateString(locale, {
       weekday: "short",
       day: "numeric",
       month: "long",
@@ -25,7 +33,10 @@ function formatDisplayDate(ymd) {
 }
 
 const PatientMedicationHistory = () => {
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const dateLocale = useMemo(() => dateLocaleFromI18n(i18n.language), [i18n.language]);
+  const fmt = useCallback((ymd) => formatDisplayDate(ymd, dateLocale), [dateLocale]);
   const [patientUser, setPatientUser] = useState(() => {
     try {
       const stored = localStorage.getItem("patientUser");
@@ -45,7 +56,7 @@ const PatientMedicationHistory = () => {
 
   const [medications, setMedications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     if (!patientUser) {
@@ -57,13 +68,13 @@ const PatientMedicationHistory = () => {
     const load = async () => {
       if (!pid) return;
       setLoading(true);
-      setError("");
+      setLoadError(false);
       try {
         const meds = await medicationApi.getByPatient(pid);
         setMedications(Array.isArray(meds) ? meds : []);
       } catch (e) {
         console.error(e);
-        setError("Impossible de charger l'historique des médicaments.");
+        setLoadError(true);
         setMedications([]);
       } finally {
         setLoading(false);
@@ -98,36 +109,36 @@ const PatientMedicationHistory = () => {
         <Col>
           <Link to="/dashboard-pages/patient-dashboard" className="text-decoration-none small d-inline-flex align-items-center gap-1">
             <i className="ri-arrow-left-line"></i>
-            Retour au tableau de bord
+            {t("patientMedicationHistory.backToDashboard")}
           </Link>
           <h4 className="text-primary fw-bold mt-2 mb-0">
             <i className="ri-history-line me-2"></i>
-            Historique des médicaments
+            {t("patientMedicationHistory.title")}
           </h4>
-          <p className="text-muted small mb-0 mt-1">
-            Tous vos traitements (en cours et terminés) : chaque jour où une prise a été cochée, avec l’heure si elle a été
-            enregistrée — y compris les dates les plus anciennes.
-          </p>
+          <p className="text-muted small mb-0 mt-1">{t("patientMedicationHistory.intro")}</p>
         </Col>
       </Row>
 
       {loading && (
         <div className="text-center py-5">
-          <Spinner animation="border" variant="primary" />
+          <Spinner animation="border" variant="primary" aria-hidden="true" />
         </div>
       )}
 
-      {!loading && error && <Alert variant="danger">{error}</Alert>}
+      {!loading && loadError && (
+        <Alert variant="danger">{t("patientMedicationHistory.loadError")}</Alert>
+      )}
 
-      {!loading && !error && sortedMedications.length === 0 && (
+      {!loading && !loadError && sortedMedications.length === 0 && (
         <Card className="border-0 shadow-sm">
           <Card.Body className="text-center text-muted py-5">
-            Aucun médicament enregistré.
+            {t("patientMedicationHistory.empty")}
           </Card.Body>
         </Card>
       )}
 
       {!loading &&
+        !loadError &&
         sortedMedications.map((m) => {
           const intakeByDay = getIntakeHistoryByDate(m);
           const endStr = m.endDate ? String(m.endDate).slice(0, 10) : "";
@@ -142,34 +153,47 @@ const PatientMedicationHistory = () => {
                     <div className="small text-muted">
                       {m.dosage && <span className="me-2">{m.dosage}</span>}
                       <span>{m.frequency}</span>
-                      {m.prescribedBy && <span className="ms-2">Dr. {m.prescribedBy}</span>}
+                      {m.prescribedBy && (
+                        <span className="ms-2">{t("patientMedicationHistory.prescribedBy", { name: m.prescribedBy })}</span>
+                      )}
                     </div>
                   </div>
                   <span className={`badge align-self-start ${isEnded ? "bg-secondary" : "bg-success"}`}>
                     {isEnded ? (
-                      <>Terminé le {endStr ? formatDisplayDate(endStr) : "—"}</>
+                      t("patientMedicationHistory.endedOn", {
+                        date: endStr ? fmt(endStr) : t("patientMedicationHistory.dash"),
+                      })
+                    ) : endStr ? (
+                      t("patientMedicationHistory.ongoingWithEnd", { date: fmt(endStr) })
                     ) : (
-                      <>En cours{endStr ? ` — fin prévue ${formatDisplayDate(endStr)}` : ""}</>
+                      t("patientMedicationHistory.ongoing")
                     )}
                   </span>
                 </div>
                 {(startStr || endStr) && (
                   <p className="small text-muted mb-2 mb-md-3">
-                    Période : {startStr ? formatDisplayDate(startStr) : "—"}
-                    {endStr ? ` → ${formatDisplayDate(endStr)}` : ""}
+                    {t("patientMedicationHistory.periodPrefix")}{" "}
+                    {startStr ? fmt(startStr) : t("patientMedicationHistory.dash")}
+                    {endStr ? ` → ${fmt(endStr)}` : ""}
                   </p>
                 )}
-                {m.notes && <p className="small text-muted fst-italic mb-0">Note : {m.notes}</p>}
+                {m.notes && (
+                  <p className="small text-muted fst-italic mb-0">
+                    {t("patientMedicationHistory.notePrefix")} {m.notes}
+                  </p>
+                )}
 
                 <div className="mt-3 pt-3 border-top">
-                  <h6 className="small fw-bold text-uppercase text-muted mb-2">Suivi des prises</h6>
+                  <h6 className="small fw-bold text-uppercase text-muted mb-2">
+                    {t("patientMedicationHistory.intakeTracking")}
+                  </h6>
                   {intakeByDay.length === 0 ? (
-                    <p className="small text-muted mb-0">Aucune prise enregistrée pendant cette période.</p>
+                    <p className="small text-muted mb-0">{t("patientMedicationHistory.noIntakesInPeriod")}</p>
                   ) : (
                     <ul className="list-unstyled small mb-0">
                       {intakeByDay.map(({ date, slots }) => (
                         <li key={date} className="mb-3">
-                          <div className="fw-semibold mb-1">{formatDisplayDate(date)}</div>
+                          <div className="fw-semibold mb-1">{fmt(date)}</div>
                           <ul className="list-unstyled ps-2 mb-0 text-muted">
                             {slots.map((s) => (
                               <li key={`${date}-${s.index}`}>
@@ -177,7 +201,9 @@ const PatientMedicationHistory = () => {
                                 {s.recordedAt ? (
                                   <span className="text-dark ms-1">— {formatSlotTimeLocal(s.recordedAt)}</span>
                                 ) : (
-                                  <span className="text-muted fst-italic ms-1">— heure non enregistrée</span>
+                                  <span className="text-muted fst-italic ms-1">
+                                    {t("patientMedicationHistory.timeNotRecorded")}
+                                  </span>
                                 )}
                               </li>
                             ))}

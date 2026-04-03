@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Col, Row, Form, InputGroup } from "react-bootstrap";
+import { useTranslation } from "react-i18next";
 import Card from "../../components/Card";
 import { Link } from "react-router-dom";
 import { patientApi, doctorApi, nurseApi } from "../../services/api";
@@ -10,6 +11,7 @@ const generatePath = (path) => window.origin + import.meta.env.BASE_URL + path;
 const DEFAULT_AVATAR = generatePath("/assets/images/user/11.png");
 
 const PatientList = () => {
+  const { t } = useTranslation();
   const [patients, setPatients] = useState([]);
   const [doctorById, setDoctorById] = useState({});
   const [nurseById, setNurseById] = useState({});
@@ -33,7 +35,7 @@ const PatientList = () => {
     });
   }, [patients, filterName, filterEmail, filterService]);
 
-  const fetchPatients = async () => {
+  const fetchPatients = useCallback(async () => {
     try {
       const [data, doctors, nurses] = await Promise.all([
         patientApi.getAll(),
@@ -55,16 +57,16 @@ const PatientList = () => {
       setNurseById(nMap);
       setError("");
     } catch (err) {
-      setError(err.message || "Erreur lors du chargement des patients");
+      setError(err.message || t("patientList.loadError"));
       setPatients([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
 
   useEffect(() => {
     fetchPatients();
-  }, []);
+  }, [fetchPatients]);
 
   const handleDelete = async (patient) => {
     setDeletingId(patient._id);
@@ -74,7 +76,7 @@ const PatientList = () => {
       setPatientToDelete(null);
     } catch (err) {
       if (err.status === 401) window.location.href = "/auth/lock-screen";
-      else alert(err.message || "Erreur lors de la suppression");
+      else alert(err.message || t("patientList.deleteError"));
     } finally {
       setDeletingId(null);
     }
@@ -95,9 +97,9 @@ const PatientList = () => {
           <Card>
             <Card.Body className="text-center py-5">
               <div className="spinner-border text-primary" role="status">
-                <span className="visually-hidden">Chargement...</span>
+                <span className="visually-hidden">{t("patientList.loadingSpinner")}</span>
               </div>
-              <p className="mt-3 mb-0">Chargement des patients...</p>
+              <p className="mt-3 mb-0">{t("patientList.loadingText")}</p>
             </Card.Body>
           </Card>
         </Col>
@@ -112,22 +114,22 @@ const PatientList = () => {
           <Card>
             <Card.Header className="card-header-custom d-flex justify-content-between align-items-center p-4 mb-0 border-bottom-0">
               <Card.Header.Title>
-                <h4 className="card-title">Liste des patients</h4>
+                <h4 className="card-title">{t("patientList.pageTitle")}</h4>
               </Card.Header.Title>
               <Link to="/patient/add-patient" className="btn btn-primary-subtle">
-                <i className="ri-user-add-fill me-1"></i>Ajouter un patient
+                <i className="ri-user-add-fill me-1"></i>{t("patientList.addPatient")}
               </Link>
             </Card.Header>
             <Card.Body className="pt-0">
               <Row className="g-3">
                 <Col md={3}>
                   <Form.Group className="mb-0">
-                    <Form.Label className="small">Filtrer par nom</Form.Label>
+                    <Form.Label className="small">{t("patientList.filterByName")}</Form.Label>
                     <InputGroup>
                       <InputGroup.Text><i className="ri-user-search-line"></i></InputGroup.Text>
                       <Form.Control
                         type="text"
-                        placeholder="Nom du patient..."
+                        placeholder={t("patientList.placeholderName")}
                         value={filterName}
                         onChange={(e) => setFilterName(e.target.value)}
                       />
@@ -136,12 +138,12 @@ const PatientList = () => {
                 </Col>
                 <Col md={3}>
                   <Form.Group className="mb-0">
-                    <Form.Label className="small">Filtrer par email</Form.Label>
+                    <Form.Label className="small">{t("patientList.filterByEmail")}</Form.Label>
                     <InputGroup>
                       <InputGroup.Text><i className="ri-mail-line"></i></InputGroup.Text>
                       <Form.Control
                         type="text"
-                        placeholder="Email..."
+                        placeholder={t("patientList.placeholderEmail")}
                         value={filterEmail}
                         onChange={(e) => setFilterEmail(e.target.value)}
                       />
@@ -150,12 +152,12 @@ const PatientList = () => {
                 </Col>
                 <Col md={3}>
                   <Form.Group className="mb-0">
-                    <Form.Label className="small">Filtrer par service</Form.Label>
+                    <Form.Label className="small">{t("patientList.filterByService")}</Form.Label>
                     <InputGroup>
                       <InputGroup.Text><i className="ri-hospital-line"></i></InputGroup.Text>
                       <Form.Control
                         type="text"
-                        placeholder="Service..."
+                        placeholder={t("patientList.placeholderService")}
                         value={filterService}
                         onChange={(e) => setFilterService(e.target.value)}
                       />
@@ -169,14 +171,14 @@ const PatientList = () => {
                       className="btn btn-outline-secondary btn-sm"
                       onClick={() => { setFilterName(""); setFilterEmail(""); setFilterService(""); }}
                     >
-                      <i className="ri-filter-off-line me-1"></i>Réinitialiser
+                      <i className="ri-filter-off-line me-1"></i>{t("patientList.resetFilters")}
                     </button>
                   )}
                 </Col>
               </Row>
               {(filterName || filterEmail || filterService) && (
                 <p className="text-muted small mb-0 mt-2">
-                  {filteredPatients.length} patient{filteredPatients.length !== 1 ? "s" : ""} trouvé{filteredPatients.length !== 1 ? "s" : ""}
+                  {t("patientList.foundPatients", { count: filteredPatients.length })}
                 </p>
               )}
             </Card.Body>
@@ -193,8 +195,8 @@ const PatientList = () => {
           <Col sm={12}>
             <Card>
               <Card.Body className="text-center py-5">
-                <p className="text-muted mb-3">Aucun patient enregistré.</p>
-                <Link to="/patient/add-patient" className="btn btn-primary-subtle">Ajouter le premier patient</Link>
+                <p className="text-muted mb-3">{t("patientList.emptyNoPatients")}</p>
+                <Link to="/patient/add-patient" className="btn btn-primary-subtle">{t("patientList.addFirstPatient")}</Link>
               </Card.Body>
             </Card>
           </Col>
@@ -202,13 +204,13 @@ const PatientList = () => {
           <Col sm={12}>
             <Card>
               <Card.Body className="text-center py-5">
-                <p className="text-muted mb-3">Aucun patient ne correspond aux filtres.</p>
+                <p className="text-muted mb-3">{t("patientList.emptyNoMatch")}</p>
                 <button
                   type="button"
                   className="btn btn-outline-primary"
                   onClick={() => { setFilterName(""); setFilterEmail(""); setFilterService(""); }}
                 >
-                  Réinitialiser les filtres
+                  {t("patientList.resetFiltersLong")}
                 </button>
               </Card.Body>
             </Card>
@@ -223,7 +225,7 @@ const PatientList = () => {
                   <img
                     className="rounded-circle img-fluid avatar-80"
                     src={getImageSrc(patient)}
-                    alt={patient.firstName}
+                    alt={t("patientList.avatarAlt", { firstName: patient.firstName || "", lastName: patient.lastName || "" })}
                     style={{ width: "80px", height: "80px", objectFit: "cover" }}
                   />
                 </div>
@@ -235,16 +237,16 @@ const PatientList = () => {
                 <div className="iq-doc-description mt-2 text-start small px-2">
                   <p className="mb-1">
                     <i className="ri-stethoscope-line text-success me-1" />
-                    <span className="text-muted">Médecin : </span>
+                    <span className="text-muted">{t("patientList.labelDoctor")} </span>
                     {(() => {
                       const id = patient.doctorId?.toString();
                       const d = id && doctorById[id];
-                      return d ? `Dr. ${d.firstName} ${d.lastName}` : "—";
+                      return d ? `${t("patientList.doctorPrefix")} ${d.firstName} ${d.lastName}` : "—";
                     })()}
                   </p>
                   <p className="mb-0">
                     <i className="ri-nurse-line text-warning me-1" />
-                    <span className="text-muted">Infirmier(e) : </span>
+                    <span className="text-muted">{t("patientList.labelNurse")} </span>
                     {(() => {
                       const id = patient.nurseId?.toString();
                       const n = id && nurseById[id];
@@ -256,15 +258,15 @@ const PatientList = () => {
                   </p>
                 </div>
                 <div className="d-flex gap-2 justify-content-center flex-wrap mt-3">
-                  <Link to={`/patient/patient-profile/${patient._id}`} className="btn btn-primary-subtle btn-sm">Profil</Link>
-                  <Link to={`/patient/edit-patient/${patient._id}`} className="btn btn-warning-subtle btn-sm">Modifier</Link>
+                  <Link to={`/patient/patient-profile/${patient._id}`} className="btn btn-primary-subtle btn-sm">{t("patientList.profile")}</Link>
+                  <Link to={`/patient/edit-patient/${patient._id}`} className="btn btn-warning-subtle btn-sm">{t("patientList.edit")}</Link>
                   <button
                     type="button"
                     className="btn btn-danger-subtle btn-sm"
                     onClick={() => setPatientToDelete(patient)}
                     disabled={deletingId === patient._id}
                   >
-                    {deletingId === patient._id ? "..." : "Supprimer"}
+                    {deletingId === patient._id ? t("patientList.deleting") : t("patientList.delete")}
                   </button>
                 </div>
               </Card.Body>
@@ -274,11 +276,16 @@ const PatientList = () => {
       </Row>
       <ConfirmActionModal
         show={!!patientToDelete}
-        title="Supprimer ce patient ?"
-        message={`Cette action supprimera définitivement ${patientToDelete?.firstName || ""} ${patientToDelete?.lastName || ""}.`}
+        title={t("patientList.modalDeleteTitle")}
+        message={patientToDelete
+          ? t("patientList.modalDeleteMessage", {
+              firstName: patientToDelete.firstName || "",
+              lastName: patientToDelete.lastName || "",
+            })
+          : ""}
         onCancel={() => setPatientToDelete(null)}
         onConfirm={() => patientToDelete && handleDelete(patientToDelete)}
-        confirmLabel="Supprimer"
+        confirmLabel={t("patientList.confirmDelete")}
         loading={deletingId === patientToDelete?._id}
         iconClass="ri-delete-bin-6-line"
       />

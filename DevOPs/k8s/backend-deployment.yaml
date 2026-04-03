@@ -16,8 +16,8 @@ spec:
     spec:
       containers:
       - name: medifollow-backend
-        # This is the exact name Jenkins pushes to DockerHub in the Jenkinsfile-back-cd
-        image: medifollow-back:latest
+        # This pulls directly from the user's DockerHub repository
+        image: rahmaaaaa/medifollow-backend:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 3000

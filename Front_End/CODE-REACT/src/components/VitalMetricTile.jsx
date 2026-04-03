@@ -1,41 +1,72 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 
-export const hrStatus = (hr) => {
-  if (!hr) return { label: "No data", color: "#6c757d" };
-  if (hr < 60) return { label: "Low — Bradycardia", color: "#dc3545" };
-  if (hr <= 100) return { label: "Normal Range", color: "#28a745" };
-  return { label: "Elevated — Tachycardia", color: "#fd7e14" };
+/** English fallbacks when `t` is omitted (tests / edge cases) */
+const FB = {
+  noData: "No data",
+  hrLow: "Low — Bradycardia",
+  hrNormal: "Normal range",
+  hrElevated: "Elevated — Tachycardia",
+  bpLow: "Low blood pressure",
+  bpNormal: "Normal",
+  bpSlightElevated: "Slightly elevated",
+  bpHigh: "High — monitor closely",
+  o2Normal: "Normal",
+  o2Low: "Low — seek advice",
+  o2Critical: "Critical — seek help",
+  tempDash: "—",
+  tempLow: "Low",
+  tempFever: "Fever",
+  tempNormal: "Normal",
+  weightNotMeasured: "Not measured",
+  weightMeasured: "Measured",
+  tileNoMeasurement: "No measurement yet.",
 };
 
-export const bpStatus = (sys) => {
-  if (!sys) return { label: "No data", color: "#6c757d" };
-  if (sys < 90) return { label: "Low Blood Pressure", color: "#dc3545" };
-  if (sys <= 120) return { label: "Normal", color: "#28a745" };
-  if (sys <= 140) return { label: "Slightly Elevated", color: "#fd7e14" };
-  return { label: "High — Monitor Closely", color: "#dc3545" };
+function L(t, key) {
+  if (typeof t === "function") return t(`vitalStatus.${key}`);
+  return FB[key] ?? key;
+}
+
+export const hrStatus = (hr, t) => {
+  if (!hr) return { label: L(t, "noData"), color: "#6c757d", risk: false };
+  if (hr < 60) return { label: L(t, "hrLow"), color: "#dc3545", risk: true };
+  if (hr <= 100) return { label: L(t, "hrNormal"), color: "#28a745", risk: false };
+  return { label: L(t, "hrElevated"), color: "#fd7e14", risk: true };
 };
 
-export const o2Status = (o2) => {
-  if (!o2) return { label: "No data", color: "#6c757d" };
-  if (o2 >= 95) return { label: "Normal", color: "#28a745" };
-  if (o2 >= 90) return { label: "Low — Seek Advice", color: "#fd7e14" };
-  return { label: "Critical — Seek Help", color: "#dc3545" };
+export const bpStatus = (sys, t) => {
+  if (!sys) return { label: L(t, "noData"), color: "#6c757d", risk: false };
+  if (sys < 90) return { label: L(t, "bpLow"), color: "#dc3545", risk: true };
+  if (sys <= 120) return { label: L(t, "bpNormal"), color: "#28a745", risk: false };
+  if (sys <= 140) return { label: L(t, "bpSlightElevated"), color: "#fd7e14", risk: true };
+  return { label: L(t, "bpHigh"), color: "#dc3545", risk: true };
 };
 
-export const tempStatus = (temp) => {
-  if (temp === undefined || temp === null || temp === "") return { label: "—", color: "#6c757d" };
-  if (temp < 36) return { label: "Bas", color: "#dc3545" };
-  if (temp > 38.5) return { label: "Fièvre", color: "#dc3545" };
-  return { label: "Normale", color: "#28a745" };
+export const o2Status = (o2, t) => {
+  if (!o2) return { label: L(t, "noData"), color: "#6c757d", risk: false };
+  if (o2 >= 95) return { label: L(t, "o2Normal"), color: "#28a745", risk: false };
+  if (o2 >= 90) return { label: L(t, "o2Low"), color: "#fd7e14", risk: true };
+  return { label: L(t, "o2Critical"), color: "#dc3545", risk: true };
 };
 
-export const weightStatus = (w) => {
-  if (w === undefined || w === null || w === "") return { label: "Non mesuré", color: "#6c757d" };
-  return { label: "Mesuré", color: "#28a745" };
+export const tempStatus = (temp, t) => {
+  if (temp === undefined || temp === null || temp === "")
+    return { label: L(t, "tempDash"), color: "#6c757d", risk: false };
+  if (temp < 36) return { label: L(t, "tempLow"), color: "#dc3545", risk: true };
+  if (temp > 38.5) return { label: L(t, "tempFever"), color: "#dc3545", risk: true };
+  return { label: L(t, "tempNormal"), color: "#28a745", risk: false };
+};
+
+export const weightStatus = (w, t) => {
+  if (w === undefined || w === null || w === "")
+    return { label: L(t, "weightNotMeasured"), color: "#6c757d", risk: false };
+  return { label: L(t, "weightMeasured"), color: "#28a745", risk: false };
 };
 
 /** Tuile constante — style dashboard médical */
 const VitalMetricTile = ({ icon, accent, title, value, unit, status, noDataMsg }) => {
+  const { t } = useTranslation();
   const hasValue = value !== undefined && value !== null && value !== "";
   return (
     <div
@@ -88,7 +119,7 @@ const VitalMetricTile = ({ icon, accent, title, value, unit, status, noDataMsg }
           </>
         ) : (
           <p className="text-muted small mb-0 fst-italic" style={{ fontSize: "0.78rem" }}>
-            {noDataMsg || "Aucune mesure pour le moment."}
+            {noDataMsg || t("vitalStatus.tileNoMeasurement")}
           </p>
         )}
       </div>

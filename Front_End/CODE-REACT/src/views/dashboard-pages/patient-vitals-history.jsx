@@ -165,10 +165,10 @@ const PatientVitalsHistory = () => {
   }, [latestLog, groupedByDay]);
 
   const vSummary = summaryLog?.vitals || {};
-  const hr = hrStatus(vSummary.heartRate);
-  const bp = bpStatus(vSummary.bloodPressureSystolic);
-  const o2 = o2Status(vSummary.oxygenSaturation);
-  const tp = tempStatus(vSummary.temperature);
+  const hr = hrStatus(vSummary.heartRate, t);
+  const bp = bpStatus(vSummary.bloodPressureSystolic, t);
+  const o2 = o2Status(vSummary.oxygenSaturation, t);
+  const tp = tempStatus(vSummary.temperature, t);
 
   if (!patientUser) {
     return null;
@@ -327,11 +327,11 @@ const PatientVitalsHistory = () => {
                 const v = log.vitals || {};
                 const mood = moodMeta(log.mood, t);
                 const logTime = log.recordedAt || log.createdAt;
-                const hr = hrStatus(v.heartRate);
-                const bp = bpStatus(v.bloodPressureSystolic);
-                const o2 = o2Status(v.oxygenSaturation);
-                const tp = tempStatus(v.temperature);
-                const wt = weightStatus(v.weight);
+                const hr = hrStatus(v.heartRate, t);
+                const bp = bpStatus(v.bloodPressureSystolic, t);
+                const o2 = o2Status(v.oxygenSaturation, t);
+                const tp = tempStatus(v.temperature, t);
+                const wt = weightStatus(v.weight, t);
                 const pain = log.painLevel ?? 0;
                 return (
                   <div

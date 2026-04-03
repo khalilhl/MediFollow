@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Alert, Button, Col, Container, Row, Spinner } from "react-bootstrap";
 import { Link, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { patientApi } from "../../services/api";
 import DoctorPatientDossierView from "./doctor-patient-dossier-view";
 import "./doctor-patient-dossier.css";
@@ -16,6 +17,7 @@ function patientInitials(p) {
 }
 
 const DoctorPatientDossierPage = () => {
+  const { t } = useTranslation();
   const { patientId } = useParams();
   const [doctorUser] = useState(() => {
     try {
@@ -46,10 +48,10 @@ const DoctorPatientDossierPage = () => {
         const p = list.find((x) => String(x._id || x.id) === String(patientId));
         if (!cancelled) {
           setPatient(p || null);
-          if (!p) setError("Patient introuvable ou non assigné à votre suivi.");
+          if (!p) setError(t("doctorPatientDossier.notFoundOrUnassigned"));
         }
       } catch (e) {
-        if (!cancelled) setError(e.message || "Impossible de charger le patient");
+        if (!cancelled) setError(e.message || t("doctorPatientDossier.loadPatientError"));
         if (!cancelled) setPatient(null);
       } finally {
         if (!cancelled) setLoading(false);
@@ -63,10 +65,10 @@ const DoctorPatientDossierPage = () => {
   if (!doctorId) {
     return (
       <Container className="py-5">
-        <p className="text-muted text-center">Connectez-vous en tant que médecin.</p>
+        <p className="text-muted text-center">{t("doctorMyPatients.loginDoctor")}</p>
         <div className="text-center">
           <Link to="/auth/sign-in" className="btn btn-primary">
-            Connexion
+            {t("doctorMyPatients.signIn")}
           </Link>
         </div>
       </Container>
@@ -84,21 +86,21 @@ const DoctorPatientDossierPage = () => {
                 className="text-decoration-none text-muted d-inline-flex align-items-center"
               >
                 <i className="ri-arrow-left-s-line me-1" />
-                Mes patients
+                {t("doctorPatientDossier.breadcrumbMyPatients")}
               </Link>
               <span className="text-muted opacity-50">/</span>
-              <span className="text-muted">Dossier clinique</span>
+              <span className="text-muted">{t("doctorPatientDossier.breadcrumbClinical")}</span>
             </nav>
             <Button variant="outline-secondary" size="sm" as={Link} to="/doctor/my-patients" className="rounded-pill">
               <i className="ri-arrow-go-back-line me-1" />
-              Retour
+              {t("doctorPatientDossier.back")}
             </Button>
           </div>
 
           {loading && (
             <div className="dossier-hero rounded-4 p-5 text-center">
               <Spinner animation="border" variant="primary" className="mb-3" />
-              <p className="text-muted small mb-0">Chargement du patient…</p>
+              <p className="text-muted small mb-0">{t("doctorPatientDossier.loadingPatient")}</p>
             </div>
           )}
 
@@ -121,7 +123,7 @@ const DoctorPatientDossierPage = () => {
                   </div>
                   <div className="flex-grow-1 min-w-0">
                     <p className="text-uppercase text-muted small fw-semibold mb-1" style={{ letterSpacing: "0.08em" }}>
-                      Dossier patient
+                      {t("doctorPatientDossier.heroEyebrow")}
                     </p>
                     <h1 className="h3 fw-bold mb-3 text-dark mb-sm-3">
                       {patient.firstName} {patient.lastName}

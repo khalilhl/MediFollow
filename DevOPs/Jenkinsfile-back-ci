@@ -1,10 +1,6 @@
 pipeline {
     agent any
     
-    tools {
-        nodejs 'Node'
-    }
-    
     stages {
         stage('Checkout Repository') {
             steps {
@@ -14,7 +10,7 @@ pipeline {
         stage('Install Back-End Dependencies') {
             steps {
                 dir('backend') {
-                    sh 'npm install'
+                    sh 'npm install --legacy-peer-deps'
                 }
             }
         }

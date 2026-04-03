@@ -684,5 +684,28 @@
     "timeNotRecorded": "— heure non enregistrée",
     "prescribedBy": "Dr {{name}}",
     "dash": "—"
+  },
+  "patientVitalsHistory": {
+    "backToDashboard": "Retour au tableau de bord",
+    "title": "Historique des constantes vitales",
+    "intro": "Tous vos relevés sur la période disponible (plusieurs par jour) : constantes, ressenti, symptômes et score de risque — du plus récent au plus ancien.",
+    "loadError": "Impossible de charger l'historique des constantes vitales.",
+    "empty": "Aucun relevé enregistré pour le moment. Complétez un check-in depuis le tableau de bord.",
+    "lastReadingTitle": "Dernier relevé",
+    "lastReadingSubtitle": "Synthèse des constantes du check-in le plus récent",
+    "tileHR": "Fréquence cardiaque",
+    "tileBP": "Tension artérielle",
+    "tileO2": "Saturation O₂",
+    "tileTemp": "Température",
+    "tileWeight": "Poids",
+    "noDataHr": "Enregistrez vos constantes pour afficher la FC.",
+    "noDataBp": "Enregistrez vos constantes pour afficher la TA.",
+    "noDataO2": "Enregistrez vos constantes pour afficher SpO₂.",
+    "noDataTemp": "Enregistrez vos constantes pour afficher la température.",
+    "feeling": "Ressenti",
+    "pain": "Douleur",
+    "riskScore": "Risque {{score}}/100",
+    "watchFlag": "À surveiller",
+    "dash": "—"
   }
 }

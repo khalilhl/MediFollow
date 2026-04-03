@@ -684,5 +684,28 @@
     "timeNotRecorded": "— time not recorded",
     "prescribedBy": "Dr. {{name}}",
     "dash": "—"
+  },
+  "patientVitalsHistory": {
+    "backToDashboard": "Back to dashboard",
+    "title": "Vitals history",
+    "intro": "All your readings for the available period (several per day): vitals, how you feel, symptoms and risk score — newest first.",
+    "loadError": "Could not load vitals history.",
+    "empty": "No readings yet. Complete a check-in from your dashboard.",
+    "lastReadingTitle": "Latest reading",
+    "lastReadingSubtitle": "Summary of vitals from your most recent check-in",
+    "tileHR": "Heart rate",
+    "tileBP": "Blood pressure",
+    "tileO2": "O₂ saturation",
+    "tileTemp": "Temperature",
+    "tileWeight": "Weight",
+    "noDataHr": "Log your vitals to see heart rate.",
+    "noDataBp": "Log your vitals to see blood pressure.",
+    "noDataO2": "Log your vitals to see SpO₂.",
+    "noDataTemp": "Log your vitals to see temperature.",
+    "feeling": "Feeling",
+    "pain": "Pain",
+    "riskScore": "Risk {{score}}/100",
+    "watchFlag": "Watch closely",
+    "dash": "—"
   }
 }

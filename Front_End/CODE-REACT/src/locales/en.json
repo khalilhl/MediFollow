@@ -5,7 +5,9 @@
     "arabic": "Arabic"
   },
   "nav": {
-    "searchPlaceholder": "Type here to search..."
+    "searchPlaceholder": "Type here to search...",
+    "connected": "Connected",
+    "userAvatarAlt": "Profile photo"
   },
   "patientDashboard": {
     "alertFlaggedTitle": "Attention:",

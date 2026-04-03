@@ -509,12 +509,12 @@ const Header = () => {
                            id="notification-drop">
                            <img src={currentUser ? (isDoctor ? (getDoctorPhoto(doctorUser) || user001) : isPatient ? (getPatientPhoto(patientUser) || user001) : isNurse ? (getNursePhoto(nurseUser) || user001) : (getAdminPhoto(adminUser) || DEFAULT_ADMIN_PHOTO)) : user001}
                               style={{ width: "50px", height: "50px", objectFit: "cover", objectPosition: "50% 15%" }}
-                              className="img-fluid rounded" alt="user" />
+                              className="img-fluid rounded" alt={t("nav.userAvatarAlt")} />
                            <div className="caption d-none d-lg-block ms-3">
                               <h6 className="mb-0 line-height">
                                  {isDoctor ? `Dr. ${doctorUser?.firstName || ''} ${doctorUser?.lastName || ''}`.trim() || doctorUser?.email : isPatient ? `${patientUser?.firstName || ''} ${patientUser?.lastName || ''}`.trim() || patientUser?.email : isNurse ? `${nurseUser?.firstName || ''} ${nurseUser?.lastName || ''}`.trim() || nurseUser?.email : (adminUser?.name || adminUser?.email || "Admin")}
                               </h6>
-                              <span className="font-size-12">Connecté</span>
+                              <span className="font-size-12">{t("nav.connected")}</span>
                            </div>{" "}
                         </Dropdown.Toggle>{" "}
                         <Dropdown.Menu as="div" className="p-0 sub-drop dropdown-menu dropdown-menu-end"

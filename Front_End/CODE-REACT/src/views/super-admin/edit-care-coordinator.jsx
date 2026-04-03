@@ -1,9 +1,23 @@
 import React, { useState, useEffect } from "react";
 import { Row, Col, Card, Form, Button, Alert, Spinner } from "react-bootstrap";
 import { useParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { superAdminApi } from "../../services/api";
 
+const SPECIALTIES = ["Coordination des soins", "Suivi post-opératoire", "Maladies chroniques", "Pédiatrie", "Gériatrie", "Oncologie", "Autre"];
+
+const SPECIALTY_I18N = {
+  "Coordination des soins": "specCareCoordination",
+  "Suivi post-opératoire": "specPostOp",
+  "Maladies chroniques": "specChronic",
+  Pédiatrie: "specPediatrics",
+  Gériatrie: "specGeriatrics",
+  Oncologie: "specOncology",
+  Autre: "specOther",
+};
+
 const EditCareCoordinator = () => {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -17,7 +31,7 @@ const EditCareCoordinator = () => {
   });
 
   useEffect(() => {
-    const fetch = async () => {
+    const fetchCoord = async () => {
       try {
         const data = await superAdminApi.getCareCoordinatorById(id);
         const u = data?.data || data;
@@ -35,13 +49,13 @@ const EditCareCoordinator = () => {
           confirmPassword: "",
         });
       } catch {
-        setError("Failed to load care coordinator data.");
+        setError(t("editCareCoordinator.loadError"));
       } finally {
         setLoading(false);
       }
     };
-    fetch();
-  }, [id]);
+    fetchCoord();
+  }, [id, t]);
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -53,11 +67,11 @@ const EditCareCoordinator = () => {
 
     if (form.password || form.confirmPassword) {
       if (form.password !== form.confirmPassword) {
-        setError("Passwords do not match.");
+        setError(t("editCareCoordinator.passwordMismatch"));
         return;
       }
       if (form.password.length < 6) {
-        setError("Password must be at least 6 characters.");
+        setError(t("editCareCoordinator.passwordMin"));
         return;
       }
     }
@@ -68,19 +82,23 @@ const EditCareCoordinator = () => {
       delete payload.confirmPassword;
       if (!payload.password) delete payload.password;
       await superAdminApi.updateCareCoordinator(id, payload);
-      setSuccess("Care Coordinator updated successfully.");
+      setSuccess(t("editCareCoordinator.updateSuccess"));
       setTimeout(() => navigate("/super-admin/care-coordinators"), 1500);
     } catch (err) {
-      setError(err?.response?.data?.message || err?.message || "Failed to update care coordinator.");
+      setError(err?.response?.data?.message || err?.message || t("editCareCoordinator.updateError"));
     } finally {
       setSaving(false);
     }
   };
 
+  const legacySpecialty = form.specialty && !SPECIALTIES.includes(form.specialty);
+
   if (loading) {
     return (
       <div className="text-center py-5">
-        <Spinner animation="border" style={{ color: "#009688" }} />
+        <Spinner animation="border" style={{ color: "#009688" }} role="status" />
+        <span className="visually-hidden">{t("editCareCoordinator.loading")}</span>
+        <p className="mt-3 text-muted mb-0">{t("editCareCoordinator.loading")}</p>
       </div>
     );
   }
@@ -91,7 +109,7 @@ const EditCareCoordinator = () => {
         <Card className="shadow-sm border-0">
           <Card.Header style={{ background: "#009688", color: "#fff" }}>
             <h5 className="mb-0">
-              <i className="ri-edit-line me-2"></i>Edit Care Coordinator
+              <i className="ri-edit-line me-2"></i>{t("editCareCoordinator.pageTitle")}
             </h5>
           </Card.Header>
           <Card.Body className="p-4">
@@ -102,55 +120,68 @@ const EditCareCoordinator = () => {
               <Row className="g-3">
                 <Col md={6}>
                   <Form.Group>
-                    <Form.Label>First Name</Form.Label>
+                    <Form.Label>{t("editCareCoordinator.labelFirstName")}</Form.Label>
                     <Form.Control name="firstName" value={form.firstName} onChange={handleChange} required />
                   </Form.Group>
                 </Col>
                 <Col md={6}>
                   <Form.Group>
-                    <Form.Label>Last Name</Form.Label>
+                    <Form.Label>{t("editCareCoordinator.labelLastName")}</Form.Label>
                     <Form.Control name="lastName" value={form.lastName} onChange={handleChange} required />
                   </Form.Group>
                 </Col>
                 <Col md={6}>
                   <Form.Group>
-                    <Form.Label>Email</Form.Label>
+                    <Form.Label>{t("editCareCoordinator.labelEmail")}</Form.Label>
                     <Form.Control type="email" name="email" value={form.email} onChange={handleChange} required />
                   </Form.Group>
                 </Col>
                 <Col md={6}>
                   <Form.Group>
-                    <Form.Label>Phone</Form.Label>
+                    <Form.Label>{t("editCareCoordinator.labelPhone")}</Form.Label>
                     <Form.Control name="phone" value={form.phone} onChange={handleChange} />
                   </Form.Group>
                 </Col>
                 <Col md={6}>
                   <Form.Group>
-                    <Form.Label>Department</Form.Label>
-                    <Form.Control name="department" value={form.department} onChange={handleChange} />
+                    <Form.Label>{t("editCareCoordinator.labelDepartment")}</Form.Label>
+                    <Form.Control
+                      name="department"
+                      value={form.department}
+                      onChange={handleChange}
+                      placeholder={t("addCareCoordinator.placeholderDepartment")}
+                    />
                   </Form.Group>
                 </Col>
                 <Col md={6}>
                   <Form.Group>
-                    <Form.Label>Specialty</Form.Label>
-                    <Form.Control name="specialty" value={form.specialty} onChange={handleChange} />
+                    <Form.Label>{t("editCareCoordinator.labelSpecialty")}</Form.Label>
+                    <Form.Select name="specialty" value={form.specialty} onChange={handleChange}>
+                      <option value="">{t("addCareCoordinator.selectSpecialty")}</option>
+                      {legacySpecialty && (
+                        <option value={form.specialty}>{form.specialty}</option>
+                      )}
+                      {SPECIALTIES.map((s) => (
+                        <option key={s} value={s}>{t(`addCareCoordinator.${SPECIALTY_I18N[s]}`)}</option>
+                      ))}
+                    </Form.Select>
                   </Form.Group>
                 </Col>
                 <Col md={12}>
                   <Form.Group>
-                    <Form.Label>Address</Form.Label>
+                    <Form.Label>{t("editCareCoordinator.labelAddress")}</Form.Label>
                     <Form.Control name="address" value={form.address} onChange={handleChange} />
                   </Form.Group>
                 </Col>
                 <Col md={6}>
                   <Form.Group>
-                    <Form.Label>City</Form.Label>
+                    <Form.Label>{t("editCareCoordinator.labelCity")}</Form.Label>
                     <Form.Control name="city" value={form.city} onChange={handleChange} />
                   </Form.Group>
                 </Col>
                 <Col md={6}>
                   <Form.Group>
-                    <Form.Label>Country</Form.Label>
+                    <Form.Label>{t("editCareCoordinator.labelCountry")}</Form.Label>
                     <Form.Control name="country" value={form.country} onChange={handleChange} />
                   </Form.Group>
                 </Col>
@@ -158,31 +189,32 @@ const EditCareCoordinator = () => {
 
               <hr className="my-4" />
               <h6 className="text-muted mb-3">
-                <i className="ri-lock-line me-1"></i>Change Password <span className="fw-normal">(leave blank to keep current)</span>
+                <i className="ri-lock-line me-1"></i>{t("editCareCoordinator.passwordSection")}{" "}
+                <span className="fw-normal">{t("editCareCoordinator.passwordSectionHint")}</span>
               </h6>
               <Row className="g-3">
                 <Col md={6}>
                   <Form.Group>
-                    <Form.Label>New Password</Form.Label>
+                    <Form.Label>{t("editCareCoordinator.labelNewPassword")}</Form.Label>
                     <Form.Control
                       type="password"
                       name="password"
                       value={form.password}
                       onChange={handleChange}
-                      placeholder="Min. 6 characters"
+                      placeholder={t("editCareCoordinator.placeholderPassword")}
                       minLength={6}
                     />
                   </Form.Group>
                 </Col>
                 <Col md={6}>
                   <Form.Group>
-                    <Form.Label>Confirm Password</Form.Label>
+                    <Form.Label>{t("editCareCoordinator.labelConfirmPassword")}</Form.Label>
                     <Form.Control
                       type="password"
                       name="confirmPassword"
                       value={form.confirmPassword}
                       onChange={handleChange}
-                      placeholder="Confirm new password"
+                      placeholder={t("editCareCoordinator.placeholderConfirmPassword")}
                       minLength={6}
                     />
                   </Form.Group>
@@ -191,10 +223,19 @@ const EditCareCoordinator = () => {
 
               <div className="d-flex gap-2 mt-4">
                 <Button type="submit" style={{ background: "#009688", border: "none" }} disabled={saving}>
-                  {saving ? <Spinner size="sm" animation="border" /> : <><i className="ri-save-line me-1"></i>Save Changes</>}
+                  {saving ? (
+                    <>
+                      <Spinner size="sm" animation="border" className="me-2" role="status" />
+                      {t("editCareCoordinator.saving")}
+                    </>
+                  ) : (
+                    <>
+                      <i className="ri-save-line me-1"></i>{t("editCareCoordinator.saveChanges")}
+                    </>
+                  )}
                 </Button>
                 <Button variant="outline-secondary" onClick={() => navigate("/super-admin/care-coordinators")}>
-                  Cancel
+                  {t("editCareCoordinator.cancel")}
                 </Button>
               </div>
             </Form>

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import EmailDetails from "../../components/email-details";
 import { Col, Form, Nav, OverlayTrigger, Row, Tab, Tooltip } from "react-bootstrap";
 import Card from "../../components/Card";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import InboxEmailIcon from "../../components/inbox-email-icon";
 import { useTranslation } from "react-i18next";
 import { mailApi } from "../../services/api";
@@ -25,6 +25,8 @@ function formatDate(iso) {
 const Inbox = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const stateIdFromUrl = searchParams.get("stateId");
   const [showDetails, setShowDetails] = useState(false);
   const [selectedEmail, setSelectedEmail] = useState(null);
   const [folder, setFolder] = useState("inbox");
@@ -74,6 +76,57 @@ const Inbox = () => {
   useEffect(() => {
     load();
   }, [load]);
+
+  /** Ouverture depuis une notification (?stateId=…) */
+  useEffect(() => {
+    if (!stateIdFromUrl) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const full = await mailApi.getMessage(stateIdFromUrl);
+        if (cancelled) return;
+        setFolder("inbox");
+        setStarredOnly(false);
+        setSelectedEmail(full);
+        setShowDetails(true);
+        if (!full.readAt) {
+          try {
+            await mailApi.markRead(stateIdFromUrl, true);
+          } catch {
+            /* ignore */
+          }
+        }
+        const [listRes, c] = await Promise.all([
+          mailApi.listMessages({ folder: "inbox", starred: false, limit: 50, page: 1 }),
+          mailApi.counts(),
+        ]);
+        if (cancelled) return;
+        setItems(listRes.items || []);
+        setTotal(listRes.total ?? 0);
+        setCounts(c);
+        setSearchParams(
+          (prev) => {
+            const p = new URLSearchParams(prev);
+            p.delete("stateId");
+            return p;
+          },
+          { replace: true },
+        );
+      } catch {
+        setSearchParams(
+          (prev) => {
+            const p = new URLSearchParams(prev);
+            p.delete("stateId");
+            return p;
+          },
+          { replace: true },
+        );
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [stateIdFromUrl, setSearchParams]);
 
   const handleEmailClick = async (row) => {
     if (folder === "drafts" && row.isDraft && row.messageId) {

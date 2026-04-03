@@ -1858,6 +1858,7 @@
       "appointmentNew": "موعد جديد",
       "appointmentReminder": "تذكير موعد",
       "messaging": "المراسلة",
+      "internalMail": "البريد الداخلي",
       "patientAlert": "تنبيه مريض"
     },
     "pageTitle": "الإشعارات",
@@ -1936,7 +1937,9 @@
       "callEndedTitleShort": "انتهت المكالمة — {{sender}}",
       "callMissedTitle": "مكالمة فائتة — {{sender}}",
       "callDeclinedTitle": "مكالمة مرفوضة — {{sender}}",
-      "callCancelledTitle": "مكالمة ملغاة — {{sender}}"
+      "callCancelledTitle": "مكالمة ملغاة — {{sender}}",
+      "mailInboxTitle": "رسالة جديدة من {{sender}}",
+      "mailInboxBodyFallback": "(بلا موضوع)"
     }
   },
   "patientProfile": {

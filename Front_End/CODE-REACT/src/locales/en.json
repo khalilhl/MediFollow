@@ -1826,6 +1826,7 @@
       "appointmentNew": "New appointment",
       "appointmentReminder": "Appointment reminder",
       "messaging": "Messaging",
+      "internalMail": "Internal mail",
       "patientAlert": "Patient alert"
     },
     "pageTitle": "Notifications",
@@ -1900,7 +1901,9 @@
       "callEndedTitleShort": "Call ended — {{sender}}",
       "callMissedTitle": "Missed call — {{sender}}",
       "callDeclinedTitle": "Call declined — {{sender}}",
-      "callCancelledTitle": "Call cancelled — {{sender}}"
+      "callCancelledTitle": "Call cancelled — {{sender}}",
+      "mailInboxTitle": "New message from {{sender}}",
+      "mailInboxBodyFallback": "(No subject)"
     }
   },
   "patientProfile": {

@@ -11,6 +11,7 @@ import {
   staffNotifCategory,
   patientApiCategory,
   CHAT_PATH,
+  EMAIL_INBOX_PATH,
   DASHBOARD_APPTS_HASH,
   DASHBOARD_MEDS_HASH,
   isVirtualId,
@@ -414,6 +415,7 @@ export default function NotificationsCenterPage() {
                 const disp = translateNotificationDisplay(n, t, i18n);
                 const id = n._id || n.id;
                 const isVirt = isVirtualId(id);
+                const isMail = n.type === "mail_inbox";
                 const isChat =
                   n.type === "chat_message" ||
                   n.type === "chat_message_sent" ||
@@ -421,8 +423,14 @@ export default function NotificationsCenterPage() {
                   n.type === "chat_voice_invite";
                 const isAppt =
                   n.type === "appointment_reminder_24h" || n.type === "appointment_new" || isVirt;
-                const href = isChat ? CHAT_PATH : isAppt ? DASHBOARD_APPTS_HASH : DASHBOARD_MEDS_HASH;
-                const icon = isChat
+                const mailHref =
+                  isMail && n.meta?.stateId
+                    ? `${EMAIL_INBOX_PATH}?stateId=${encodeURIComponent(String(n.meta.stateId))}`
+                    : EMAIL_INBOX_PATH;
+                const href = isMail ? mailHref : isChat ? CHAT_PATH : isAppt ? DASHBOARD_APPTS_HASH : DASHBOARD_MEDS_HASH;
+                const icon = isMail
+                  ? "ri-mail-line"
+                  : isChat
                   ? n.type === "chat_voice_invite"
                     ? n.meta?.isVideo === true || /vidéo|video/i.test(String(n.title || ""))
                       ? "ri-vidicon-line"
@@ -447,7 +455,7 @@ export default function NotificationsCenterPage() {
                     <div className="notifications-center__item-inner">
                       <div
                         className={`notifications-center__icon-box border ${
-                          isAppt || isChat ? "bg-primary-subtle text-primary" : "bg-light text-primary"
+                          isAppt || isChat || isMail ? "bg-primary-subtle text-primary" : "bg-light text-primary"
                         }`}
                       >
                         <i className={`${icon} fs-5`} aria-hidden />

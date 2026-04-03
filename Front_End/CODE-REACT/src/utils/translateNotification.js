@@ -79,6 +79,16 @@ export function translateNotificationDisplay(n, t, i18n) {
     return { title, body };
   }
 
+  if (meta.kind === "mail_inbox") {
+    const sender = String(meta.senderName || "").trim();
+    const subjectLine = String(meta.subject || rawBody || "").trim();
+    const title = t("notifications.content.mailInboxTitle", {
+      sender: sender || t("notifications.fallbackTitle"),
+    });
+    const body = subjectLine || t("notifications.content.mailInboxBodyFallback");
+    return { title, body };
+  }
+
   if (meta.kind === "chat_voice_invite") {
     const title = meta.isVideo
       ? t("notifications.content.videoCallTitle", { name: String(meta.callerName || "") })

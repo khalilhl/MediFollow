@@ -3,6 +3,7 @@
  */
 
 export const CHAT_PATH = "/chat";
+export const EMAIL_INBOX_PATH = "/email/inbox";
 export const DASHBOARD_MEDS_HASH = "/dashboard-pages/patient-dashboard#patient-medications";
 export const DASHBOARD_APPTS_HASH = "/dashboard-pages/patient-dashboard#patient-appointments";
 
@@ -71,6 +72,14 @@ export function appointmentListLink(role) {
 export function staffNotifMeta(n, role) {
   const t = n.type || "";
   const id = n._id || n.id;
+  if (t === "mail_inbox") {
+    const sid = n.meta?.stateId ? String(n.meta.stateId) : "";
+    return {
+      href: sid ? `${EMAIL_INBOX_PATH}?stateId=${encodeURIComponent(sid)}` : EMAIL_INBOX_PATH,
+      icon: "ri-mail-line",
+      iconWrapClass: "rounded-3 bg-primary-subtle text-primary border",
+    };
+  }
   if (
     t === "chat_message" ||
     t === "chat_message_sent" ||
@@ -132,6 +141,7 @@ export function staffDefaultTitle(n, t) {
   ) {
     return t("notifications.staffTitle.messaging");
   }
+  if (ty === "mail_inbox") return t("notifications.staffTitle.internalMail");
   return t("notifications.staffTitle.patientAlert");
 }
 
@@ -146,7 +156,8 @@ export function staffNotifCategory(n) {
     t === "chat_message" ||
     t === "chat_message_sent" ||
     t === "chat_call_log" ||
-    t === "chat_voice_invite"
+    t === "chat_voice_invite" ||
+    t === "mail_inbox"
   ) {
     return "messagerie";
   }
@@ -161,7 +172,8 @@ export function patientApiCategory(n) {
     n.type === "chat_message" ||
     n.type === "chat_message_sent" ||
     n.type === "chat_call_log" ||
-    n.type === "chat_voice_invite";
+    n.type === "chat_voice_invite" ||
+    n.type === "mail_inbox";
   const isAppt =
     n.type === "appointment_reminder_24h" || n.type === "appointment_new" || isVirt;
   if (isChat) return "messages_appels";

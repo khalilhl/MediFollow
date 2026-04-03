@@ -12,6 +12,7 @@ import {
   formatNotifTime,
   formatNotifLate,
   CHAT_PATH,
+  EMAIL_INBOX_PATH,
   DASHBOARD_APPTS_HASH,
   DASHBOARD_MEDS_HASH,
 } from "../utils/notificationMeta";
@@ -177,6 +178,7 @@ export default function PatientMedicationNotificationsBell({
               const disp = translateNotificationDisplay(n, t, i18n);
               const id = n._id || n.id;
               const isVirt = String(id).startsWith("virt-");
+              const isMail = n.type === "mail_inbox";
               const isChat =
                 n.type === "chat_message" ||
                 n.type === "chat_message_sent" ||
@@ -186,8 +188,14 @@ export default function PatientMedicationNotificationsBell({
                 n.type === "appointment_reminder_24h" ||
                 n.type === "appointment_new" ||
                 isVirt;
-              const href = isChat ? CHAT_PATH : isAppt ? DASHBOARD_APPTS_HASH : DASHBOARD_MEDS_HASH;
-              const icon = isChat
+              const mailHref =
+                isMail && n.meta?.stateId
+                  ? `${EMAIL_INBOX_PATH}?stateId=${encodeURIComponent(String(n.meta.stateId))}`
+                  : EMAIL_INBOX_PATH;
+              const href = isMail ? mailHref : isChat ? CHAT_PATH : isAppt ? DASHBOARD_APPTS_HASH : DASHBOARD_MEDS_HASH;
+              const icon = isMail
+                ? "ri-mail-line"
+                : isChat
                 ? n.type === "chat_voice_invite"
                   ? n.meta?.isVideo === true || /vidéo|video/i.test(String(n.title || ""))
                     ? "ri-vidicon-line"
@@ -212,7 +220,7 @@ export default function PatientMedicationNotificationsBell({
                   <div className="d-flex align-items-start gap-2 px-3 py-3">
                     <div
                       className={`flex-shrink-0 rounded-3 d-flex align-items-center justify-content-center border ${
-                        isAppt || isChat ? "bg-primary-subtle text-primary" : "bg-light text-primary"
+                        isAppt || isChat || isMail ? "bg-primary-subtle text-primary" : "bg-light text-primary"
                       }`}
                       style={{ width: 50, height: 50 }}
                     >

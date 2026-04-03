@@ -12,6 +12,7 @@ import { MailUserState, MailFolder } from './schemas/mail-user-state.schema';
 import { MailLabel } from './schemas/mail-label.schema';
 import { MailPolicyService, MailPeer } from './mail-policy.service';
 import { EmailService } from '../auth/email.service';
+import { NotificationService } from '../notification/notification.service';
 import { Patient } from '../patient/schemas/patient.schema';
 import { Doctor } from '../doctor/schemas/doctor.schema';
 import { Nurse } from '../nurse/schemas/nurse.schema';
@@ -49,6 +50,7 @@ export class MailService {
     @InjectModel(Nurse.name) private nurseModel: Model<Nurse>,
     private readonly policy: MailPolicyService,
     private readonly emailService: EmailService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   /** Adresse e-mail du compte (pour copie SMTP → Gmail, etc.). */
@@ -107,6 +109,31 @@ export class MailService {
         bodyPlain: body,
         fromDisplay: fromDisplay || senderRole,
       });
+    }
+  }
+
+  /** Notification cloche app pour chaque destinataire (échec ignoré, l’e-mail est déjà en base). */
+  private async notifyRecipientsNewMail(
+    recipientStates: { role: 'patient' | 'doctor' | 'nurse'; id: string; stateId: string }[],
+    messageId: Types.ObjectId,
+    subject: string,
+    senderRole: string,
+    senderId: string,
+  ): Promise<void> {
+    if (!recipientStates.length) return;
+    try {
+      const senderName = await this.lookupPersonName(
+        senderRole as 'patient' | 'doctor' | 'nurse',
+        senderId,
+      );
+      await this.notificationService.notifyNewInternalMail({
+        messageId: String(messageId),
+        subject,
+        senderName: senderName || senderRole,
+        recipients: recipientStates,
+      });
+    } catch (e: any) {
+      this.logger.warn(`[Mail] Notification réception: ${e?.message || e}`);
     }
   }
 
@@ -241,8 +268,9 @@ export class MailService {
       isOutgoing: true,
     });
 
+    const recipientStates: { role: 'patient' | 'doctor' | 'nurse'; id: string; stateId: string }[] = [];
     for (const r of recipients) {
-      await this.stateModel.create({
+      const st = await this.stateModel.create({
         messageId: msgId,
         userRole: r.role,
         userId: this.oid(r.id),
@@ -250,9 +278,15 @@ export class MailService {
         readAt: null,
         isOutgoing: false,
       });
+      recipientStates.push({
+        role: r.role as 'patient' | 'doctor' | 'nurse',
+        id: r.id,
+        stateId: String(st._id),
+      });
     }
 
     this.scheduleMirrorToRecipients(recipients, subject, text, ur, id);
+    void this.notifyRecipientsNewMail(recipientStates, msgId, subject, ur, id);
 
     return { id: String(msgId), message: msg };
   }
@@ -417,8 +451,9 @@ export class MailService {
       isOutgoing: true,
     });
 
+    const recipientStates: { role: 'patient' | 'doctor' | 'nurse'; id: string; stateId: string }[] = [];
     for (const r of msg.recipients) {
-      await this.stateModel.create({
+      const st = await this.stateModel.create({
         messageId: mid,
         userRole: r.role,
         userId: r.id as Types.ObjectId,
@@ -426,12 +461,24 @@ export class MailService {
         readAt: null,
         isOutgoing: false,
       });
+      recipientStates.push({
+        role: r.role as 'patient' | 'doctor' | 'nurse',
+        id: String(r.id),
+        stateId: String(st._id),
+      });
     }
 
     this.scheduleMirrorToRecipients(
       recipients,
       String(msg.subject || ''),
       String(msg.body || ''),
+      ur,
+      id,
+    );
+    void this.notifyRecipientsNewMail(
+      recipientStates,
+      mid,
+      String(msg.subject || ''),
       ur,
       id,
     );

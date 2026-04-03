@@ -717,6 +717,35 @@ export class NotificationService {
     });
   }
 
+  /** Nouveau message interne (messagerie MediFollow) — un enregistrement par destinataire. */
+  async notifyNewInternalMail(params: {
+    messageId: string;
+    subject: string;
+    senderName: string;
+    recipients: { role: 'patient' | 'doctor' | 'nurse'; id: string; stateId: string }[];
+  }) {
+    const subj = String(params.subject || '').trim() || '(Sans objet)';
+    const preview = subj.slice(0, 200);
+    const tasks = params.recipients.map((r) =>
+      this.notificationModel.create({
+        recipientId: r.id,
+        recipientRole: r.role,
+        type: 'mail_inbox',
+        title: `Nouveau message — ${params.senderName}`,
+        body: preview,
+        read: false,
+        meta: {
+          kind: 'mail_inbox',
+          messageId: params.messageId,
+          stateId: r.stateId,
+          subject: subj,
+          senderName: params.senderName,
+        },
+      }),
+    );
+    await Promise.all(tasks);
+  }
+
   /** Appel WebRTC entrant (socket voice:invite). */
   async notifyVoiceInvite(params: {
     calleeUserId: string;

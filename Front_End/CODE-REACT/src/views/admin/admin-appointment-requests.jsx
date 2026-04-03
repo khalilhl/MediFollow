@@ -1,9 +1,26 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Container, Row, Col, Card, Table, Button, Modal, Form, Alert, Spinner, Badge, Nav } from "react-bootstrap";
 import { appointmentApi } from "../../services/api";
 
+/** Maps API `type` slugs to existing patient form i18n keys. */
+const APPOINTMENT_TYPE_I18N_KEYS = {
+  checkup: "patientAppointmentRequest.typeCheckup",
+  lab: "patientAppointmentRequest.typeLab",
+  specialist: "patientAppointmentRequest.typeSpecialist",
+  imaging: "patientAppointmentRequest.typeImaging",
+  physiotherapy: "patientAppointmentRequest.typePhysiotherapy",
+};
+
+function appointmentTypeLabel(type, t) {
+  if (type == null || type === "") return "—";
+  const key = APPOINTMENT_TYPE_I18N_KEYS[String(type).toLowerCase()];
+  return key ? t(key) : String(type);
+}
+
 const AdminAppointmentRequests = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [adminUser] = useState(() => {
     try {
@@ -26,7 +43,7 @@ const AdminAppointmentRequests = () => {
 
   const isAdmin = adminUser && ["admin", "superadmin"].includes(adminUser.role);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
@@ -34,14 +51,14 @@ const AdminAppointmentRequests = () => {
       setList(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error(e);
-      setError(e.message || "Chargement impossible.");
+      setError(e.message || t("adminAppointmentRequests.loadError"));
       setList([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
 
-  const loadConfirmed = async () => {
+  const loadConfirmed = useCallback(async () => {
     setLoadingConfirmed(true);
     setError("");
     try {
@@ -49,12 +66,12 @@ const AdminAppointmentRequests = () => {
       setConfirmedList(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error(e);
-      setError(e.message || "Chargement impossible.");
+      setError(e.message || t("adminAppointmentRequests.loadError"));
       setConfirmedList([]);
     } finally {
       setLoadingConfirmed(false);
     }
-  };
+  }, [t]);
 
   useEffect(() => {
     if (!adminUser) {
@@ -66,12 +83,12 @@ const AdminAppointmentRequests = () => {
       return;
     }
     load();
-  }, [adminUser, isAdmin, navigate]);
+  }, [adminUser, isAdmin, navigate, load]);
 
   useEffect(() => {
     if (!adminUser || !isAdmin || tab !== "confirmed") return;
     loadConfirmed();
-  }, [adminUser, isAdmin, tab]);
+  }, [adminUser, isAdmin, tab, loadConfirmed]);
 
   const openModal = (row) => {
     setModal(row);
@@ -100,24 +117,24 @@ const AdminAppointmentRequests = () => {
       if (tab === "confirmed") await loadConfirmed();
       setModal(null);
     } catch (e) {
-      alert(e.message || "Erreur");
+      alert(e.message || t("adminAppointmentRequests.errorGeneric"));
     } finally {
       setSaving(false);
     }
   };
 
   const rejectRequest = async (row) => {
-    const reason = window.prompt("Motif du refus (optionnel) :", "");
+    const reason = window.prompt(t("adminAppointmentRequests.promptRejectReason"), "");
     if (reason === null) return;
     setSaving(true);
     try {
       await appointmentApi.updateAsAdmin(row._id, {
         status: "cancelled",
-        adminNotes: reason || "Demande refusée.",
+        adminNotes: reason || t("adminAppointmentRequests.rejectDefaultNote"),
       });
       await load();
     } catch (e) {
-      alert(e.message || "Erreur");
+      alert(e.message || t("adminAppointmentRequests.errorGeneric"));
     } finally {
       setSaving(false);
     }
@@ -139,22 +156,21 @@ const AdminAppointmentRequests = () => {
         <Col>
           <Link to="/admin/dashboard" className="text-decoration-none small d-inline-flex align-items-center gap-1">
             <i className="ri-arrow-left-line"></i>
-            Admin
+            {t("adminAppointmentRequests.backToAdmin")}
           </Link>
           <h4 className="text-primary fw-bold mt-2 mb-0">
             <i className="ri-calendar-check-line me-2"></i>
-            Demandes de rendez-vous
+            {t("adminAppointmentRequests.pageTitle")}
           </h4>
           <p className="text-muted small mb-0 mt-1">
-            Validez le créneau demandé ou proposez une autre date et heure. Le patient verra le rendez-vous confirmé dans
-            son espace.
+            {t("adminAppointmentRequests.pageLead")}
           </p>
         </Col>
       </Row>
 
       {loading && (
         <div className="text-center py-5">
-          <Spinner animation="border" variant="primary" />
+          <Spinner animation="border" variant="primary" role="status" aria-label={t("adminAppointmentRequests.loading")} />
         </div>
       )}
 
@@ -168,7 +184,7 @@ const AdminAppointmentRequests = () => {
             className="cursor-pointer"
             style={{ cursor: "pointer" }}
           >
-            En attente
+            {t("adminAppointmentRequests.tabPending")}
           </Nav.Link>
         </Nav.Item>
         <Nav.Item>
@@ -178,7 +194,7 @@ const AdminAppointmentRequests = () => {
             className="cursor-pointer"
             style={{ cursor: "pointer" }}
           >
-            Rendez-vous confirmés
+            {t("adminAppointmentRequests.tabConfirmed")}
           </Nav.Link>
         </Nav.Item>
       </Nav>
@@ -187,18 +203,18 @@ const AdminAppointmentRequests = () => {
         <Card className="border-0 shadow-sm" style={{ borderRadius: 16 }}>
           <Card.Body className="p-0 p-md-2">
             {list.length === 0 ? (
-              <p className="text-muted text-center py-5 mb-0">Aucune demande en attente.</p>
+              <p className="text-muted text-center py-5 mb-0">{t("adminAppointmentRequests.emptyPending")}</p>
             ) : (
               <div className="table-responsive">
                 <Table hover className="align-middle mb-0">
                   <thead className="table-light">
                     <tr>
-                      <th>Patient</th>
-                      <th>Médecin</th>
-                      <th>Motif</th>
-                      <th>Souhait patient</th>
-                      <th>Message</th>
-                      <th className="text-end">Actions</th>
+                      <th>{t("adminAppointmentRequests.thPatient")}</th>
+                      <th>{t("adminAppointmentRequests.thDoctor")}</th>
+                      <th>{t("adminAppointmentRequests.thReason")}</th>
+                      <th>{t("adminAppointmentRequests.thPatientWish")}</th>
+                      <th>{t("adminAppointmentRequests.thMessage")}</th>
+                      <th className="text-end">{t("adminAppointmentRequests.thActions")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -211,7 +227,7 @@ const AdminAppointmentRequests = () => {
                         <td>
                           <div className="small fw-semibold">{row.title}</div>
                           <Badge bg="secondary" className="mt-1" style={{ fontSize: "0.65rem" }}>
-                            {row.type}
+                            {appointmentTypeLabel(row.type, t)}
                           </Badge>
                         </td>
                         <td className="small">
@@ -227,10 +243,10 @@ const AdminAppointmentRequests = () => {
                         </td>
                         <td className="text-end text-nowrap">
                           <Button size="sm" variant="primary" className="me-1" onClick={() => openModal(row)}>
-                            Traiter
+                            {t("adminAppointmentRequests.process")}
                           </Button>
                           <Button size="sm" variant="outline-danger" onClick={() => rejectRequest(row)} disabled={saving}>
-                            Refuser
+                            {t("adminAppointmentRequests.refuse")}
                           </Button>
                         </td>
                       </tr>
@@ -248,20 +264,20 @@ const AdminAppointmentRequests = () => {
           <Card.Body className="p-0 p-md-2">
             {loadingConfirmed ? (
               <div className="text-center py-5">
-                <Spinner animation="border" variant="primary" />
+                <Spinner animation="border" variant="primary" role="status" aria-label={t("adminAppointmentRequests.loading")} />
               </div>
             ) : confirmedList.length === 0 ? (
-              <p className="text-muted text-center py-5 mb-0">Aucun rendez-vous confirmé à venir.</p>
+              <p className="text-muted text-center py-5 mb-0">{t("adminAppointmentRequests.emptyConfirmed")}</p>
             ) : (
               <div className="table-responsive">
                 <Table hover className="align-middle mb-0">
                   <thead className="table-light">
                     <tr>
-                      <th>Patient</th>
-                      <th>Médecin</th>
-                      <th>Motif</th>
-                      <th>Date &amp; heure retenues</th>
-                      <th>Lieu</th>
+                      <th>{t("adminAppointmentRequests.thPatient")}</th>
+                      <th>{t("adminAppointmentRequests.thDoctor")}</th>
+                      <th>{t("adminAppointmentRequests.thReason")}</th>
+                      <th>{t("adminAppointmentRequests.thDateTime")}</th>
+                      <th>{t("adminAppointmentRequests.thLocation")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -274,7 +290,7 @@ const AdminAppointmentRequests = () => {
                         <td>
                           <div className="small fw-semibold">{row.title}</div>
                           <Badge bg="success" className="mt-1" style={{ fontSize: "0.65rem" }}>
-                            {row.type}
+                            {appointmentTypeLabel(row.type, t)}
                           </Badge>
                         </td>
                         <td className="small">
@@ -294,30 +310,31 @@ const AdminAppointmentRequests = () => {
 
       <Modal show={!!modal} onHide={closeModal} centered size="lg" backdrop="static">
         <Modal.Header closeButton className="border-0">
-          <Modal.Title className="text-primary fs-6">Valider ou ajuster le rendez-vous</Modal.Title>
+          <Modal.Title className="text-primary fs-6">{t("adminAppointmentRequests.modalTitle")}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {modal && (
             <>
               <p className="small text-muted mb-3">
-                Patient : <strong>{patientLabel(modal)}</strong> — {modal.doctorName}
+                {t("adminAppointmentRequests.modalPatientLabel")}{" "}
+                <strong>{patientLabel(modal)}</strong> — {modal.doctorName}
               </p>
               <Row className="g-2 mb-3">
                 <Col md={6}>
-                  <Form.Label className="small fw-bold">Date retenue *</Form.Label>
+                  <Form.Label className="small fw-bold">{t("adminAppointmentRequests.labelDate")}</Form.Label>
                   <Form.Control type="date" value={form.date} onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))} />
                 </Col>
                 <Col md={6}>
-                  <Form.Label className="small fw-bold">Heure *</Form.Label>
+                  <Form.Label className="small fw-bold">{t("adminAppointmentRequests.labelTime")}</Form.Label>
                   <Form.Control type="time" value={form.time} onChange={(e) => setForm((f) => ({ ...f, time: e.target.value }))} />
                 </Col>
               </Row>
               <Form.Group>
-                <Form.Label className="small fw-bold">Message pour le patient (optionnel)</Form.Label>
+                <Form.Label className="small fw-bold">{t("adminAppointmentRequests.labelMessagePatient")}</Form.Label>
                 <Form.Control
                   as="textarea"
                   rows={3}
-                  placeholder="Ex. Créneau proposé selon la disponibilité du médecin."
+                  placeholder={t("adminAppointmentRequests.messagePlaceholder")}
                   value={form.adminNotes}
                   onChange={(e) => setForm((f) => ({ ...f, adminNotes: e.target.value }))}
                 />
@@ -327,10 +344,16 @@ const AdminAppointmentRequests = () => {
         </Modal.Body>
         <Modal.Footer className="border-0">
           <Button variant="outline-secondary" onClick={closeModal} disabled={saving}>
-            Annuler
+            {t("adminAppointmentRequests.cancel")}
           </Button>
           <Button variant="success" onClick={confirmSlot} disabled={saving || !form.date}>
-            {saving ? <Spinner size="sm" /> : "Confirmer le rendez-vous"}
+            {saving ? (
+              <>
+                <Spinner size="sm" className="me-1" /> {t("adminAppointmentRequests.confirming")}
+              </>
+            ) : (
+              t("adminAppointmentRequests.confirmAppointment")
+            )}
           </Button>
         </Modal.Footer>
       </Modal>

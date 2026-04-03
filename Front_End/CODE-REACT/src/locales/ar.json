@@ -327,6 +327,18 @@
     "apptTypeImaging": "تصوير",
     "apptTypePhysio": "إعادة تأهيل"
   },
+  "doctorDepartmentNurses": {
+    "pageTitle": "ممرضو القسم",
+    "subtitleWithDept": "زملاء القسم: {{department}}",
+    "subtitleNoDept": "لم يُعرَّف قسم في ملفك بعد (من قِبل المسؤول).",
+    "loadError": "تعذّر تحميل قائمة الممرضين.",
+    "emptyNoDept": "لا يوجد قسم في حسابك — لا يمكن عرض قائمة الممرضين في نفس الخدمة.",
+    "emptyNoNurses": "لا يوجد ممرضون مسجّلون لهذا القسم.",
+    "colName": "الاسم",
+    "colEmail": "البريد الإلكتروني",
+    "colSpecialty": "التخصّص",
+    "profile": "الملف"
+  },
   "dailyCheckIn": {
     "title": "التسجيل الصحي اليومي",
     "badgeDone": "مُنجَز اليوم",

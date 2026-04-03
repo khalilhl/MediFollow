@@ -327,6 +327,18 @@
     "apptTypeImaging": "Imaging",
     "apptTypePhysio": "Rehabilitation"
   },
+  "doctorDepartmentNurses": {
+    "pageTitle": "Department nurses",
+    "subtitleWithDept": "Colleagues in the department: {{department}}",
+    "subtitleNoDept": "Your profile does not yet have a department assigned (by an administrator).",
+    "loadError": "Unable to load nurses.",
+    "emptyNoDept": "No department on your account — the list of nurses in the same service cannot be displayed.",
+    "emptyNoNurses": "No nurses registered for this department.",
+    "colName": "Name",
+    "colEmail": "Email",
+    "colSpecialty": "Specialty",
+    "profile": "Profile"
+  },
   "dailyCheckIn": {
     "title": "Daily Health Check-in",
     "badgeDone": "Done Today",

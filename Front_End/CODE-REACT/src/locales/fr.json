@@ -327,6 +327,18 @@
     "apptTypeImaging": "Imagerie",
     "apptTypePhysio": "Rééducation"
   },
+  "doctorDepartmentNurses": {
+    "pageTitle": "Infirmiers du département",
+    "subtitleWithDept": "Collaborateurs du service : {{department}}",
+    "subtitleNoDept": "Votre profil ne comporte pas encore de département défini (par un administrateur).",
+    "loadError": "Impossible de charger les infirmiers.",
+    "emptyNoDept": "Aucun département renseigné sur votre compte — la liste des infirmiers du même service ne peut pas être affichée.",
+    "emptyNoNurses": "Aucun infirmier enregistré pour ce département.",
+    "colName": "Nom",
+    "colEmail": "E-mail",
+    "colSpecialty": "Spécialité",
+    "profile": "Profil"
+  },
   "dailyCheckIn": {
     "title": "Relevé de santé du jour",
     "badgeDone": "Fait aujourd’hui",

@@ -2,10 +2,23 @@ import React, { useState } from "react";
 import Card from "../../components/Card";
 import { Button, Col, Container, Form, InputGroup, Row } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { nurseApi } from "../../services/api";
 import { HOSPITAL_DEPARTMENTS } from "../../constants/hospitalDepartments";
 
 const generatePath = (path) => window.origin + import.meta.env.BASE_URL + path;
+
+/** Stable slug for editPatient.departments.* (same as add-doctor.jsx). */
+function departmentSlug(name) {
+  return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/-/g, "_")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "_")
+    .replace(/[^a-z0-9_]/g, "");
+}
 
 const SPECIALTIES = [
   "Infirmier(ère) général(e)",
@@ -23,17 +36,34 @@ const SPECIALTIES = [
   "General",
 ];
 
+const SPECIALTY_I18N = {
+  "Infirmier(ère) général(e)": "specialtyGeneralNurse",
+  "Soins intensifs": "specialtyIntensiveCare",
+  Pédiatrie: "specialtyPediatrics",
+  Chirurgie: "specialtySurgeryNurse",
+  Urgences: "specialtyEmergency",
+  "Médecine interne": "specialtyInternalMedicine",
+  Gériatrie: "specialtyGeriatrics",
+  "Bloc opératoire": "specialtyOperatingRoom",
+  Dialyse: "specialtyDialysis",
+  Oncologie: "specialtyOncologyNurse",
+  Psychiatrie: "specialtyPsychiatryNurse",
+  "Sage-femme": "specialtyMidwifery",
+  General: "specialtyGeneral",
+};
+
 const FLAG_CDN = "https://flagcdn.com/w40";
 const COUNTRIES = [
-  { name: "France", code: "FR", dialCode: "+33", flagUrl: `${FLAG_CDN}/fr.png` },
-  { name: "Canada", code: "CA", dialCode: "+1", flagUrl: `${FLAG_CDN}/ca.png` },
-  { name: "USA", code: "US", dialCode: "+1", flagUrl: `${FLAG_CDN}/us.png` },
-  { name: "Maroc", code: "MA", dialCode: "+212", flagUrl: `${FLAG_CDN}/ma.png` },
-  { name: "Algérie", code: "DZ", dialCode: "+213", flagUrl: `${FLAG_CDN}/dz.png` },
-  { name: "Tunisie", code: "TN", dialCode: "+216", flagUrl: `${FLAG_CDN}/tn.png` },
+  { name: "France", labelKey: "countryFrance", code: "FR", dialCode: "+33", flagUrl: `${FLAG_CDN}/fr.png` },
+  { name: "Canada", labelKey: "countryCanada", code: "CA", dialCode: "+1", flagUrl: `${FLAG_CDN}/ca.png` },
+  { name: "USA", labelKey: "countryUSA", code: "US", dialCode: "+1", flagUrl: `${FLAG_CDN}/us.png` },
+  { name: "Maroc", labelKey: "countryMorocco", code: "MA", dialCode: "+212", flagUrl: `${FLAG_CDN}/ma.png` },
+  { name: "Algérie", labelKey: "countryAlgeria", code: "DZ", dialCode: "+213", flagUrl: `${FLAG_CDN}/dz.png` },
+  { name: "Tunisie", labelKey: "countryTunisia", code: "TN", dialCode: "+216", flagUrl: `${FLAG_CDN}/tn.png` },
 ];
 
 const AddNurse = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -59,13 +89,13 @@ const AddNurse = () => {
     const rpass = form.rpass?.value;
 
     if (password !== rpass) {
-      setError("Les mots de passe ne correspondent pas");
+      setError(t("addNurse.passwordMismatch"));
       setLoading(false);
       return;
     }
 
     if (password?.length < 6) {
-      setError("Le mot de passe doit contenir au moins 6 caractères");
+      setError(t("addNurse.passwordMin"));
       setLoading(false);
       return;
     }
@@ -103,11 +133,17 @@ const AddNurse = () => {
         navigate("/auth/lock-screen");
         return;
       }
-      setError(err.message || "Erreur lors de la création de l'infirmière");
+      setError(err.message || t("addNurse.createError"));
     } finally {
       setLoading(false);
     }
   };
+
+  const phonePlaceholder = !selectedCountry
+    ? t("addNurse.phonePlaceholderPickCountry")
+    : selectedCountry.dialCode === "+216"
+      ? t("addNurse.phonePlaceholderTN")
+      : t("addNurse.phonePlaceholderDefault");
 
   return (
     <>
@@ -117,49 +153,51 @@ const AddNurse = () => {
           <Card>
             <Card.Header className="d-flex justify-content-between">
               <Card.Header.Title>
-                <h4 className="card-title">Ajouter une infirmière</h4>
+                <h4 className="card-title">{t("addNurse.pageTitleAdd")}</h4>
               </Card.Header.Title>
             </Card.Header>
             <Card.Body>
                 <Form.Group className="form-group">
                   <Container className="d-flex flex-column align-items-center py-5">
                     <div className="text-center">
-                      <img className="profile-pic img-fluid rounded-circle mb-3" src={profilePreview} alt="profile-pic" style={{ width: "150px", height: "150px", objectFit: "cover" }} />
+                      <img className="profile-pic img-fluid rounded-circle mb-3" src={profilePreview} alt={t("addNurse.profileImageAlt")} style={{ width: "150px", height: "150px", objectFit: "cover" }} />
                       <div>
-                        <Button type="button" className="btn btn-primary rounded-1" onClick={() => document.getElementById("file-upload").click()}>Photo de profil</Button>
+                        <Button type="button" className="btn btn-primary rounded-1" onClick={() => document.getElementById("file-upload").click()}>{t("addNurse.profilePhoto")}</Button>
                         <input id="file-upload" className="d-none" type="file" accept="image/*" onChange={handleFileChange} />
                       </div>
                     </div>
                     <div className="mt-3 text-center">
-                      <span>Formats acceptés : </span>
-                      <span className="text-primary">.jpg .png .jpeg</span>
+                      <span>{t("addNurse.acceptedFormats")} </span>
+                      <span className="text-primary">{t("addNurse.formatsList")}</span>
                     </div>
                   </Container>
                 </Form.Group>
                 <Form.Group className="form-group cust-form-input">
-                  <Form.Label className="mb-0">Spécialité :</Form.Label>
+                  <Form.Label className="mb-0">{t("addNurse.specialtyLabel")}</Form.Label>
                   <Form.Control as="select" className="my-2" name="selectuserrole">
-                    <option value="">Sélectionner</option>
+                    <option value="">{t("addNurse.selectPlaceholder")}</option>
                     {SPECIALTIES.map((s) => (
-                      <option key={s} value={s}>{s}</option>
+                      <option key={s} value={s}>
+                        {t(`addNurse.${SPECIALTY_I18N[s]}`)}
+                      </option>
                     ))}
                   </Form.Control>
                 </Form.Group>
                 <Form.Group className="form-group cust-form-input">
-                  <Form.Label className="mb-0">Facebook :</Form.Label>
-                  <Form.Control type="text" className="my-2" name="furl" placeholder="URL Facebook" />
+                  <Form.Label className="mb-0">{t("addNurse.facebook")}</Form.Label>
+                  <Form.Control type="text" className="my-2" name="furl" placeholder={t("addNurse.placeholderUrlFacebook")} />
                 </Form.Group>
                 <Form.Group className="form-group cust-form-input">
-                  <Form.Label className="mb-0">Twitter :</Form.Label>
-                  <Form.Control type="text" className="my-2" name="turl" placeholder="URL Twitter" />
+                  <Form.Label className="mb-0">{t("addNurse.twitter")}</Form.Label>
+                  <Form.Control type="text" className="my-2" name="turl" placeholder={t("addNurse.placeholderUrlTwitter")} />
                 </Form.Group>
                 <Form.Group className="form-group cust-form-input">
-                  <Form.Label className="mb-0">Instagram :</Form.Label>
-                  <Form.Control type="text" className="my-2" name="instaurl" placeholder="URL Instagram" />
+                  <Form.Label className="mb-0">{t("addNurse.instagram")}</Form.Label>
+                  <Form.Control type="text" className="my-2" name="instaurl" placeholder={t("addNurse.placeholderUrlInstagram")} />
                 </Form.Group>
                 <Form.Group className="form-group cust-form-input">
-                  <Form.Label className="mb-0">LinkedIn :</Form.Label>
-                  <Form.Control type="text" className="my-2" name="lurl" placeholder="URL LinkedIn" />
+                  <Form.Label className="mb-0">{t("addNurse.linkedin")}</Form.Label>
+                  <Form.Control type="text" className="my-2" name="lurl" placeholder={t("addNurse.placeholderUrlLinkedIn")} />
                 </Form.Group>
             </Card.Body>
           </Card>
@@ -168,7 +206,7 @@ const AddNurse = () => {
           <Card>
             <Card.Header className="d-flex justify-content-between">
               <Card.Header.Title>
-                <h4 className="card-title">Informations de l'infirmière</h4>
+                <h4 className="card-title">{t("addNurse.pageTitleInfo")}</h4>
               </Card.Header.Title>
             </Card.Header>
             <Card.Body>
@@ -176,32 +214,34 @@ const AddNurse = () => {
                   {error && <div className="alert alert-danger">{error}</div>}
                   <Row className="cust-form-input">
                     <Col md={6} className="form-group">
-                      <Form.Label className="mb-0">Prénom :</Form.Label>
-                      <Form.Control type="text" className="my-2" name="fname" placeholder="Prénom" required />
+                      <Form.Label className="mb-0">{t("addNurse.firstName")}</Form.Label>
+                      <Form.Control type="text" className="my-2" name="fname" placeholder={t("addNurse.placeholderFirstName")} required />
                     </Col>
                     <Col md={6} className="form-group">
-                      <Form.Label className="mb-0">Nom :</Form.Label>
-                      <Form.Control type="text" className="my-2" name="lname" placeholder="Nom" required />
+                      <Form.Label className="mb-0">{t("addNurse.lastName")}</Form.Label>
+                      <Form.Control type="text" className="my-2" name="lname" placeholder={t("addNurse.placeholderLastName")} required />
                     </Col>
                     <Col md={6} className="form-group">
-                      <Form.Label className="mb-0">Adresse 1 :</Form.Label>
-                      <Form.Control type="text" className="my-2" name="add1" placeholder="Adresse" />
+                      <Form.Label className="mb-0">{t("addNurse.address1")}</Form.Label>
+                      <Form.Control type="text" className="my-2" name="add1" placeholder={t("addNurse.placeholderAddress")} />
                     </Col>
                     <Col md={6} className="form-group">
-                      <Form.Label className="mb-0">Adresse 2 :</Form.Label>
-                      <Form.Control type="text" className="my-2" name="add2" placeholder="Complément" />
+                      <Form.Label className="mb-0">{t("addNurse.address2")}</Form.Label>
+                      <Form.Control type="text" className="my-2" name="add2" placeholder={t("addNurse.placeholderAddress2")} />
                     </Col>
                     <Col sm={12} className="form-group">
-                      <Form.Label className="mb-0">Département hospitalier :</Form.Label>
+                      <Form.Label className="mb-0">{t("addNurse.department")}</Form.Label>
                       <Form.Control as="select" className="my-2" name="cname" required>
-                        <option value="">Sélectionner un département</option>
+                        <option value="">{t("addNurse.selectDepartment")}</option>
                         {HOSPITAL_DEPARTMENTS.map((d) => (
-                          <option key={d} value={d}>{d}</option>
+                          <option key={d} value={d}>
+                            {t(`editPatient.departments.${departmentSlug(d)}`)}
+                          </option>
                         ))}
                       </Form.Control>
                     </Col>
                     <Col sm={12} className="form-group">
-                      <Form.Label className="mb-0">Pays :</Form.Label>
+                      <Form.Label className="mb-0">{t("addNurse.country")}</Form.Label>
                       <Form.Control
                         as="select"
                         className="my-2"
@@ -212,22 +252,22 @@ const AddNurse = () => {
                           setSelectedCountry(country || null);
                         }}
                       >
-                        <option value="">Sélectionner</option>
+                        <option value="">{t("addNurse.selectPlaceholder")}</option>
                         {COUNTRIES.map((c) => (
                           <option key={c.code} value={c.name}>
-                            {c.name}
+                            {t(`addNurse.${c.labelKey}`)}
                           </option>
                         ))}
                       </Form.Control>
                       {selectedCountry && (
                         <div className="d-flex align-items-center gap-2 mt-1">
                           <img src={selectedCountry.flagUrl} alt="" style={{ width: 24, height: 18, objectFit: "cover" }} />
-                          <span>{selectedCountry.name}</span>
+                          <span>{t(`addNurse.${selectedCountry.labelKey}`)}</span>
                         </div>
                       )}
                     </Col>
                     <Col md={6} className="form-group">
-                      <Form.Label className="mb-0">Téléphone :</Form.Label>
+                      <Form.Label className="mb-0">{t("addNurse.phone")}</Form.Label>
                       <InputGroup className="my-2">
                         <InputGroup.Text className="bg-white d-flex align-items-center gap-1">
                           {selectedCountry ? (
@@ -242,43 +282,43 @@ const AddNurse = () => {
                         <Form.Control
                           type="tel"
                           name="mobno"
-                          placeholder={selectedCountry ? (selectedCountry.dialCode === "+216" ? "ex: 12 345 678" : "ex: 6 12 34 56 78") : "Sélectionnez un pays d'abord"}
+                          placeholder={phonePlaceholder}
                         />
                       </InputGroup>
                     </Col>
                     <Col md={6} className="form-group">
-                      <Form.Label className="mb-0">Contact alternatif :</Form.Label>
-                      <Form.Control type="text" className="my-2" name="altconno" placeholder="Contact alternatif" />
+                      <Form.Label className="mb-0">{t("addNurse.altContact")}</Form.Label>
+                      <Form.Control type="text" className="my-2" name="altconno" placeholder={t("addNurse.placeholderAltContact")} />
                     </Col>
                     <Col md={6} className="form-group">
-                      <Form.Label className="mb-0">Email :</Form.Label>
-                      <Form.Control type="email" className="my-2" name="email" placeholder="Email" required />
+                      <Form.Label className="mb-0">{t("addNurse.email")}</Form.Label>
+                      <Form.Control type="email" className="my-2" name="email" placeholder={t("addNurse.placeholderEmail")} required />
                     </Col>
                     <Col md={6} className="form-group">
-                      <Form.Label className="mb-0">Code postal :</Form.Label>
-                      <Form.Control type="text" className="my-2" name="pno" placeholder="Code postal" />
+                      <Form.Label className="mb-0">{t("addNurse.postalCode")}</Form.Label>
+                      <Form.Control type="text" className="my-2" name="pno" placeholder={t("addNurse.placeholderPostal")} />
                     </Col>
                     <Col md={6} className="form-group">
-                      <Form.Label className="mb-0">Ville :</Form.Label>
-                      <Form.Control type="text" className="my-2" name="city" placeholder="Ville" />
+                      <Form.Label className="mb-0">{t("addNurse.city")}</Form.Label>
+                      <Form.Control type="text" className="my-2" name="city" placeholder={t("addNurse.placeholderCity")} />
                     </Col>
                   </Row>
                   <hr />
-                  <h5 className="mb-3">Sécurité (compte de connexion)</h5>
+                  <h5 className="mb-3">{t("addNurse.securitySection")}</h5>
                   <Row className="cust-form-input">
                     <Col md={6} className="form-group">
-                      <Form.Label className="mb-0">Mot de passe :</Form.Label>
-                      <Form.Control type="password" className="my-2" name="pass" placeholder="Mot de passe" required minLength={6} />
+                      <Form.Label className="mb-0">{t("addNurse.password")}</Form.Label>
+                      <Form.Control type="password" className="my-2" name="pass" placeholder={t("addNurse.placeholderPassword")} required minLength={6} />
                     </Col>
                     <Col md={6} className="form-group">
-                      <Form.Label className="mb-0">Confirmer le mot de passe :</Form.Label>
-                      <Form.Control type="password" className="my-2" name="rpass" placeholder="Confirmer" required />
+                      <Form.Label className="mb-0">{t("addNurse.confirmPassword")}</Form.Label>
+                      <Form.Control type="password" className="my-2" name="rpass" placeholder={t("addNurse.placeholderConfirm")} required />
                     </Col>
                   </Row>
                   <div className="d-flex gap-2 mt-3">
-                    <Button type="button" variant="outline-danger" onClick={() => navigate("/nurse/nurse-list")}>Annuler</Button>
+                    <Button type="button" variant="outline-danger" onClick={() => navigate("/nurse/nurse-list")}>{t("addNurse.cancel")}</Button>
                     <Button type="submit" className="btn btn-primary-subtle" disabled={loading}>
-                      {loading ? "Création..." : "Enregistrer"}
+                      {loading ? t("addNurse.saving") : t("addNurse.save")}
                     </Button>
                   </div>
               </div>

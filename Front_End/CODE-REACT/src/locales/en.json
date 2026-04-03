@@ -104,6 +104,18 @@
     "prescriptions": "Prescriptions",
     "appointmentCalendar": "Appointment calendar"
   },
+  "doctorMyPatients": {
+    "pageTitle": "My patients",
+    "subtitle": "Patients for whom you are the attending physician.",
+    "loginDoctor": "Sign in as a doctor.",
+    "signIn": "Sign in",
+    "loadError": "Unable to load patients.",
+    "empty": "No patients are assigned to you yet.",
+    "colName": "Name",
+    "colEmail": "Email",
+    "colDepartment": "Department",
+    "viewDossier": "View patient record"
+  },
   "dailyCheckIn": {
     "title": "Daily Health Check-in",
     "badgeDone": "Done Today",

@@ -104,6 +104,18 @@
     "prescriptions": "الوصفات",
     "appointmentCalendar": "تقويم المواعيد"
   },
+  "doctorMyPatients": {
+    "pageTitle": "مرضاي",
+    "subtitle": "المرضى الذين أنتَ طبيبهم المُعالِج.",
+    "loginDoctor": "سجّل الدخول كطبيب.",
+    "signIn": "تسجيل الدخول",
+    "loadError": "تعذّر تحميل قائمة المرضى.",
+    "empty": "لا يوجد مرضى مُعيّنون لك حاليًا.",
+    "colName": "الاسم",
+    "colEmail": "البريد الإلكتروني",
+    "colDepartment": "القسم",
+    "viewDossier": "عرض ملف المريض"
+  },
   "dailyCheckIn": {
     "title": "التسجيل الصحي اليومي",
     "badgeDone": "مُنجَز اليوم",

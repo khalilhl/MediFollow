@@ -104,6 +104,18 @@
     "prescriptions": "Ordonnances",
     "appointmentCalendar": "Calendrier RDV"
   },
+  "doctorMyPatients": {
+    "pageTitle": "Mes patients",
+    "subtitle": "Patients dont vous êtes le médecin référent.",
+    "loginDoctor": "Connectez-vous en tant que médecin.",
+    "signIn": "Connexion",
+    "loadError": "Impossible de charger les patients.",
+    "empty": "Aucun patient ne vous est assigné pour le moment.",
+    "colName": "Nom",
+    "colEmail": "E-mail",
+    "colDepartment": "Département",
+    "viewDossier": "Voir le dossier patient"
+  },
   "dailyCheckIn": {
     "title": "Relevé de santé du jour",
     "badgeDone": "Fait aujourd’hui",

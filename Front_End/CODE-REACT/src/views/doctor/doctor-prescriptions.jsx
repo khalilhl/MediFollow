@@ -1,18 +1,24 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Button, Card, Col, Container, Form, Row, Spinner, Table } from "react-bootstrap";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { patientApi, medicationApi } from "../../services/api";
 import MedicationNameAutocomplete from "../../components/MedicationNameAutocomplete";
 import DosageAutocomplete from "../../components/DosageAutocomplete";
+import { formatMedicationFrequencyDisplay } from "../../utils/medicationFrequencyLabel";
+import { formatYmdForLocale } from "../../utils/localeDateDisplay";
 
-const FREQUENCIES = [
-  "1 fois par jour",
-  "2 fois par jour",
-  "3 fois par jour",
-  "Toutes les 8 heures",
-  "Hebdomadaire",
-  "Si besoin",
+/** Canonical values (English) — aligned with backend medication-slots.util.ts */
+const FREQUENCY_OPTIONS = [
+  { value: "once daily", key: "onceDaily" },
+  { value: "twice daily", key: "twiceDaily" },
+  { value: "three times daily", key: "threeTimesDaily" },
+  { value: "every 8 hours", key: "every8h" },
+  { value: "weekly", key: "weekly" },
+  { value: "as needed", key: "asNeeded" },
 ];
+
+const DEFAULT_FREQUENCY = FREQUENCY_OPTIONS[0].value;
 
 const newLineId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
@@ -22,14 +28,16 @@ const emptyMedicationLine = () => ({
   useCustomMedication: false,
   dosage: "",
   useCustomDosage: false,
-  frequency: FREQUENCIES[0],
+  frequency: DEFAULT_FREQUENCY,
   startDate: "",
   endDate: "",
   notes: "",
 });
 
 const DoctorPrescriptions = () => {
-  const [doctorUser, setDoctorUser] = useState(() => {
+  const { t, i18n } = useTranslation();
+  const dateLocaleTag = i18n.language?.startsWith("fr") ? "fr" : i18n.language?.startsWith("ar") ? "ar" : "en";
+  const [doctorUser] = useState(() => {
     try {
       const s = localStorage.getItem("doctorUser");
       return s ? JSON.parse(s) : null;
@@ -63,7 +71,7 @@ const DoctorPrescriptions = () => {
           if (list.length === 1) setSelectedPatientId(String(list[0]._id || list[0].id));
         }
       } catch (e) {
-        if (!cancelled) setError(e.message || "Impossible de charger les patients");
+        if (!cancelled) setError(e.message || t("doctorPrescriptions.loadPatientsError"));
       } finally {
         if (!cancelled) setLoadingPatients(false);
       }
@@ -87,7 +95,7 @@ const DoctorPrescriptions = () => {
       } catch (e) {
         if (!cancelled) {
           setMedications([]);
-          setError(e.message || "Erreur chargement médicaments");
+          setError(e.message || t("doctorPrescriptions.loadMedsError"));
         }
       } finally {
         if (!cancelled) setLoadingMeds(false);
@@ -124,7 +132,7 @@ const DoctorPrescriptions = () => {
     if (!selectedPatientId) return;
     const toSave = lines.filter((row) => row.name?.trim());
     if (toSave.length === 0) {
-      setError("Saisissez au moins un nom de médicament.");
+      setError(t("doctorPrescriptions.errorAtLeastOneMedication"));
       return;
     }
     setSaving(true);
@@ -145,7 +153,7 @@ const DoctorPrescriptions = () => {
       setMedications(Array.isArray(meds) ? meds : []);
       setLines([emptyMedicationLine()]);
     } catch (err) {
-      setError(err.message || "Enregistrement impossible");
+      setError(err.message || t("doctorPrescriptions.saveError"));
     } finally {
       setSaving(false);
     }
@@ -154,10 +162,10 @@ const DoctorPrescriptions = () => {
   if (!doctorId) {
     return (
       <Container className="py-5">
-        <p className="text-muted text-center">Connectez-vous en tant que médecin pour gérer les ordonnances.</p>
+        <p className="text-muted text-center">{t("doctorPrescriptions.loginHint")}</p>
         <div className="text-center">
           <Link to="/auth/sign-in" className="btn btn-primary">
-            Connexion
+            {t("doctorMyPatients.signIn")}
           </Link>
         </div>
       </Container>
@@ -168,11 +176,8 @@ const DoctorPrescriptions = () => {
     <Container fluid className="pb-5">
       <Row className="mb-4">
         <Col>
-          <h4 className="fw-bold mb-1">Ordonnances médicales</h4>
-          <p className="text-muted mb-0">
-            Ajoutez les médicaments prescrits pour chaque patient que vous suivez. Ils apparaissent sur le tableau de bord
-            du patient.
-          </p>
+          <h4 className="fw-bold mb-1">{t("doctorPrescriptions.pageTitle")}</h4>
+          <p className="text-muted mb-0">{t("doctorPrescriptions.pageSubtitle")}</p>
         </Col>
       </Row>
 
@@ -188,7 +193,7 @@ const DoctorPrescriptions = () => {
             <Card.Header className="bg-white border-bottom py-3">
               <Card.Title className="h6 mb-0">
                 <i className="ri-user-heart-line text-primary me-2" />
-                Patient
+                {t("doctorPrescriptions.patientSectionTitle")}
               </Card.Title>
             </Card.Header>
             <Card.Body>
@@ -197,18 +202,16 @@ const DoctorPrescriptions = () => {
                   <Spinner animation="border" size="sm" variant="primary" />
                 </div>
               ) : patients.length === 0 ? (
-                <p className="text-muted small mb-0">
-                  Aucun patient ne vous est assigné. Un administrateur doit vous attribuer des patients (équipe soignante).
-                </p>
+                <p className="text-muted small mb-0">{t("doctorPrescriptions.noPatientsAssigned")}</p>
               ) : (
                 <Form.Group>
-                  <Form.Label>Sélectionner un patient</Form.Label>
+                  <Form.Label>{t("doctorPrescriptions.selectPatientLabel")}</Form.Label>
                   <Form.Select
                     value={selectedPatientId}
                     onChange={(e) => setSelectedPatientId(e.target.value)}
-                    aria-label="Patient"
+                    aria-label={t("doctorPrescriptions.selectPatientPlaceholder")}
                   >
-                    <option value="">— Choisir —</option>
+                    <option value="">{t("doctorPrescriptions.patientPlaceholderOption")}</option>
                     {patients.map((p) => (
                       <option key={p._id || p.id} value={String(p._id || p.id)}>
                         {p.firstName} {p.lastName} — {p.email}
@@ -226,12 +229,12 @@ const DoctorPrescriptions = () => {
             <Card.Header className="bg-white border-bottom py-3">
               <Card.Title className="h6 mb-0">
                 <i className="ri-capsule-line text-primary me-2" />
-                Nouvelle ordonnance (plusieurs médicaments)
+                {t("doctorPrescriptions.newPrescriptionTitle")}
               </Card.Title>
             </Card.Header>
             <Card.Body>
               {!selectedPatientId ? (
-                <p className="text-muted small mb-0">Choisissez d&apos;abord un patient à gauche.</p>
+                <p className="text-muted small mb-0">{t("doctorPrescriptions.selectPatientFirst")}</p>
               ) : (
                 <Form onSubmit={handleAddMedication}>
                   {lines.map((row, index) => (
@@ -241,7 +244,9 @@ const DoctorPrescriptions = () => {
                       style={{ backgroundColor: index % 2 === 0 ? "#fafbfc" : "#fff" }}
                     >
                       <div className="d-flex justify-content-between align-items-center mb-2">
-                        <span className="small fw-bold text-primary">Médicament {index + 1}</span>
+                        <span className="small fw-bold text-primary">
+                          {t("doctorPrescriptions.medicationLineLabel", { n: index + 1 })}
+                        </span>
                         {lines.length > 1 && (
                           <Button
                             type="button"
@@ -249,7 +254,7 @@ const DoctorPrescriptions = () => {
                             size="sm"
                             className="py-0 px-2"
                             onClick={() => removeMedicationRow(row.id)}
-                            aria-label={`Retirer le médicament ${index + 1}`}
+                            aria-label={t("doctorPrescriptions.removeMedicationAria", { n: index + 1 })}
                           >
                             <i className="ri-delete-bin-line" />
                           </Button>
@@ -257,7 +262,7 @@ const DoctorPrescriptions = () => {
                       </div>
                       <Row className="g-2">
                         <Col md={12}>
-                          <Form.Label className="small fw-semibold">Nom du médicament *</Form.Label>
+                          <Form.Label className="small fw-semibold">{t("doctorPrescriptions.labelMedicationName")}</Form.Label>
                           <MedicationNameAutocomplete
                             id={`med-name-${row.id}`}
                             value={row.name}
@@ -266,7 +271,7 @@ const DoctorPrescriptions = () => {
                           />
                         </Col>
                         <Col md={6}>
-                          <Form.Label className="small fw-semibold">Dosage</Form.Label>
+                          <Form.Label className="small fw-semibold">{t("doctorPrescriptions.labelDosage")}</Form.Label>
                           <DosageAutocomplete
                             id={`med-dose-${row.id}`}
                             value={row.dosage}
@@ -275,21 +280,21 @@ const DoctorPrescriptions = () => {
                           />
                         </Col>
                         <Col md={6}>
-                          <Form.Label className="small fw-semibold">Fréquence</Form.Label>
+                          <Form.Label className="small fw-semibold">{t("doctorPrescriptions.labelFrequency")}</Form.Label>
                           <Form.Select
                             size="sm"
                             value={row.frequency}
                             onChange={(e) => updateLine(row.id, { frequency: e.target.value })}
                           >
-                            {FREQUENCIES.map((fr) => (
-                              <option key={fr} value={fr}>
-                                {fr}
+                            {FREQUENCY_OPTIONS.map(({ value, key }) => (
+                              <option key={value} value={value}>
+                                {t(`doctorPrescriptions.freq.${key}`)}
                               </option>
                             ))}
                           </Form.Select>
                         </Col>
                         <Col md={6}>
-                          <Form.Label className="small fw-semibold">Date de début</Form.Label>
+                          <Form.Label className="small fw-semibold">{t("doctorPrescriptions.labelStartDate")}</Form.Label>
                           <Form.Control
                             type="date"
                             size="sm"
@@ -298,7 +303,7 @@ const DoctorPrescriptions = () => {
                           />
                         </Col>
                         <Col md={6}>
-                          <Form.Label className="small fw-semibold">Date de fin</Form.Label>
+                          <Form.Label className="small fw-semibold">{t("doctorPrescriptions.labelEndDate")}</Form.Label>
                           <Form.Control
                             type="date"
                             size="sm"
@@ -307,12 +312,12 @@ const DoctorPrescriptions = () => {
                           />
                         </Col>
                         <Col md={12}>
-                          <Form.Label className="small fw-semibold">Notes</Form.Label>
+                          <Form.Label className="small fw-semibold">{t("doctorPrescriptions.labelNotes")}</Form.Label>
                           <Form.Control
                             as="textarea"
                             rows={2}
                             size="sm"
-                            placeholder="ex. À prendre pendant les repas"
+                            placeholder={t("doctorPrescriptions.notesPlaceholder")}
                             value={row.notes}
                             onChange={(e) => updateLine(row.id, { notes: e.target.value })}
                           />
@@ -321,9 +326,7 @@ const DoctorPrescriptions = () => {
                     </div>
                   ))}
 
-                  <p className="text-muted small mb-2">
-                    Les lignes sans nom de médicament sont ignorées à l&apos;enregistrement.
-                  </p>
+                  <p className="text-muted small mb-2">{t("doctorPrescriptions.emptyLinesHint")}</p>
                   <Button
                     type="button"
                     variant="outline-primary"
@@ -333,15 +336,18 @@ const DoctorPrescriptions = () => {
                     disabled={saving}
                   >
                     <i className="ri-add-line me-1" />
-                    Ajouter un autre médicament
+                    {t("doctorPrescriptions.addAnotherMedication")}
                   </Button>
 
                   <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 pt-1 border-top">
                     <span className="text-muted small">
-                      Prescrit par : Dr. {doctorUser?.firstName} {doctorUser?.lastName}
+                      {t("doctorPrescriptions.prescribedBy", {
+                        firstName: doctorUser?.firstName ?? "",
+                        lastName: doctorUser?.lastName ?? "",
+                      })}
                     </span>
                     <Button type="submit" size="sm" disabled={saving}>
-                      {saving ? "Enregistrement…" : "Enregistrer l'ordonnance"}
+                      {saving ? t("doctorPrescriptions.saving") : t("doctorPrescriptions.savePrescription")}
                     </Button>
                   </div>
                 </Form>
@@ -355,10 +361,12 @@ const DoctorPrescriptions = () => {
         <Card className="border-0 shadow-sm mt-4">
           <Card.Header className="bg-white border-bottom py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
             <Card.Title className="h6 mb-0">
-              Médicaments actifs — {selectedPatient ? `${selectedPatient.firstName} ${selectedPatient.lastName}` : ""}
+              {t("doctorPrescriptions.activeMedicationsTitle", {
+                name: selectedPatient ? `${selectedPatient.firstName} ${selectedPatient.lastName}` : "",
+              })}
             </Card.Title>
             <Link to={`/patient/patient-profile/${selectedPatientId}`} className="btn btn-sm btn-outline-primary rounded-pill">
-              Voir le profil patient
+              {t("doctorPrescriptions.viewPatientProfile")}
             </Link>
           </Card.Header>
           <Card.Body className="p-0">
@@ -367,17 +375,17 @@ const DoctorPrescriptions = () => {
                 <Spinner animation="border" size="sm" variant="primary" />
               </div>
             ) : medications.length === 0 ? (
-              <p className="text-muted small text-center py-4 mb-0">Aucun médicament pour ce patient.</p>
+              <p className="text-muted small text-center py-4 mb-0">{t("doctorPrescriptions.emptyMedicationsList")}</p>
             ) : (
               <div className="table-responsive">
                 <Table hover className="mb-0 align-middle">
                   <thead className="table-light">
                     <tr>
-                      <th className="ps-4">Médicament</th>
-                      <th>Dosage</th>
-                      <th>Fréquence</th>
-                      <th>Prescrit par</th>
-                      <th className="pe-4">Période</th>
+                      <th className="ps-4">{t("doctorPrescriptions.tableMedication")}</th>
+                      <th>{t("doctorPrescriptions.tableDosage")}</th>
+                      <th>{t("doctorPrescriptions.tableFrequency")}</th>
+                      <th>{t("doctorPrescriptions.tablePrescribedBy")}</th>
+                      <th className="pe-4">{t("doctorPrescriptions.tablePeriod")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -385,10 +393,16 @@ const DoctorPrescriptions = () => {
                       <tr key={m._id}>
                         <td className="ps-4 fw-semibold">{m.name}</td>
                         <td className="small">{m.dosage || "—"}</td>
-                        <td className="small">{m.frequency || "—"}</td>
+                        <td className="small">{formatMedicationFrequencyDisplay(m.frequency, t)}</td>
                         <td className="small text-primary">{m.prescribedBy || "—"}</td>
                         <td className="pe-4 small text-muted">
-                          {m.startDate || "—"} → {m.endDate || "—"}
+                          {m.startDate
+                            ? formatYmdForLocale(String(m.startDate).slice(0, 10), dateLocaleTag)
+                            : "—"}{" "}
+                          →{" "}
+                          {m.endDate
+                            ? formatYmdForLocale(String(m.endDate).slice(0, 10), dateLocaleTag)
+                            : "—"}
                         </td>
                       </tr>
                     ))}

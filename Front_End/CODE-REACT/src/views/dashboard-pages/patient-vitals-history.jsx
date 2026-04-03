@@ -1,16 +1,25 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Container, Row, Col, Spinner, Alert } from "react-bootstrap";
 import Card from "../../components/Card";
 import VitalMetricTile, { hrStatus, bpStatus, o2Status, tempStatus, weightStatus } from "../../components/VitalMetricTile";
 import { healthLogApi } from "../../services/api";
+import { translateSymptom } from "../../utils/symptomLabels";
 
 const VITALS_TZ = "Africa/Tunis";
 
-function formatDisplayDate(ymd) {
+function dateLocaleFromI18n(lang) {
+  const base = String(lang || "en").split("-")[0];
+  if (base === "fr") return "fr-FR";
+  if (base === "ar") return "ar";
+  return "en-US";
+}
+
+function formatDisplayDate(ymd, locale) {
   if (!ymd || !/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return ymd;
   try {
-    return new Date(`${ymd}T12:00:00`).toLocaleDateString("fr-FR", {
+    return new Date(`${ymd}T12:00:00`).toLocaleDateString(locale, {
       weekday: "long",
       day: "numeric",
       month: "long",
@@ -21,12 +30,12 @@ function formatDisplayDate(ymd) {
   }
 }
 
-function formatDateTime(iso) {
+function formatDateTime(iso, locale) {
   if (!iso) return "—";
   try {
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return "—";
-    return new Intl.DateTimeFormat("fr-FR", {
+    return new Intl.DateTimeFormat(locale, {
       timeZone: VITALS_TZ,
       day: "2-digit",
       month: "short",
@@ -39,11 +48,11 @@ function formatDateTime(iso) {
   }
 }
 
-function moodMeta(mood) {
-  if (mood === "good") return { icon: "ri-shield-check-line", label: "Satisfaisant", color: "#28a745" };
-  if (mood === "fair") return { icon: "ri-scales-3-line", label: "Modéré", color: "#fd7e14" };
-  if (mood === "poor") return { icon: "ri-first-aid-kit-line", label: "Difficile", color: "#dc3545" };
-  return { icon: null, label: "—", color: "#6c757d" };
+function moodMeta(mood, t) {
+  if (mood === "good") return { icon: "ri-shield-check-line", label: t("patientDashboard.moodGood"), color: "#28a745" };
+  if (mood === "fair") return { icon: "ri-scales-3-line", label: t("patientDashboard.moodFair"), color: "#fd7e14" };
+  if (mood === "poor") return { icon: "ri-first-aid-kit-line", label: t("patientDashboard.moodPoor"), color: "#dc3545" };
+  return { icon: null, label: t("patientDashboard.moodDash"), color: "#6c757d" };
 }
 
 function riskBadgeClass(score) {
@@ -53,7 +62,11 @@ function riskBadgeClass(score) {
 }
 
 const PatientVitalsHistory = () => {
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const dateLocale = useMemo(() => dateLocaleFromI18n(i18n.language), [i18n.language]);
+  const fmtDate = useCallback((ymd) => formatDisplayDate(ymd, dateLocale), [dateLocale]);
+  const fmtDateTime = useCallback((iso) => formatDateTime(iso, dateLocale), [dateLocale]);
   const [patientUser, setPatientUser] = useState(() => {
     try {
       const stored = localStorage.getItem("patientUser");
@@ -74,7 +87,7 @@ const PatientVitalsHistory = () => {
   const [history, setHistory] = useState([]);
   const [latestLog, setLatestLog] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     if (!patientUser) {
@@ -86,7 +99,7 @@ const PatientVitalsHistory = () => {
     const load = async () => {
       if (!pid) return;
       setLoading(true);
-      setError("");
+      setLoadError(false);
       try {
         const [logs, latest] = await Promise.all([
           healthLogApi.getHistory(pid),
@@ -96,7 +109,7 @@ const PatientVitalsHistory = () => {
         setLatestLog(latest && typeof latest === "object" ? latest : null);
       } catch (e) {
         console.error(e);
-        setError("Impossible de charger l'historique des constantes vitales.");
+        setLoadError(true);
         setHistory([]);
         setLatestLog(null);
       } finally {
@@ -114,9 +127,9 @@ const PatientVitalsHistory = () => {
         log.date && /^\d{4}-\d{2}-\d{2}$/.test(String(log.date))
           ? String(log.date).slice(0, 10)
           : (() => {
-              const t = log.recordedAt || log.createdAt;
-              if (!t) return null;
-              const d = new Date(t);
+              const timestamp = log.recordedAt || log.createdAt;
+              if (!timestamp) return null;
+              const d = new Date(timestamp);
               if (Number.isNaN(d.getTime())) return null;
               const parts = new Intl.DateTimeFormat("en-CA", {
                 timeZone: VITALS_TZ,
@@ -152,10 +165,10 @@ const PatientVitalsHistory = () => {
   }, [latestLog, groupedByDay]);
 
   const vSummary = summaryLog?.vitals || {};
-  const hr = hrStatus(vSummary.heartRate);
-  const bp = bpStatus(vSummary.bloodPressureSystolic);
-  const o2 = o2Status(vSummary.oxygenSaturation);
-  const tp = tempStatus(vSummary.temperature);
+  const hr = hrStatus(vSummary.heartRate, t);
+  const bp = bpStatus(vSummary.bloodPressureSystolic, t);
+  const o2 = o2Status(vSummary.oxygenSaturation, t);
+  const tp = tempStatus(vSummary.temperature, t);
 
   if (!patientUser) {
     return null;
@@ -167,20 +180,17 @@ const PatientVitalsHistory = () => {
         <Col>
           <Link to="/dashboard-pages/patient-dashboard" className="text-decoration-none small d-inline-flex align-items-center gap-1">
             <i className="ri-arrow-left-line"></i>
-            Retour au tableau de bord
+            {t("patientVitalsHistory.backToDashboard")}
           </Link>
           <h4 className="text-primary fw-bold mt-2 mb-0">
             <i className="ri-heart-pulse-line me-2"></i>
-            Historique des constantes vitales
+            {t("patientVitalsHistory.title")}
           </h4>
-          <p className="text-muted small mb-0 mt-1">
-            Tous vos relevés sur la période disponible (plusieurs par jour) : constantes, ressenti, symptômes et score de
-            risque — du plus récent au plus ancien.
-          </p>
+          <p className="text-muted small mb-0 mt-1">{t("patientVitalsHistory.intro")}</p>
         </Col>
       </Row>
 
-      {!loading && !error && (summaryLog || groupedByDay.length > 0) && (
+      {!loading && !loadError && (summaryLog || groupedByDay.length > 0) && (
         <Card className="border-0 shadow-sm mb-4 overflow-hidden" style={{ borderRadius: 18 }}>
           <div
             className="px-3 px-md-4 py-3 d-flex flex-wrap align-items-center justify-content-between gap-2"
@@ -202,8 +212,8 @@ const PatientVitalsHistory = () => {
                 <i className="ri-heart-pulse-fill text-white fs-5" />
               </div>
               <div>
-                <h6 className="mb-0 fw-bold text-primary">Dernier relevé</h6>
-                <small className="text-muted">Synthèse des constantes du check-in le plus récent</small>
+                <h6 className="mb-0 fw-bold text-primary">{t("patientVitalsHistory.lastReadingTitle")}</h6>
+                <small className="text-muted">{t("patientVitalsHistory.lastReadingSubtitle")}</small>
               </div>
             </div>
             {summaryLog && (summaryLog.recordedAt || summaryLog.createdAt) && (
@@ -217,7 +227,7 @@ const PatientVitalsHistory = () => {
                 }}
               >
                 <i className="ri-time-line me-1" />
-                {formatDateTime(summaryLog.recordedAt || summaryLog.createdAt)}
+                {fmtDateTime(summaryLog.recordedAt || summaryLog.createdAt)}
               </span>
             )}
           </div>
@@ -227,44 +237,44 @@ const PatientVitalsHistory = () => {
                 <VitalMetricTile
                   icon="ri-heart-pulse-fill"
                   accent="#dc3545"
-                  title="Fréquence cardiaque"
+                  title={t("patientVitalsHistory.tileHR")}
                   value={vSummary.heartRate}
                   unit="bpm"
                   status={hr}
-                  noDataMsg="Enregistrez vos constantes pour afficher la FC."
+                  noDataMsg={t("patientVitalsHistory.noDataHr")}
                 />
               </Col>
               <Col sm={6} xl={3}>
                 <VitalMetricTile
                   icon="ri-drop-fill"
                   accent="#089bab"
-                  title="Tension artérielle"
+                  title={t("patientVitalsHistory.tileBP")}
                   value={vSummary.bloodPressureSystolic ? `${vSummary.bloodPressureSystolic}/${vSummary.bloodPressureDiastolic}` : null}
                   unit="mmHg"
                   status={bp}
-                  noDataMsg="Enregistrez vos constantes pour afficher la TA."
+                  noDataMsg={t("patientVitalsHistory.noDataBp")}
                 />
               </Col>
               <Col sm={6} xl={3}>
                 <VitalMetricTile
                   icon="ri-lungs-fill"
                   accent="#6f42c1"
-                  title="Saturation O₂"
+                  title={t("patientVitalsHistory.tileO2")}
                   value={vSummary.oxygenSaturation}
                   unit="%"
                   status={o2}
-                  noDataMsg="Enregistrez vos constantes pour afficher SpO₂."
+                  noDataMsg={t("patientVitalsHistory.noDataO2")}
                 />
               </Col>
               <Col sm={6} xl={3}>
                 <VitalMetricTile
                   icon="ri-temp-hot-fill"
                   accent="#fd7e14"
-                  title="Température"
+                  title={t("patientVitalsHistory.tileTemp")}
                   value={vSummary.temperature}
                   unit="°C"
                   status={tp}
-                  noDataMsg="Enregistrez vos constantes pour afficher la température."
+                  noDataMsg={t("patientVitalsHistory.noDataTemp")}
                 />
               </Col>
             </Row>
@@ -274,22 +284,22 @@ const PatientVitalsHistory = () => {
 
       {loading && (
         <div className="text-center py-5">
-          <Spinner animation="border" variant="primary" />
+          <Spinner animation="border" variant="primary" aria-hidden="true" />
         </div>
       )}
 
-      {!loading && error && <Alert variant="danger">{error}</Alert>}
+      {!loading && loadError && (
+        <Alert variant="danger">{t("patientVitalsHistory.loadError")}</Alert>
+      )}
 
-      {!loading && !error && groupedByDay.length === 0 && (
+      {!loading && !loadError && groupedByDay.length === 0 && (
         <Card className="border-0 shadow-sm">
-          <Card.Body className="text-center text-muted py-5">
-            Aucun relevé enregistré pour le moment. Complétez un check-in depuis le tableau de bord.
-          </Card.Body>
+          <Card.Body className="text-center text-muted py-5">{t("patientVitalsHistory.empty")}</Card.Body>
         </Card>
       )}
 
       {!loading &&
-        !error &&
+        !loadError &&
         groupedByDay.map(({ date, logs }) => (
           <Card key={date} className="border-0 shadow-sm mb-4 overflow-hidden" style={{ borderRadius: 18 }}>
             <div
@@ -310,22 +320,22 @@ const PatientVitalsHistory = () => {
               >
                 <i className="ri-calendar-event-fill" />
               </div>
-              <h6 className="fw-bold text-primary mb-0">{formatDisplayDate(date)}</h6>
+              <h6 className="fw-bold text-primary mb-0">{fmtDate(date)}</h6>
             </div>
             <Card.Body className="p-3 p-md-4">
               {logs.map((log, idx) => {
                 const v = log.vitals || {};
-                const mood = moodMeta(log.mood);
-                const t = log.recordedAt || log.createdAt;
-                const hr = hrStatus(v.heartRate);
-                const bp = bpStatus(v.bloodPressureSystolic);
-                const o2 = o2Status(v.oxygenSaturation);
-                const tp = tempStatus(v.temperature);
-                const wt = weightStatus(v.weight);
+                const mood = moodMeta(log.mood, t);
+                const logTime = log.recordedAt || log.createdAt;
+                const hr = hrStatus(v.heartRate, t);
+                const bp = bpStatus(v.bloodPressureSystolic, t);
+                const o2 = o2Status(v.oxygenSaturation, t);
+                const tp = tempStatus(v.temperature, t);
+                const wt = weightStatus(v.weight, t);
                 const pain = log.painLevel ?? 0;
                 return (
                   <div
-                    key={log._id || `${date}-${t}`}
+                    key={log._id || `${date}-${logTime}`}
                     className={`rounded-4 overflow-hidden border ${idx === logs.length - 1 ? "mb-0" : "mb-4"}`}
                     style={{
                       borderColor: "rgba(148, 163, 184, 0.22)",
@@ -350,17 +360,17 @@ const PatientVitalsHistory = () => {
                           }}
                         >
                           <i className="ri-time-line" aria-hidden />
-                          {formatDateTime(t)}
+                          {fmtDateTime(logTime)}
                         </span>
                       </div>
                       <div className="d-flex flex-wrap gap-1 align-items-center">
                         <span className={`badge ${riskBadgeClass(log.riskScore ?? 0)}`} style={{ fontSize: "0.72rem" }}>
-                          Risque {log.riskScore ?? 0}/100
+                          {t("patientVitalsHistory.riskScore", { score: log.riskScore ?? 0 })}
                         </span>
                         {log.flagged && (
                           <span className="badge bg-danger" style={{ fontSize: "0.72rem" }}>
                             <i className="ri-alert-line me-1" aria-hidden />
-                            À surveiller
+                            {t("patientVitalsHistory.watchFlag")}
                           </span>
                         )}
                       </div>
@@ -372,59 +382,59 @@ const PatientVitalsHistory = () => {
                           <VitalMetricTile
                             icon="ri-heart-pulse-fill"
                             accent="#dc3545"
-                            title="Fréquence cardiaque"
+                            title={t("patientVitalsHistory.tileHR")}
                             value={v.heartRate}
                             unit="bpm"
                             status={hr}
-                            noDataMsg="—"
+                            noDataMsg={t("patientVitalsHistory.dash")}
                           />
                         </Col>
                         <Col>
                           <VitalMetricTile
                             icon="ri-drop-fill"
                             accent="#089bab"
-                            title="Tension artérielle"
+                            title={t("patientVitalsHistory.tileBP")}
                             value={
                               v.bloodPressureSystolic != null || v.bloodPressureDiastolic != null
-                                ? `${v.bloodPressureSystolic ?? "—"}/${v.bloodPressureDiastolic ?? "—"}`
+                                ? `${v.bloodPressureSystolic ?? t("patientVitalsHistory.dash")}/${v.bloodPressureDiastolic ?? t("patientVitalsHistory.dash")}`
                                 : null
                             }
                             unit="mmHg"
                             status={bp}
-                            noDataMsg="—"
+                            noDataMsg={t("patientVitalsHistory.dash")}
                           />
                         </Col>
                         <Col>
                           <VitalMetricTile
                             icon="ri-lungs-fill"
                             accent="#6f42c1"
-                            title="Saturation O₂"
+                            title={t("patientVitalsHistory.tileO2")}
                             value={v.oxygenSaturation}
                             unit="%"
                             status={o2}
-                            noDataMsg="—"
+                            noDataMsg={t("patientVitalsHistory.dash")}
                           />
                         </Col>
                         <Col>
                           <VitalMetricTile
                             icon="ri-temp-hot-fill"
                             accent="#fd7e14"
-                            title="Température"
+                            title={t("patientVitalsHistory.tileTemp")}
                             value={v.temperature}
                             unit="°C"
                             status={tp}
-                            noDataMsg="—"
+                            noDataMsg={t("patientVitalsHistory.dash")}
                           />
                         </Col>
                         <Col>
                           <VitalMetricTile
                             icon="ri-scales-3-fill"
                             accent="#64748b"
-                            title="Poids"
+                            title={t("patientVitalsHistory.tileWeight")}
                             value={v.weight}
                             unit="kg"
                             status={wt}
-                            noDataMsg="—"
+                            noDataMsg={t("patientVitalsHistory.dash")}
                           />
                         </Col>
                       </Row>
@@ -437,7 +447,7 @@ const PatientVitalsHistory = () => {
                           <Col xs={12} md="auto">
                             <div className="d-flex flex-wrap align-items-center gap-2">
                               <span className="text-muted small text-uppercase fw-semibold" style={{ letterSpacing: "0.04em" }}>
-                                Ressenti
+                                {t("patientVitalsHistory.feeling")}
                               </span>
                               <span className="fw-semibold d-inline-flex align-items-center gap-1" style={{ color: mood.color }}>
                                 {mood.icon ? <i className={mood.icon} aria-hidden /> : null}
@@ -448,7 +458,7 @@ const PatientVitalsHistory = () => {
                           <Col xs={12} md>
                             <div className="d-flex flex-wrap align-items-center gap-2 mb-1">
                               <span className="text-muted small text-uppercase fw-semibold" style={{ letterSpacing: "0.04em" }}>
-                                Douleur
+                                {t("patientVitalsHistory.pain")}
                               </span>
                               <span className="fw-bold small">{pain}/10</span>
                             </div>
@@ -469,12 +479,12 @@ const PatientVitalsHistory = () => {
                         {Array.isArray(log.symptoms) && log.symptoms.length > 0 && (
                           <div className="mt-3">
                             <span className="text-muted small text-uppercase fw-semibold d-block mb-2" style={{ letterSpacing: "0.04em" }}>
-                              Symptômes
+                              {t("patientDashboard.symptoms")}
                             </span>
                             <div className="d-flex flex-wrap gap-1">
                               {log.symptoms.map((s) => (
                                 <span key={s} className="badge bg-warning text-dark" style={{ fontSize: "0.7rem" }}>
-                                  {s}
+                                  {translateSymptom(s, t)}
                                 </span>
                               ))}
                             </div>

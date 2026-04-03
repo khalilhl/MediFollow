@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import * as crypto from 'crypto';
 
 @Injectable()
 export class EmailService {
+  private readonly logger = new Logger(EmailService.name);
   private transporter: nodemailer.Transporter | null = null;
 
   constructor() {
@@ -13,13 +14,60 @@ export class EmailService {
     const pass = process.env.SMTP_PASS;
 
     if (host && user && pass) {
+      const hostLc = host.toLowerCase();
+      const isGmail = hostLc.includes('gmail') || hostLc.includes('googlemail');
       this.transporter = nodemailer.createTransport({
         host,
         port,
         secure: port === 465,
+        requireTLS: port !== 465,
         auth: { user, pass },
       });
+      if (isGmail) {
+        const fromEmail = this.extractEmailFromFromHeader(process.env.SMTP_FROM || '');
+        if (fromEmail && fromEmail.toLowerCase() !== user.toLowerCase()) {
+          this.logger.warn(
+            `SMTP_FROM (${fromEmail}) ne correspond pas à SMTP_USER (${user}). Gmail n’accepte en général que l’identité du compte connecté — utilisation de From: "${this.getSmtpFrom()}".`,
+          );
+        }
+      }
+    } else {
+      this.logger.warn(
+        'SMTP incomplet (SMTP_HOST / SMTP_USER / SMTP_PASS) — aucun envoi e-mail (MFA, copie messagerie, etc.).',
+      );
     }
+  }
+
+  /** Adresse e-mail extraite de SMTP_FROM (ex. "Nom <a@b.com>" ou "a@b.com"). */
+  private extractEmailFromFromHeader(raw: string): string | null {
+    const m = String(raw || '').match(/<([^>]+@[^>]+)>/);
+    if (m) return m[1].trim().toLowerCase();
+    const t = String(raw || '').trim();
+    if (/^\S+@\S+\.\S+$/.test(t)) return t.toLowerCase();
+    return null;
+  }
+
+  /**
+   * Gmail (et la plupart des relais) exigent que l’en-tête From corresponde au compte SMTP authentifié,
+   * sauf alias explicitement configuré chez le fournisseur.
+   */
+  getSmtpFrom(): string {
+    const user = process.env.SMTP_USER || '';
+    const rawFrom = process.env.SMTP_FROM || '';
+    const host = (process.env.SMTP_HOST || '').toLowerCase();
+    const isGmail = host.includes('gmail') || host.includes('googlemail');
+
+    const fromEmail = rawFrom ? this.extractEmailFromFromHeader(rawFrom) : null;
+    if (isGmail && user) {
+      if (!fromEmail || fromEmail !== user.toLowerCase()) {
+        const display = rawFrom
+          .replace(/<[^>]*>/g, '')
+          .trim()
+          .replace(/^["']|["']$/g, '');
+        return `${display || 'MediFollow'} <${user}>`;
+      }
+    }
+    return rawFrom || (user ? `"MediFollow" <${user}>` : '"MediFollow" <noreply@medifollow.com>');
   }
 
   async sendLoginConfirmation(email: string, token: string, userName: string) {
@@ -44,7 +92,7 @@ export class EmailService {
 
     if (this.transporter) {
       await this.transporter.sendMail({
-        from: process.env.SMTP_FROM || '"MediFollow" <noreply@medifollow.com>',
+        from: this.getSmtpFrom(),
         to: email,
         subject: 'Confirm your login - MediFollow',
         html,
@@ -84,7 +132,7 @@ export class EmailService {
 
     if (this.transporter) {
       await this.transporter.sendMail({
-        from: process.env.SMTP_FROM || '"MediFollow" <noreply@medifollow.com>',
+        from: this.getSmtpFrom(),
         to: email,
         subject: 'Your MediFollow Doctor Account - Login Credentials',
         html,
@@ -119,7 +167,7 @@ export class EmailService {
 
     if (this.transporter) {
       await this.transporter.sendMail({
-        from: process.env.SMTP_FROM || '"MediFollow" <noreply@medifollow.com>',
+        from: this.getSmtpFrom(),
         to: email,
         subject: 'Votre compte MediFollow Infirmier(ère) - Identifiants',
         html,
@@ -167,7 +215,7 @@ export class EmailService {
 
     if (this.transporter) {
       await this.transporter.sendMail({
-        from: process.env.SMTP_FROM || '"MediFollow" <noreply@medifollow.com>',
+        from: this.getSmtpFrom(),
         to: email,
         subject: 'Votre compte MediFollow - Coordonnées et identifiants',
         html,
@@ -175,5 +223,51 @@ export class EmailService {
     } else {
       console.log('[Patient] Email non configuré. Credentials:', { email, password: '***' });
     }
+  }
+
+  /**
+   * Copie du message interne MediFollow vers la boîte mail du destinataire (Gmail, Outlook, etc.).
+   * Nécessite SMTP (ex. smtp.gmail.com + mot de passe d’application Google).
+   */
+  async sendInternalMailMirror(params: {
+    toEmail: string;
+    subject: string;
+    bodyPlain: string;
+    fromDisplay: string;
+  }): Promise<void> {
+    if (!this.transporter) {
+      this.logger.warn('[Mirror] SMTP non configuré — copie messagerie interne ignorée.');
+      return;
+    }
+    const esc = (s: string) =>
+      String(s || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    const subj = esc(params.subject).slice(0, 200);
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto;">
+        <p style="color:#666;font-size:12px;">MediFollow — copie de message interne</p>
+        <p><strong>De :</strong> ${esc(params.fromDisplay)}</p>
+        <p><strong>Objet :</strong> ${subj}</p>
+        <hr style="border:none;border-top:1px solid #ddd;"/>
+        <div style="white-space:pre-wrap;">${esc(params.bodyPlain)}</div>
+        <hr style="border:none;border-top:1px solid #ddd;"/>
+        <p style="color:#888;font-size:12px;">Vous recevez cette copie sur votre adresse e-mail pour consultation immédiate (ex. Gmail).
+        Pour répondre, privilégiez la messagerie MediFollow lorsque c’est possible.</p>
+      </div>
+    `;
+    const subjectLine = `[MediFollow] ${params.subject}`.slice(0, 998);
+    const from = this.getSmtpFrom();
+    const info = await this.transporter.sendMail({
+      from,
+      to: params.toEmail,
+      subject: subjectLine,
+      html,
+    });
+    this.logger.log(
+      `[Mirror] Copie envoyée vers ${params.toEmail} (messageId SMTP: ${info.messageId || 'n/a'})`,
+    );
   }
 }

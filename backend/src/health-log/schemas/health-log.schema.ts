@@ -40,6 +40,34 @@ export class HealthLog extends Document {
 
   @Prop({ default: false })
   flagged: boolean;
+
+  /** Chaîne d’escalade : alerte auto → infirmier → (optionnel) médecin → clôture */
+  @Prop({
+    enum: ['none', 'alert_sent', 'escalated_to_doctor', 'resolved'],
+    default: 'none',
+  })
+  escalationStatus: 'none' | 'alert_sent' | 'escalated_to_doctor' | 'resolved';
+
+  @Prop({ type: Date })
+  escalatedAt?: Date;
+
+  @Prop()
+  escalatedByNurseId?: string;
+
+  /** Note libre de l’infirmier lors de l’escalade */
+  @Prop({ default: '' })
+  escalationNote?: string;
+
+  @Prop({ type: Date })
+  resolvedAt?: Date;
+
+  @Prop()
+  resolvedByDoctorId?: string;
+
+  /** Consigne / solution rédigée par le médecin à l’envoi au patient lors de la clôture */
+  @Prop({ default: '' })
+  doctorResolutionNote?: string;
 }
 
 export const HealthLogSchema = SchemaFactory.createForClass(HealthLog);
+HealthLogSchema.index({ patientId: 1, escalationStatus: 1, createdAt: -1 });

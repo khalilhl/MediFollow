@@ -418,6 +418,54 @@ export const api = {
     return res.json().catch(() => ({}));
   },
 
+  async deleteWithDoctorToken(endpoint) {
+    const token = okToken(localStorage.getItem("doctorToken"));
+    const res = await fetch(`${API_BASE}${endpoint}`, {
+      method: "DELETE",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ message: res.statusText }));
+      const error = new Error(messageFromApiErr(err));
+      error.status = res.status;
+      attachApiErrorFields(error, err);
+      throw error;
+    }
+    return res.json().catch(() => ({}));
+  },
+
+  async deleteWithNurseToken(endpoint) {
+    const token = okToken(localStorage.getItem("nurseToken"));
+    const res = await fetch(`${API_BASE}${endpoint}`, {
+      method: "DELETE",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ message: res.statusText }));
+      const error = new Error(messageFromApiErr(err));
+      error.status = res.status;
+      attachApiErrorFields(error, err);
+      throw error;
+    }
+    return res.json().catch(() => ({}));
+  },
+
+  async deleteWithPatientToken(endpoint) {
+    const token = okToken(localStorage.getItem("patientToken"));
+    const res = await fetch(`${API_BASE}${endpoint}`, {
+      method: "DELETE",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ message: res.statusText }));
+      const error = new Error(messageFromApiErr(err));
+      error.status = res.status;
+      attachApiErrorFields(error, err);
+      throw error;
+    }
+    return res.json().catch(() => ({}));
+  },
+
   async postWithDoctorToken(endpoint, data) {
     const token = okToken(localStorage.getItem("doctorToken"));
     const res = await fetch(`${API_BASE}${endpoint}`, {
@@ -569,6 +617,29 @@ export const chatApi = {
     }
     return api.get("/chat/department-contacts");
   },
+  /** Médecin, infirmier ou patient : groupes dont le connecté est membre. */
+  getGroups: () => {
+    if (typeof localStorage !== "undefined" && localStorage.getItem("doctorUser")) {
+      return api.getWithDoctorToken("/chat/groups");
+    }
+    if (typeof localStorage !== "undefined" && localStorage.getItem("nurseUser")) {
+      return api.getWithNurseToken("/chat/groups");
+    }
+    if (typeof localStorage !== "undefined" && localStorage.getItem("patientUser")) {
+      return api.getWithPatientToken("/chat/groups");
+    }
+    return api.get("/chat/groups");
+  },
+  /** Création de groupe (médecin / infirmier uniquement). */
+  createGroup: (payload) => {
+    if (typeof localStorage !== "undefined" && localStorage.getItem("doctorUser")) {
+      return api.postWithDoctorToken("/chat/groups", payload);
+    }
+    if (typeof localStorage !== "undefined" && localStorage.getItem("nurseUser")) {
+      return api.postWithNurseToken("/chat/groups", payload);
+    }
+    return api.post("/chat/groups", payload);
+  },
   getConversations: () => {
     if (typeof localStorage !== "undefined" && localStorage.getItem("doctorUser")) {
       return api.getWithDoctorToken("/chat/conversations");
@@ -583,6 +654,7 @@ export const chatApi = {
   },
   /** Fil patient : (patientId, params) — fil pair : ({ peerRole, peerId, before?, limit? }) */
   getMessages: (arg1, params = {}) => {
+    const isGroup = arg1 && typeof arg1 === "object" && !Array.isArray(arg1) && arg1.groupId;
     const isPeer =
       arg1 &&
       typeof arg1 === "object" &&
@@ -590,7 +662,11 @@ export const chatApi = {
       (arg1.peerRole === "doctor" || arg1.peerRole === "nurse") &&
       arg1.peerId;
     const q = new URLSearchParams();
-    if (isPeer) {
+    if (isGroup) {
+      q.set("groupId", String(arg1.groupId));
+      if (arg1.before) q.set("before", String(arg1.before));
+      if (arg1.limit != null) q.set("limit", String(arg1.limit));
+    } else if (isPeer) {
       q.set("peerRole", String(arg1.peerRole));
       q.set("peerId", String(arg1.peerId));
       if (arg1.before) q.set("before", String(arg1.before));
@@ -613,23 +689,27 @@ export const chatApi = {
       return api.get(path);
     }
     const path = `/chat/messages?${q.toString()}`;
-    if (typeof localStorage !== "undefined" && localStorage.getItem("doctorUser")) {
-      return api.getWithDoctorToken(path);
+    if (isGroup || isPeer) {
+      if (typeof localStorage !== "undefined" && localStorage.getItem("doctorUser")) {
+        return api.getWithDoctorToken(path);
+      }
+      if (typeof localStorage !== "undefined" && localStorage.getItem("nurseUser")) {
+        return api.getWithNurseToken(path);
+      }
+      if (typeof localStorage !== "undefined" && localStorage.getItem("patientUser")) {
+        return api.getWithPatientToken(path);
+      }
+      return api.get(path);
     }
-    if (typeof localStorage !== "undefined" && localStorage.getItem("nurseUser")) {
-      return api.getWithNurseToken(path);
-    }
-    if (typeof localStorage !== "undefined" && localStorage.getItem("patientUser")) {
-      return api.getWithPatientToken(path);
-    }
-    return api.get(path);
   },
   /** body = texte ; cible patient OU pair (pas les deux). */
   sendMessage: (payload) => {
     const data = { body: payload.body };
     if (payload.kind) data.kind = payload.kind;
     if (payload.patientId) data.patientId = payload.patientId;
-    if (payload.peerRole && payload.peerId) {
+    if (payload.groupId) {
+      data.groupId = payload.groupId;
+    } else if (payload.peerRole && payload.peerId) {
       data.peerRole = payload.peerRole;
       data.peerId = payload.peerId;
     }
@@ -677,6 +757,19 @@ export const chatApi = {
   /** Patient : marquer lu le fil avec un médecin ou un infirmier (distinct du fil staff–staff). */
   markReadPatientStaff: (peerRole, peerId) => {
     const path = `/chat/read-patient-staff?peerRole=${encodeURIComponent(peerRole)}&peerId=${encodeURIComponent(peerId)}`;
+    if (typeof localStorage !== "undefined" && localStorage.getItem("patientUser")) {
+      return api.patchWithPatientToken(path, {});
+    }
+    return api.patch(path, {});
+  },
+  markReadGroup: (groupId) => {
+    const path = `/chat/read-group/${encodeURIComponent(groupId)}`;
+    if (typeof localStorage !== "undefined" && localStorage.getItem("doctorUser")) {
+      return api.patchWithDoctorToken(path, {});
+    }
+    if (typeof localStorage !== "undefined" && localStorage.getItem("nurseUser")) {
+      return api.patchWithNurseToken(path, {});
+    }
     if (typeof localStorage !== "undefined" && localStorage.getItem("patientUser")) {
       return api.patchWithPatientToken(path, {});
     }
@@ -732,6 +825,37 @@ export const notificationApi = {
     }
     return api.patch("/notifications/read-all", {});
   },
+  deleteOne: (id) => {
+    const path = `/notifications/${encodeURIComponent(id)}`;
+    if (typeof localStorage !== "undefined" && localStorage.getItem("doctorUser")) {
+      return api.deleteWithDoctorToken(path);
+    }
+    if (typeof localStorage !== "undefined" && localStorage.getItem("nurseUser")) {
+      return api.deleteWithNurseToken(path);
+    }
+    if (typeof localStorage !== "undefined" && localStorage.getItem("adminUser")) {
+      return api.deleteWithAdminToken(path);
+    }
+    if (typeof localStorage !== "undefined" && localStorage.getItem("patientUser")) {
+      return api.deleteWithPatientToken(path);
+    }
+    return api.delete(path);
+  },
+  deleteAll: () => {
+    if (typeof localStorage !== "undefined" && localStorage.getItem("doctorUser")) {
+      return api.deleteWithDoctorToken("/notifications/all");
+    }
+    if (typeof localStorage !== "undefined" && localStorage.getItem("nurseUser")) {
+      return api.deleteWithNurseToken("/notifications/all");
+    }
+    if (typeof localStorage !== "undefined" && localStorage.getItem("adminUser")) {
+      return api.deleteWithAdminToken("/notifications/all");
+    }
+    if (typeof localStorage !== "undefined" && localStorage.getItem("patientUser")) {
+      return api.deleteWithPatientToken("/notifications/all");
+    }
+    return api.delete("/notifications/all");
+  },
 };
 
 /** Questionnaires & protocoles (JWT admin / médecin / patient). */
@@ -767,6 +891,46 @@ export const healthLogApi = {
     api.get(`/health-logs/patient/${encodeURIComponent(String(patientId))}`),
   getLatest: (patientId) =>
     api.get(`/health-logs/patient/${encodeURIComponent(String(patientId))}/latest`),
+  /**
+   * Dernière consigne du médecin après clôture d’une alerte (dashboard patient).
+   * GET explicite + parse tolérant (corps vide / null) + jeton patient pour éviter un mauvais rôle dans getValidToken.
+   */
+  getLatestDoctorConsigne: async (patientId) => {
+    const token = okToken(localStorage.getItem("patientToken"));
+    const url = `${API_BASE}/health-logs/patient/${encodeURIComponent(String(patientId))}/latest-doctor-consigne`;
+    const res = await fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) return null;
+    const text = await res.text();
+    if (!text || !String(text).trim()) return null;
+    try {
+      const data = JSON.parse(text);
+      if (data == null) return null;
+      return data;
+    } catch {
+      return null;
+    }
+  },
+  /** JWT infirmier — relevés urgents encore ouverts (suivi ou escaladés au médecin). */
+  nursePendingAlerts: () => api.getWithNurseToken('/health-logs/nurse/pending-alerts'),
+  escalateToDoctor: (healthLogId, note) =>
+    api.postWithNurseToken(`/health-logs/${encodeURIComponent(String(healthLogId))}/escalate-to-doctor`, {
+      note: note != null ? String(note) : '',
+    }),
+  /** JWT médecin référent — clôture + envoi de la consigne au patient (body.resolutionNote obligatoire). */
+  doctorResolveVitalAlert: (healthLogId, body = {}) =>
+    api.patchWithDoctorToken(`/health-logs/${encodeURIComponent(String(healthLogId))}/resolve`, {
+      resolutionNote: String(body.resolutionNote ?? '').trim(),
+    }),
+  /** JWT médecin — historique des escalades infirmier → médecin (patients suivis). status: all | pending | resolved */
+  doctorNurseEscalations: (status) => {
+    const q =
+      status && String(status) !== 'all'
+        ? `?status=${encodeURIComponent(String(status))}`
+        : '';
+    return api.getWithDoctorToken(`/health-logs/doctor/nurse-escalations${q}`);
+  },
 };
 
 export const medicationApi = {
@@ -807,4 +971,45 @@ export const appointmentApi = {
   /** Mise à jour côté admin (jeton admin explicite) */
   updateAsAdmin: (id, data) => api.putWithAdminToken(`/appointments/${id}`, data),
   remove: (id) => api.delete(`/appointments/${id}`),
+};
+
+/** JWT patient / médecin / infirmier — messagerie interne (API /mail). */
+export const mailApi = {
+  recipients: () => api.get('/mail/recipients'),
+  storage: () => api.get('/mail/storage'),
+  counts: () => api.get('/mail/counts'),
+  listMessages: (params = {}) => {
+    const q = new URLSearchParams();
+    if (params.folder) q.set('folder', params.folder);
+    if (params.starred) q.set('starred', 'true');
+    if (params.page) q.set('page', String(params.page));
+    if (params.limit) q.set('limit', String(params.limit));
+    const s = q.toString();
+    return api.get(`/mail/messages${s ? `?${s}` : ''}`);
+  },
+  getMessage: (stateId) => api.get(`/mail/messages/${encodeURIComponent(stateId)}`),
+  send: (body) => api.post('/mail/send', body),
+  saveDraft: (body) => api.post('/mail/drafts', body),
+  getDraft: (messageId) => api.get(`/mail/drafts/${encodeURIComponent(messageId)}`),
+  updateDraft: (messageId, body) =>
+    api.patch(`/mail/drafts/${encodeURIComponent(messageId)}`, body),
+  sendDraft: (messageId) => api.post(`/mail/drafts/${encodeURIComponent(messageId)}/send`, {}),
+  markRead: (stateId, read = true) =>
+    api.patch(`/mail/messages/${encodeURIComponent(stateId)}/read`, { read }),
+  move: (stateId, folder) =>
+    api.patch(`/mail/messages/${encodeURIComponent(stateId)}/move`, { folder }),
+  deleteMessage: (stateId) =>
+    api.delete(`/mail/messages/${encodeURIComponent(stateId)}`),
+  emptyTrash: () => api.post('/mail/trash/empty', {}),
+  star: (stateId, starred) =>
+    api.patch(`/mail/messages/${encodeURIComponent(stateId)}/star`, { starred }),
+  snooze: (stateId, until) =>
+    api.patch(`/mail/messages/${encodeURIComponent(stateId)}/snooze`, { until: until || null }),
+  listLabels: () => api.get('/mail/labels'),
+  createLabel: (body) => api.post('/mail/labels', body),
+  deleteLabel: (labelId) => api.delete(`/mail/labels/${encodeURIComponent(labelId)}`),
+  addLabel: (stateId, labelId) =>
+    api.post(`/mail/messages/${encodeURIComponent(stateId)}/labels/${encodeURIComponent(labelId)}`, {}),
+  removeLabel: (stateId, labelId) =>
+    api.delete(`/mail/messages/${encodeURIComponent(stateId)}/labels/${encodeURIComponent(labelId)}`),
 };

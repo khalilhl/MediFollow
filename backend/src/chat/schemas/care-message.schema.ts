@@ -11,6 +11,10 @@ export class CareMessage extends Document {
   @Prop({ required: false, index: true })
   peerThreadKey?: string;
 
+  /** Fil groupe staff (exclusif avec patientId ; peerThreadKey = group:<id>) */
+  @Prop({ type: Types.ObjectId, ref: 'StaffGroup', required: false, index: true })
+  groupId?: Types.ObjectId;
+
   @Prop({ required: true, enum: ['patient', 'doctor', 'nurse'] })
   senderRole: 'patient' | 'doctor' | 'nurse';
 
@@ -22,8 +26,15 @@ export class CareMessage extends Document {
   @Prop({ required: false, maxlength: 40000, default: '' })
   body?: string;
 
-  @Prop({ enum: ['text', 'voice', 'image', 'video', 'document', 'call'], default: 'text' })
-  kind: 'text' | 'voice' | 'image' | 'video' | 'document' | 'call';
+  @Prop({
+    enum: ['text', 'voice', 'image', 'video', 'document', 'call', 'vital_alert', 'escalation'],
+    default: 'text',
+  })
+  kind: 'text' | 'voice' | 'image' | 'video' | 'document' | 'call' | 'vital_alert' | 'escalation';
+
+  /** Lien vers le relevé de constantes (messages auto d’alerte / escalade) */
+  @Prop({ type: Types.ObjectId, ref: 'HealthLog', required: false })
+  healthLogId?: Types.ObjectId;
 
   /** Message vocal (peut être chiffré au repos) */
   @Prop({ required: false, maxlength: 8000 })
@@ -44,3 +55,5 @@ export class CareMessage extends Document {
 export const CareMessageSchema = SchemaFactory.createForClass(CareMessage);
 CareMessageSchema.index({ patientId: 1, createdAt: -1 }, { sparse: true });
 CareMessageSchema.index({ peerThreadKey: 1, createdAt: -1 }, { sparse: true });
+CareMessageSchema.index({ groupId: 1, createdAt: -1 }, { sparse: true });
+CareMessageSchema.index({ healthLogId: 1, createdAt: -1 }, { sparse: true });

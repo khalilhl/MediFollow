@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { Card, Col, Container, Row, Spinner, Table } from "react-bootstrap";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { departmentApi } from "../../services/api";
 
 const DoctorDepartmentNurses = () => {
+  const { t } = useTranslation();
   const [doctorUser] = useState(() => {
     try {
       const s = localStorage.getItem("doctorUser");
@@ -31,7 +33,7 @@ const DoctorDepartmentNurses = () => {
           setNurses(Array.isArray(data?.nurses) ? data.nurses : []);
         }
       } catch (e) {
-        if (!cancelled) setError(e.message || "Impossible de charger les infirmiers");
+        if (!cancelled) setError(e.message || t("doctorDepartmentNurses.loadError"));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -44,10 +46,10 @@ const DoctorDepartmentNurses = () => {
   if (!doctorId) {
     return (
       <Container className="py-5">
-        <p className="text-muted text-center">Connectez-vous en tant que médecin.</p>
+        <p className="text-muted text-center">{t("doctorMyPatients.loginDoctor")}</p>
         <div className="text-center">
           <Link to="/auth/sign-in" className="btn btn-primary">
-            Connexion
+            {t("doctorMyPatients.signIn")}
           </Link>
         </div>
       </Container>
@@ -58,11 +60,9 @@ const DoctorDepartmentNurses = () => {
     <Container fluid className="pb-5">
       <Row className="mb-4">
         <Col>
-          <h4 className="fw-bold mb-1">Infirmiers du département</h4>
+          <h4 className="fw-bold mb-1">{t("doctorDepartmentNurses.pageTitle")}</h4>
           <p className="text-muted mb-0">
-            {department
-              ? `Collaborateurs du service : ${department}`
-              : "Votre profil ne comporte pas encore de département défini (par un administrateur)."}
+            {department ? t("doctorDepartmentNurses.subtitleWithDept", { department }) : t("doctorDepartmentNurses.subtitleNoDept")}
           </p>
         </Col>
       </Row>
@@ -80,19 +80,16 @@ const DoctorDepartmentNurses = () => {
               <Spinner animation="border" variant="primary" />
             </div>
           ) : !department ? (
-            <p className="text-muted text-center py-5 mb-0">
-              Aucun département renseigné sur votre compte — la liste des infirmiers du même service ne peut pas être
-              affichée.
-            </p>
+            <p className="text-muted text-center py-5 mb-0">{t("doctorDepartmentNurses.emptyNoDept")}</p>
           ) : nurses.length === 0 ? (
-            <p className="text-muted text-center py-5 mb-0">Aucun infirmier enregistré pour ce département.</p>
+            <p className="text-muted text-center py-5 mb-0">{t("doctorDepartmentNurses.emptyNoNurses")}</p>
           ) : (
             <Table responsive hover className="mb-0 align-middle">
               <thead className="table-light">
                 <tr>
-                  <th>Nom</th>
-                  <th>Email</th>
-                  <th>Spécialité</th>
+                  <th>{t("doctorDepartmentNurses.colName")}</th>
+                  <th>{t("doctorDepartmentNurses.colEmail")}</th>
+                  <th>{t("doctorDepartmentNurses.colSpecialty")}</th>
                   <th></th>
                 </tr>
               </thead>
@@ -108,7 +105,7 @@ const DoctorDepartmentNurses = () => {
                       <td>{n.specialty || "—"}</td>
                       <td className="text-end">
                         <Link to={`/nurse/nurse-profile/${nid}`} className="btn btn-sm btn-outline-primary">
-                          Profil
+                          {t("doctorDepartmentNurses.profile")}
                         </Link>
                       </td>
                     </tr>

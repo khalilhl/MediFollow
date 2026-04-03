@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Carousel, Container, Row, Col, Form } from 'react-bootstrap';
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { authApi } from "../../services/api";
 
 const generatePath = (path) => {
@@ -8,6 +9,7 @@ const generatePath = (path) => {
 };
 
 const LockScreen = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -15,7 +17,6 @@ const LockScreen = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [pending, setPending] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -25,7 +26,6 @@ const LockScreen = () => {
       const data = await authApi.login(email || "admin@medifollow.com", password);
       if (data.pending) {
         setPending(true);
-        setSuccessMessage(data.message || "Vérifiez votre email pour confirmer la connexion.");
       } else {
         localStorage.setItem("adminToken", data.access_token);
         localStorage.setItem("adminUser", JSON.stringify(data.user || { email, role: "admin" }));
@@ -33,7 +33,7 @@ const LockScreen = () => {
         window.location.reload();
       }
     } catch (err) {
-      setError(err.message || "Email ou mot de passe incorrect");
+      setError(err.message || t("lockScreen.loginFailed"));
     } finally {
       setLoading(false);
     }
@@ -47,28 +47,28 @@ const LockScreen = () => {
             <Col md={6} className="text-center z-2">
               <div className="sign-in-detail text-white">
                 <Link to="/" className="sign-in-logo mb-2">
-                  <img src={generatePath("/assets/images/logosite.png")} className="img-fluid" alt="Logo" style={{ maxWidth: "320px", maxHeight: "100px", objectFit: "contain" }} />
+                  <img src={generatePath("/assets/images/logosite.png")} className="img-fluid" alt={t("lockScreen.logoAlt")} style={{ maxWidth: "320px", maxHeight: "100px", objectFit: "contain" }} />
                 </Link>
                 <Carousel id="carouselExampleCaptions" interval={4000} controls={false}>
                   <Carousel.Item>
-                    <img src={generatePath("/assets/images/login/image_signin_signup.png")} className="d-block w-100" alt="Slide 1" />
+                    <img src={generatePath("/assets/images/login/image_signin_signup.png")} className="d-block w-100" alt="" />
                     <div className="carousel-caption-container">
-                      <h4 className="mb-1 mt-3 text-white">Connexion Administrateur</h4>
-                      <p className="pb-5">Accédez au tableau de bord d'administration MediFollow.</p>
+                      <h4 className="mb-1 mt-3 text-white">{t("lockScreen.slide1Title")}</h4>
+                      <p className="pb-5">{t("lockScreen.slide1Desc")}</p>
                     </div>
                   </Carousel.Item>
                   <Carousel.Item>
-                    <img src={generatePath("/assets/images/login/signin1.png")} className="d-block w-100" alt="Slide 2" />
+                    <img src={generatePath("/assets/images/login/signin1.png")} className="d-block w-100" alt="" />
                     <div className="carousel-caption-container">
-                      <h4 className="mb-1 mt-3 text-white">Gestion complète</h4>
-                      <p className="pb-5">Gérez vos utilisateurs, rendez-vous et paramètres.</p>
+                      <h4 className="mb-1 mt-3 text-white">{t("lockScreen.slide2Title")}</h4>
+                      <p className="pb-5">{t("lockScreen.slide2Desc")}</p>
                     </div>
                   </Carousel.Item>
                   <Carousel.Item>
-                    <img src={generatePath("/assets/images/login/signin2.png")} className="d-block w-100" alt="Slide 3" />
+                    <img src={generatePath("/assets/images/login/signin2.png")} className="d-block w-100" alt="" />
                     <div className="carousel-caption-container">
-                      <h4 className="mb-1 mt-3 text-white">Sécurisé</h4>
-                      <p className="pb-5">Vos données sont protégées et sécurisées.</p>
+                      <h4 className="mb-1 mt-3 text-white">{t("lockScreen.slide3Title")}</h4>
+                      <p className="pb-5">{t("lockScreen.slide3Desc")}</p>
                     </div>
                   </Carousel.Item>
                 </Carousel>
@@ -78,7 +78,7 @@ const LockScreen = () => {
               <div className="sign-in-from d-flex flex-column justify-content-center">
                 <img
                   src={generatePath("/assets/images/login/Admin_photo.jpeg")}
-                  alt="user-image"
+                  alt={t("lockScreen.profileImageAlt")}
                   className="rounded-circle"
                   style={{
                     width: "130px",
@@ -89,13 +89,13 @@ const LockScreen = () => {
                     border: "3px solid rgba(255, 255, 255, 0.9)",
                   }}
                 />
-                <h4 className="mt-3 mb-0">Connexion Administrateur</h4>
-                <p>Entrez vos identifiants pour accéder au tableau de bord.</p>
+                <h4 className="mt-3 mb-0">{t("lockScreen.pageTitle")}</h4>
+                <p>{t("lockScreen.intro")}</p>
                 <Form className="mt-0" onSubmit={handleSubmit}>
                   {pending && (
                     <div className="alert alert-success py-2" role="alert">
                       <i className="ri-mail-line me-2"></i>
-                      {successMessage}
+                      {t("lockScreen.pendingEmailCheck")}
                     </div>
                   )}
                   {error && (
@@ -104,30 +104,30 @@ const LockScreen = () => {
                     </div>
                   )}
                   {pending && (
-                    <button type="button" className="btn btn-outline-secondary mt-2" onClick={() => { setPending(false); setSuccessMessage(""); }}>
-                      Réessayer une autre connexion
+                    <button type="button" className="btn btn-outline-secondary mt-2" onClick={() => { setPending(false); }}>
+                      {t("lockScreen.retryOtherLogin")}
                     </button>
                   )}
                   {!pending && (
                   <>
                   <Form.Group className="form-group mb-3" controlId="email">
-                    <Form.Label className="mb-2">Email</Form.Label>
+                    <Form.Label className="mb-2">{t("lockScreen.email")}</Form.Label>
                     <Form.Control
                       type="email"
                       className="mb-0 border"
-                      placeholder="admin@medifollow.com"
+                      placeholder={t("lockScreen.emailPlaceholder")}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                     />
                   </Form.Group>
                   <Form.Group className="form-group mb-3" controlId="password">
-                    <Form.Label className="mb-2">Mot de passe</Form.Label>
+                    <Form.Label className="mb-2">{t("lockScreen.password")}</Form.Label>
                     <div className="position-relative">
                       <Form.Control
                         type={showPassword ? "text" : "password"}
                         className="mb-0 border"
                         style={{ paddingRight: 40 }}
-                        placeholder="Mot de passe"
+                        placeholder={t("lockScreen.passwordPlaceholder")}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
@@ -137,9 +137,9 @@ const LockScreen = () => {
                         type="button"
                         className="btn btn-sm btn-outline-secondary"
                         onClick={() => setShowPassword((v) => !v)}
-                        aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                        aria-label={showPassword ? t("lockScreen.hidePasswordAria") : t("lockScreen.showPasswordAria")}
                         data-eye-clickable
-                        title={showPassword ? "Masquer" : "Afficher"}
+                        title={showPassword ? t("lockScreen.hidePassword") : t("lockScreen.showPassword")}
                         style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", zIndex: 2 }}
                       >
                         <i className={showPassword ? "ri-eye-off-line" : "ri-eye-line"}></i>
@@ -148,14 +148,14 @@ const LockScreen = () => {
                   </Form.Group>
                   <div className="d-inline-block w-100">
                     <button type="submit" className="btn btn-primary-subtle float-end mt-3" disabled={loading}>
-                      {loading ? "Connexion..." : "Se connecter"}
+                      {loading ? t("lockScreen.signingIn") : t("lockScreen.signInButton")}
                     </button>
                   </div>
                   </>
                   )}
                   <div className="sign-info mt-3">
                     <span className="dark-color d-inline-block">
-                      <Link to="/auth/sign-in">Connexion utilisateur</Link>
+                      <Link to="/auth/sign-in">{t("lockScreen.userSignInLink")}</Link>
                     </span>
                   </div>
                 </Form>

@@ -28,10 +28,15 @@ export class NotificationService {
     @InjectModel(Nurse.name) private nurseModel: Model<Nurse>,
   ) {}
 
+  /**
+   * Alerte constantes : priorité infirmier assigné (pas le médecin en parallèle).
+   * Si pas d’infirmier, notification au médecin référent uniquement.
+   */
   async createRiskAlertsForPatient(params: {
     patientId: Types.ObjectId;
     healthLogId: Types.ObjectId;
     riskScore: number;
+    hasAssignedNurse: boolean;
   }) {
     const patient = await this.patientModel.findById(params.patientId).exec();
     if (!patient) return;
@@ -39,44 +44,67 @@ export class NotificationService {
     const p = patient as Patient & { _id: Types.ObjectId };
     const patientName =
       `${p.firstName || ''} ${p.lastName || ''}`.trim() || p.email || 'Patient';
-    const title = `Urgence — ${patientName}`;
-    const body = `Score de risque ${params.riskScore}/100 · constantes ou symptômes à surveiller.`;
+    const title = `Urgence constantes — ${patientName}`;
+    const body = `Score ${params.riskScore}/100 · relevé urgent · voir aussi la messagerie.`;
 
-    const tasks: Promise<unknown>[] = [];
+    if (params.hasAssignedNurse && p.nurseId) {
+      await this.notificationModel.create({
+        recipientId: String(p.nurseId),
+        recipientRole: 'nurse',
+        type: 'risk_alert',
+        title,
+        body,
+        patientId: params.patientId,
+        patientName,
+        healthLogId: params.healthLogId,
+        read: false,
+        meta: { kind: 'risk_alert', riskScore: params.riskScore, patientName },
+      });
+      return;
+    }
 
     if (p.doctorId) {
-      tasks.push(
-        this.notificationModel.create({
-          recipientId: String(p.doctorId),
-          recipientRole: 'doctor',
-          type: 'risk_alert',
-          title,
-          body,
-          patientId: params.patientId,
-          patientName,
-          healthLogId: params.healthLogId,
-          read: false,
-        }),
-      );
+      await this.notificationModel.create({
+        recipientId: String(p.doctorId),
+        recipientRole: 'doctor',
+        type: 'risk_alert',
+        title,
+        body,
+        patientId: params.patientId,
+        patientName,
+        healthLogId: params.healthLogId,
+        read: false,
+        meta: { kind: 'risk_alert', riskScore: params.riskScore, patientName },
+      });
     }
+  }
 
-    if (p.nurseId) {
-      tasks.push(
-        this.notificationModel.create({
-          recipientId: String(p.nurseId),
-          recipientRole: 'nurse',
-          type: 'risk_alert',
-          title,
-          body,
-          patientId: params.patientId,
-          patientName,
-          healthLogId: params.healthLogId,
-          read: false,
-        }),
-      );
-    }
-
-    await Promise.all(tasks);
+  /** Escalade infirmier → médecin (messagerie + notification médecin). */
+  async notifyDoctorVitalEscalation(params: {
+    doctorId: string;
+    patientId: Types.ObjectId;
+    healthLogId: Types.ObjectId;
+    patientName: string;
+    nurseName: string;
+  }) {
+    const title = `Escalade infirmier — ${params.patientName}`;
+    const body = `${params.nurseName} sollicite votre avis pour un cas de constantes vitales critiques.`;
+    await this.notificationModel.create({
+      recipientId: params.doctorId,
+      recipientRole: 'doctor',
+      type: 'vital_escalation',
+      title,
+      body,
+      patientId: params.patientId,
+      patientName: params.patientName,
+      healthLogId: params.healthLogId,
+      read: false,
+      meta: {
+        kind: 'vital_escalation',
+        nurseName: params.nurseName,
+        patientName: params.patientName,
+      },
+    });
   }
 
   /** Nouveau RDV confirmé / ajouté à l’agenda du médecin. */
@@ -119,6 +147,13 @@ export class NotificationService {
       patientName,
       appointmentId: appt._id,
       read: false,
+      meta: {
+        kind: 'appointment_new',
+        appointmentTitle: title,
+        date: String(appt.date || ''),
+        time: String(appt.time || ''),
+        patientName,
+      },
     });
   }
 
@@ -178,6 +213,14 @@ export class NotificationService {
         patientName,
         appointmentId: appt._id,
         read: false,
+        meta: {
+          kind: 'appointment_request',
+          appointmentTitle: titleMed,
+          date: String(appt.requestedDate || appt.date || ''),
+          time: String(appt.requestedTime || appt.time || ''),
+          patientName,
+          doctorName: rawDn || undefined,
+        },
       });
     }
   }
@@ -204,6 +247,7 @@ export class NotificationService {
       patientId: unknown;
       patientName?: string;
       appointmentId: unknown;
+      meta?: Record<string, unknown>;
     }[]
   > {
     const today = this.localTodayYmd();
@@ -236,6 +280,7 @@ export class NotificationService {
       patientId: unknown;
       patientName?: string;
       appointmentId: unknown;
+      meta?: Record<string, unknown>;
     }[] = [];
 
     for (const row of rows) {
@@ -270,6 +315,14 @@ export class NotificationService {
         patientId: pid,
         patientName: patientName || undefined,
         appointmentId: aid,
+        meta: {
+          kind: 'appointment_reminder_24h',
+          reminderRole: role === 'patient' ? 'patient' : 'doctor',
+          appointmentTitle: titleMed,
+          date: String(row.date || ''),
+          time: String(row.time || ''),
+          patientName: patientName || '',
+        },
       });
     }
 
@@ -306,6 +359,25 @@ export class NotificationService {
   async markAllRead(recipientId: string, recipientRole: RecipientRole) {
     return this.notificationModel
       .updateMany({ recipientId: String(recipientId), recipientRole, read: false }, { read: true })
+      .exec();
+  }
+
+  async deleteOne(id: string, recipientId: string, recipientRole: RecipientRole) {
+    if (String(id).startsWith('virt-')) return { deleted: false };
+    if (!Types.ObjectId.isValid(id)) return { deleted: false };
+    const res = await this.notificationModel
+      .deleteOne({
+        _id: new Types.ObjectId(id),
+        recipientId: String(recipientId),
+        recipientRole,
+      })
+      .exec();
+    return { deleted: res.deletedCount > 0 };
+  }
+
+  async deleteAllForUser(recipientId: string, recipientRole: RecipientRole) {
+    return this.notificationModel
+      .deleteMany({ recipientId: String(recipientId), recipientRole })
       .exec();
   }
 
@@ -625,6 +697,74 @@ export class NotificationService {
     }
   }
 
+  /** Messages dans un groupe (personnel + patients membres). */
+  async notifyGroupChatMessage(params: {
+    senderRole: 'doctor' | 'nurse' | 'patient';
+    senderId: string;
+    senderName: string;
+    groupName: string;
+    members: { role: 'doctor' | 'nurse' | 'patient'; id: string }[];
+    kind: 'text' | 'voice' | 'image' | 'video' | 'document' | 'call';
+    bodyText: string;
+  }) {
+    const { senderRole, senderId, senderName, groupName, members, kind, bodyText } = params;
+    const base = this.buildChatNotificationContent(kind, bodyText, senderName);
+    const titleIn = `${groupName} — ${base.title}`;
+    const tasks: Promise<unknown>[] = [];
+    for (const m of members) {
+      if (m.id === senderId && m.role === senderRole) continue;
+      tasks.push(
+        this.notificationModel.create({
+          recipientId: m.id,
+          recipientRole: m.role,
+          type: base.type,
+          title: titleIn,
+          body: base.body,
+          read: false,
+        }),
+      );
+    }
+    await Promise.all(tasks);
+    const out = this.buildSenderOutboxContent(kind, bodyText, groupName);
+    await this.notificationModel.create({
+      recipientId: senderId,
+      recipientRole: senderRole,
+      type: out.type,
+      title: out.title,
+      body: out.body,
+      read: false,
+    });
+  }
+
+  /** Nouveau message interne (messagerie MediFollow) — un enregistrement par destinataire. */
+  async notifyNewInternalMail(params: {
+    messageId: string;
+    subject: string;
+    senderName: string;
+    recipients: { role: 'patient' | 'doctor' | 'nurse'; id: string; stateId: string }[];
+  }) {
+    const subj = String(params.subject || '').trim() || '(Sans objet)';
+    const preview = subj.slice(0, 200);
+    const tasks = params.recipients.map((r) =>
+      this.notificationModel.create({
+        recipientId: r.id,
+        recipientRole: r.role,
+        type: 'mail_inbox',
+        title: `Nouveau message — ${params.senderName}`,
+        body: preview,
+        read: false,
+        meta: {
+          kind: 'mail_inbox',
+          messageId: params.messageId,
+          stateId: r.stateId,
+          subject: subj,
+          senderName: params.senderName,
+        },
+      }),
+    );
+    await Promise.all(tasks);
+  }
+
   /** Appel WebRTC entrant (socket voice:invite). */
   async notifyVoiceInvite(params: {
     calleeUserId: string;
@@ -646,6 +786,11 @@ export class NotificationService {
       title,
       body,
       read: false,
+      meta: {
+        kind: 'chat_voice_invite',
+        callerName: params.callerName,
+        isVideo: params.isVideo,
+      },
     });
   }
 }

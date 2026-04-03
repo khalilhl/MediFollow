@@ -13,13 +13,6 @@ import { useSelector } from 'react-redux';
 
 
 // Import Image
-import flag01 from "/assets/images/small/flag-01.png"
-import flag02 from "/assets/images/small/flag-02.png"
-import flag03 from "/assets/images/small/flag-03.png"
-import flag04 from "/assets/images/small/flag-04.png"
-import flag05 from "/assets/images/small/flag-05.png"
-import flag06 from "/assets/images/small/flag-06.png"
-
 import user01 from "/assets/images/user/01.jpg"
 import user02 from "/assets/images/user/02.jpg"
 import user03 from "/assets/images/user/03.jpg"
@@ -29,6 +22,9 @@ import user001 from "/assets/images/user/001.png"
 
 import StaffNotificationsBell from "../../StaffNotificationsBell"
 import PatientMedicationNotificationsBell from "../../PatientMedicationNotificationsBell"
+import LanguageSwitcher from "../../LanguageSwitcher"
+import { SvgFlagTn, SvgFlagDz } from "../../language-flag-svgs"
+import { useTranslation } from "react-i18next"
 
 const generatePath = (path) => {
   const base = (import.meta.env.BASE_URL || "/").replace(/\/+$/, "") || "";
@@ -75,6 +71,7 @@ const getNursePhoto = (nurseUser) => {
 };
 
 const Header = () => {
+   const { t } = useTranslation();
    const navigate = useNavigate();
    const pageLayout = useSelector(SettingSelector.page_layout)
    const [adminUser, setAdminUser] = useState(() => {
@@ -279,7 +276,7 @@ const Header = () => {
                      <Nav.Item as="li" className="nav-item dropdown search-width pt-2 pt-lg-0">
                         <div className="form-group input-group mb-0 search-input">
                            <input type="text" className="form-control"
-                              placeholder="Type here to search..." />{" "}
+                              placeholder={t("nav.searchPlaceholder")} />{" "}
                            <span className="input-group-text">
                               <svg className="icon-20 text-primary" width="20" height="20"
                                  viewBox="0 0 24 24" fill="none"
@@ -299,74 +296,16 @@ const Header = () => {
                   </Col>
                   <Col lg={8} md={6}
                      className="d-flex justify-content-end align-items-center">
-                     <Dropdown as="li" className="nav-item">
-                        <Dropdown.Toggle
-                           as="a" bsPrefix=' ' to="#" className="nav-link d-none d-xl-block"
-                           id="notification-drop" data-bs-toggle="dropdown">
-                           <img src={flag01}
-                              alt="img-flaf" className="img-fluid me-1"
-                              style={{ height: "16px", width: "16px" }} /> English <i
-                                 className="ri-arrow-down-s-line"></i>
-                        </Dropdown.Toggle>
-                        <Dropdown.Menu as="div" drop={'end'} className="p-0 sub-drop dropdown-menu dropdown-menu-end"
-                           aria-labelledby="notification-drop">
-                           <div className="m-0 -none card">
-
-                              <div className="p-0 card-body">
-                                 <a href="#" className="iq-sub-card">
-                                    <div className="d-flex align-items-center">
-                                       <img
-                                          src={flag02}
-                                          alt loading="lazy" />
-                                       <div className="ms-3 flex-grow-1 text-start">
-                                          <p className="mb-0 ">French</p>
-                                       </div>
-                                    </div>
-                                 </a>
-                                 <a href="#" className="iq-sub-card">
-                                    <div className="d-flex align-items-center">
-                                       <img
-                                          src={flag03}
-                                          alt loading="lazy" />
-                                       <div className="ms-3 flex-grow-1 text-start">
-                                          <p className="mb-0 ">Spanish</p>
-                                       </div>
-                                    </div>
-                                 </a>
-                                 <a href="#" className="iq-sub-card">
-                                    <div className="d-flex align-items-center">
-                                       <img
-                                          src={flag04}
-                                          alt loading="lazy" />
-                                       <div className="ms-3 flex-grow-1 text-start">
-                                          <p className="mb-0 ">Italian</p>
-                                       </div>
-                                    </div>
-                                 </a>
-                                 <a href="#" className="iq-sub-card">
-                                    <div className="d-flex align-items-center">
-                                       <img
-                                          src={flag05}
-                                          alt loading="lazy" />
-                                       <div className="ms-3 flex-grow-1 text-start">
-                                          <p className="mb-0 ">German</p>
-                                       </div>
-                                    </div>
-                                 </a>
-                                 <a href="#" className="iq-sub-card">
-                                    <div className="d-flex align-items-center">
-                                       <img
-                                          src={flag06}
-                                          alt loading="lazy" />
-                                       <div className="ms-3 flex-grow-1 text-start">
-                                          <p className="mb-0 ">Japanese</p>
-                                       </div>
-                                    </div>
-                                 </a>
-                              </div>
-                           </div>
-                        </Dropdown.Menu>
-                     </Dropdown>
+                     <span
+                        className="d-inline-flex align-items-center gap-1 me-2 flex-shrink-0"
+                        title={t("nav.regionFlagsTitle")}
+                        role="img"
+                        aria-label={t("nav.regionFlagsTitle")}
+                     >
+                        <SvgFlagTn width={26} />
+                        <SvgFlagDz width={26} />
+                     </span>
+                     <LanguageSwitcher toggleClassName="nav-link d-none d-xl-block" />
                      <Nav.Item as="li" className="nav-item iq-full-screen d-none d-xl-block"
                         id="fullscreen-item">
                         <a href="#" className="nav-link" id="btnFullscreen" onClick={toggleFullScreen}>
@@ -573,12 +512,12 @@ const Header = () => {
                            id="notification-drop">
                            <img src={currentUser ? (isDoctor ? (getDoctorPhoto(doctorUser) || user001) : isPatient ? (getPatientPhoto(patientUser) || user001) : isNurse ? (getNursePhoto(nurseUser) || user001) : (getAdminPhoto(adminUser) || DEFAULT_ADMIN_PHOTO)) : user001}
                               style={{ width: "50px", height: "50px", objectFit: "cover", objectPosition: "50% 15%" }}
-                              className="img-fluid rounded" alt="user" />
+                              className="img-fluid rounded" alt={t("nav.userAvatarAlt")} />
                            <div className="caption d-none d-lg-block ms-3">
                               <h6 className="mb-0 line-height">
                                  {isDoctor ? `Dr. ${doctorUser?.firstName || ''} ${doctorUser?.lastName || ''}`.trim() || doctorUser?.email : isPatient ? `${patientUser?.firstName || ''} ${patientUser?.lastName || ''}`.trim() || patientUser?.email : isNurse ? `${nurseUser?.firstName || ''} ${nurseUser?.lastName || ''}`.trim() || nurseUser?.email : (adminUser?.name || adminUser?.email || "Admin")}
                               </h6>
-                              <span className="font-size-12">Connecté</span>
+                              <span className="font-size-12">{t("nav.connected")}</span>
                            </div>{" "}
                         </Dropdown.Toggle>{" "}
                         <Dropdown.Menu as="div" className="p-0 sub-drop dropdown-menu dropdown-menu-end"
@@ -587,8 +526,8 @@ const Header = () => {
                               <div
                                  className="py-3 card-header d-flex justify-content-between bg-primary mb-0 rounded-top-3">
                                  <div className="header-title">
-                                    <h5 className="mb-0 text-white">All Notifications</h5>
-                                    <span className="text-white ">Available</span>
+                                    <h5 className="mb-0 text-white">{t("nav.allNotifications")}</h5>
+                                    <span className="text-white ">{t("nav.available")}</span>
                                  </div>
                               </div>
                               <div className="p-0 card-body">
@@ -600,8 +539,8 @@ const Header = () => {
                                           <i className="ri-file-user-line "></i>
                                        </div>
                                        <div className="ms-3 flex-grow-1 text-start">
-                                          <h6 className="mb-0 ">My Profile</h6>
-                                          <p className="mb-0">View your doctor profile.</p>
+                                          <h6 className="mb-0 ">{t("nav.myProfile")}</h6>
+                                          <p className="mb-0">{t("nav.viewDoctorProfile")}</p>
                                        </div>
                                     </div>
                                  </Link>
@@ -611,8 +550,8 @@ const Header = () => {
                                           <i className="ri-profile-line "></i>
                                        </div>
                                        <div className="ms-3 flex-grow-1 text-start">
-                                          <h6 className="mb-0 ">Edit Profile</h6>
-                                          <p className="mb-0">Modify your personal details.</p>
+                                          <h6 className="mb-0 ">{t("nav.editProfile")}</h6>
+                                          <p className="mb-0">{t("nav.modifyPersonalDetails")}</p>
                                        </div>
                                     </div>
                                  </Link>
@@ -622,8 +561,8 @@ const Header = () => {
                                           <i className="ri-account-box-line "></i>
                                        </div>
                                        <div className="ms-3 flex-grow-1 text-start">
-                                          <h6 className="mb-0 ">Account Settings</h6>
-                                          <p className="mb-0">Manage your account parameters.</p>
+                                          <h6 className="mb-0 ">{t("nav.accountSettings")}</h6>
+                                          <p className="mb-0">{t("nav.manageAccountSettings")}</p>
                                        </div>
                                     </div>
                                  </Link>
@@ -633,8 +572,8 @@ const Header = () => {
                                           <i className="ri-lock-line"></i>
                                        </div>
                                        <div className="ms-3 flex-grow-1 text-start">
-                                          <h6 className="mb-0 ">Privacy Settings</h6>
-                                          <p className="mb-0">Control your privacy parameters.</p>
+                                          <h6 className="mb-0 ">{t("nav.privacySettings")}</h6>
+                                          <p className="mb-0">{t("nav.controlPrivacy")}</p>
                                        </div>
                                     </div>
                                  </Link>
@@ -647,8 +586,8 @@ const Header = () => {
                                           <i className="ri-file-user-line "></i>
                                        </div>
                                        <div className="ms-3 flex-grow-1 text-start">
-                                          <h6 className="mb-0 ">Mon profil</h6>
-                                          <p className="mb-0">Voir mon profil infirmier.</p>
+                                          <h6 className="mb-0 ">{t("nav.myProfile")}</h6>
+                                          <p className="mb-0">{t("nav.viewNurseProfile")}</p>
                                        </div>
                                     </div>
                                  </Link>
@@ -658,8 +597,8 @@ const Header = () => {
                                           <i className="ri-account-box-line "></i>
                                        </div>
                                        <div className="ms-3 flex-grow-1 text-start">
-                                          <h6 className="mb-0 ">Paramètres du compte</h6>
-                                          <p className="mb-0">Gérer vos paramètres.</p>
+                                          <h6 className="mb-0 ">{t("nav.accountSettings")}</h6>
+                                          <p className="mb-0">{t("nav.manageAccountSettings")}</p>
                                        </div>
                                     </div>
                                  </Link>
@@ -672,8 +611,8 @@ const Header = () => {
                                           <i className="ri-file-user-line "></i>
                                        </div>
                                        <div className="ms-3 flex-grow-1 text-start">
-                                          <h6 className="mb-0 ">Mon profil</h6>
-                                          <p className="mb-0">Voir mon profil patient.</p>
+                                          <h6 className="mb-0 ">{t("nav.myProfile")}</h6>
+                                          <p className="mb-0">{t("nav.viewPatientProfile")}</p>
                                        </div>
                                     </div>
                                  </Link>
@@ -683,8 +622,8 @@ const Header = () => {
                                           <i className="ri-account-box-line "></i>
                                        </div>
                                        <div className="ms-3 flex-grow-1 text-start">
-                                          <h6 className="mb-0 ">Paramètres du compte</h6>
-                                          <p className="mb-0">Gérer vos paramètres.</p>
+                                          <h6 className="mb-0 ">{t("nav.accountSettings")}</h6>
+                                          <p className="mb-0">{t("nav.manageAccountSettings")}</p>
                                        </div>
                                     </div>
                                  </Link>
@@ -698,9 +637,8 @@ const Header = () => {
                                           <i className="ri-file-user-line "></i>
                                        </div>
                                        <div className="ms-3 flex-grow-1 text-start">
-                                          <h6 className="mb-0 ">My Profile</h6>
-                                          <p className="mb-0">View personal profile
-                                             details.</p>
+                                          <h6 className="mb-0 ">{t("nav.myProfile")}</h6>
+                                          <p className="mb-0">{t("nav.adminProfileDetails")}</p>
                                        </div>
 
                                     </div>
@@ -712,9 +650,8 @@ const Header = () => {
                                           <i className="ri-profile-line "></i>
                                        </div>
                                        <div className="ms-3 flex-grow-1 text-start">
-                                          <h6 className="mb-0 ">Edit Profile</h6>
-                                          <p className="mb-0">Modify your personal
-                                             details.</p>
+                                          <h6 className="mb-0 ">{t("nav.editProfile")}</h6>
+                                          <p className="mb-0">{t("nav.modifyPersonalDetails")}</p>
                                        </div>
 
                                     </div>
@@ -726,9 +663,8 @@ const Header = () => {
                                           <i className="ri-account-box-line "></i>
                                        </div>
                                        <div className="ms-3 flex-grow-1 text-start">
-                                          <h6 className="mb-0 ">Account Settings</h6>
-                                          <p className="mb-0">Manage your account
-                                             parameters.</p>
+                                          <h6 className="mb-0 ">{t("nav.accountSettings")}</h6>
+                                          <p className="mb-0">{t("nav.manageAccountSettings")}</p>
                                        </div>
 
                                     </div>
@@ -740,9 +676,8 @@ const Header = () => {
                                           <i className="ri-lock-line"></i>
                                        </div>
                                        <div className="ms-3 flex-grow-1 text-start">
-                                          <h6 className="mb-0 ">Privacy Settings</h6>
-                                          <p className="mb-0">Control your privacy
-                                             parameters.</p>
+                                          <h6 className="mb-0 ">{t("nav.privacySettings")}</h6>
+                                          <p className="mb-0">{t("nav.controlPrivacy")}</p>
                                        </div>
 
                                     </div>
@@ -755,7 +690,7 @@ const Header = () => {
                                        className="btn btn-primary-subtle w-100"
                                        onClick={handleSignOut}
                                     >
-                                       Sign out
+                                       {t("nav.signOut")}
                                        <i className="ri-login-box-line ms-2"></i>
                                     </button>
                                  </div>
@@ -773,72 +708,7 @@ const Header = () => {
                <Row className="flex-grow-1 pt-4 pb-4 px-2">
 
                   <Col md={12} className="d-flex justify-content-end align-items-center">
-                     <Dropdown as="li" className="nav-item">
-                        <Dropdown.Toggle as="a" bsPrefix=' ' to="#" className="nav-link d-block d-xl-none"
-                           id="notification-drop">
-                           <img src={flag01}
-                              alt="img-flaf" className="img-fluid me-1"
-                              style={{ height: "16px", width: "16px" }} /> English <i
-                                 className="ri-arrow-down-s-line"></i>
-                        </Dropdown.Toggle>
-                        <Dropdown.Menu as="div" className="p-0 sub-drop dropdown-menu-end"
-                           aria-labelledby="notification-drop">
-                           <div className="m-0 -none card">
-                              <div className="p-0 card-body">
-                                 <Link to="#" className="iq-sub-card">
-                                    <div className="d-flex align-items-center">
-                                       <img
-                                          src={flag02}
-                                          alt loading="lazy" />
-                                       <div className="ms-3 flex-grow-1 text-start">
-                                          <p className="mb-0 ">French</p>
-                                       </div>
-                                    </div>
-                                 </Link>
-                                 <Link to="#" className="iq-sub-card">
-                                    <div className="d-flex align-items-center">
-                                       <img
-                                          src={flag03}
-                                          alt loading="lazy" />
-                                       <div className="ms-3 flex-grow-1 text-start">
-                                          <p className="mb-0 ">Spanish</p>
-                                       </div>
-                                    </div>
-                                 </Link>
-                                 <Link to="#" className="iq-sub-card">
-                                    <div className="d-flex align-items-center">
-                                       <img
-                                          src={flag04}
-                                          alt loading="lazy" />
-                                       <div className="ms-3 flex-grow-1 text-start">
-                                          <p className="mb-0 ">Italian</p>
-                                       </div>
-                                    </div>
-                                 </Link>
-                                 <Link to="#" className="iq-sub-card">
-                                    <div className="d-flex align-items-center">
-                                       <img
-                                          src={flag05}
-                                          alt loading="lazy" />
-                                       <div className="ms-3 flex-grow-1 text-start">
-                                          <p className="mb-0 ">German</p>
-                                       </div>
-                                    </div>
-                                 </Link>
-                                 <Link to="#" className="iq-sub-card">
-                                    <div className="d-flex align-items-center">
-                                       <img
-                                          src={flag06}
-                                          alt loading="lazy" />
-                                       <div className="ms-3 flex-grow-1 text-start">
-                                          <p className="mb-0 ">Japanese</p>
-                                       </div>
-                                    </div>
-                                 </Link>
-                              </div>
-                           </div>
-                        </Dropdown.Menu>
-                     </Dropdown>{" "}
+                     <LanguageSwitcher toggleClassName="nav-link d-block d-xl-none" />{" "}
                      <li className="nav-item dropdown">
                      </li>
                      <Nav.Item className="iq-full-screen iq-full-screen2 d-block d-xl-none"
@@ -869,7 +739,7 @@ const Header = () => {
                               <div
                                  className="py-3 card-header d-flex justify-content-between bg-primary mb-0">
                                  <div className="header-title">
-                                    <h5 className="mb-0 text-white">All Notifications</h5>
+                                    <h5 className="mb-0 text-white">{t("nav.allNotifications")}</h5>
                                  </div>
                               </div>
                               <div className="p-0 card-body">
@@ -945,7 +815,7 @@ const Header = () => {
                               <div
                                  className="py-3 card-header d-flex justify-content-between bg-primary mb-0">
                                  <div className="header-title">
-                                    <h5 className="mb-0 text-white">All Notifications</h5>
+                                    <h5 className="mb-0 text-white">{t("nav.allNotifications")}</h5>
                                  </div>
                               </div>
                               <div className="p-0 card-body">

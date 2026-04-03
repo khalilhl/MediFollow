@@ -7,6 +7,7 @@ import React, {
     useRef,
     useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 import { Modal, Spinner } from "react-bootstrap";
 import { io } from "socket.io-client";
 import { chatApi } from "../../services/api";
@@ -81,6 +82,7 @@ function cleanupPeer(pcRef, streamRef) {
  * Signalisation Socket.IO (/voice) + WebRTC audio ou vidéo 1:1.
  */
 const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext, onAfterCallLogged }, ref) {
+    const { t } = useTranslation();
     const [phase, setPhase] = useState("idle");
     const [pendingIncoming, setPendingIncoming] = useState(null);
     const [errorHint, setErrorHint] = useState(null);
@@ -318,7 +320,7 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
             const remote =
                 remoteAudioRef.current?.srcObject || remoteVideoRef.current?.srcObject;
             if (!local || !remote) {
-                setErrorHint("Flux audio incomplet — patientez encore un instant.");
+                setErrorHint(t("chat.voice.errorStreamIncomplete"));
                 return;
             }
             try {
@@ -332,7 +334,7 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
                 if (MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
                     mimeType = "audio/webm;codecs=opus";
                 } else if (!MediaRecorder.isTypeSupported("audio/webm")) {
-                    setErrorHint("Enregistrement non supporté sur ce navigateur.");
+                    setErrorHint(t("chat.voice.errorRecordUnsupported"));
                     try {
                         ctx.close();
                     } catch {
@@ -378,7 +380,7 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
                 setCallRecording(true);
             } catch (e) {
                 console.error(e);
-                setErrorHint("Enregistrement impossible sur ce navigateur.");
+                setErrorHint(t("chat.voice.errorRecordFailed"));
             }
         } else {
             pendingHangupAfterRecordRef.current = null;
@@ -391,7 +393,7 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
                 }
             }
         }
-    }, [callRecording, enqueueHangup]);
+    }, [callRecording, enqueueHangup, t]);
 
     useEffect(() => {
         if (!session?.id) return undefined;
@@ -417,7 +419,7 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
             setPendingIncoming({
                 roomId: payload.roomId,
                 fromUserId: payload.fromUserId,
-                callerName: payload.callerName || "Appel",
+                callerName: payload.callerName || t("chat.voice.contactFallback"),
                 offer: payload.offer,
                 video: isVideo,
             });
@@ -435,7 +437,7 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
                 setPhase("connected");
             } catch (e) {
                 console.error(e);
-                setErrorHint("Échec de la connexion");
+                setErrorHint(t("chat.voice.errorConnectionFailed"));
                 hangup(false);
             }
         };
@@ -454,7 +456,7 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
         };
 
         const onRejected = () => {
-            setErrorHint("Appel refusé");
+            setErrorHint(t("chat.voice.errorCallRejected"));
             hangup(false);
         };
 
@@ -486,7 +488,7 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
             roomIdRef.current = null;
             remoteUserIdRef.current = null;
         };
-    }, [session?.id, hangup]);
+    }, [session?.id, hangup, t]);
 
     useEffect(() => {
         const ph = phaseRef.current;
@@ -505,7 +507,7 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
         if (!peerContext?.remoteUserId || !peerContext?.roomId) return;
         const s = socketRef.current;
         if (!s?.connected) {
-            setErrorHint("Signalisation indisponible (reconnexion…)");
+            setErrorHint(t("chat.voice.errorSignalUnavailable"));
             return;
         }
         if (phaseRef.current !== "idle") return;
@@ -560,11 +562,11 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
         } catch (e) {
             console.error(e);
             setErrorHint(
-                isVideo ? "Caméra ou micro inaccessible / refusé" : "Microphone inaccessible ou refusé",
+                isVideo ? t("chat.voice.errorVideoDenied") : t("chat.voice.errorMicDenied"),
             );
             hangup(false);
         }
-    }, [peerContext, session, hangup, handleRemoteTrack]);
+    }, [peerContext, session, hangup, handleRemoteTrack, t]);
 
     const acceptIncoming = useCallback(async () => {
         const p = pendingIncoming;
@@ -619,11 +621,11 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
         } catch (e) {
             console.error(e);
             setErrorHint(
-                isVideo ? "Impossible d’accepter (caméra / micro)" : "Impossible d’accepter l’appel",
+                isVideo ? t("chat.voice.errorAcceptVideo") : t("chat.voice.errorAcceptAudio"),
             );
             hangup(false);
         }
-    }, [pendingIncoming, hangup, handleRemoteTrack]);
+    }, [pendingIncoming, hangup, handleRemoteTrack, t]);
 
     const rejectIncoming = useCallback(() => {
         const p = pendingIncoming;
@@ -692,7 +694,7 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
                                 type="button"
                                 className="btn-close btn-close-white position-absolute top-0 end-0 mt-2 me-2"
                                 onClick={rejectIncoming}
-                                aria-label="Refuser l’appel"
+                                aria-label={t("chat.voice.rejectAria")}
                                 style={{ zIndex: 2 }}
                             />
                             <div className="voice-call-modal__avatar voice-call-modal__avatar--ring mb-3">
@@ -703,16 +705,12 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
                                 />
                             </div>
                             <p id="voice-call-modal-title" className="voice-call-modal__title mb-2 fw-semibold">
-                                {pendingIncoming?.video ? "Appel vidéo entrant" : "Appel entrant"}
+                                {pendingIncoming?.video ? t("chat.voice.incomingVideo") : t("chat.voice.incomingAudio")}
                             </p>
                             <p className="voice-call-modal__subtitle small mb-4">
-                                <strong className="text-white">{pendingIncoming?.callerName || "Contact"}</strong>
+                                <strong className="text-white">{pendingIncoming?.callerName || t("chat.voice.contactFallback")}</strong>
                                 <br />
-                                {pendingIncoming?.video ? (
-                                    <>souhaite un <strong>appel vidéo</strong>.</>
-                                ) : (
-                                    <>souhaite un appel vocal.</>
-                                )}
+                                {pendingIncoming?.video ? t("chat.voice.wantsVideo") : t("chat.voice.wantsAudio")}
                             </p>
                             <div className="d-flex flex-wrap gap-2 justify-content-center">
                                 <button
@@ -720,7 +718,7 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
                                     className="voice-call-btn voice-call-btn--secondary-outline"
                                     onClick={rejectIncoming}
                                 >
-                                    Refuser
+                                    {t("chat.voice.reject")}
                                 </button>
                                 <button
                                     type="button"
@@ -728,7 +726,7 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
                                     onClick={acceptIncoming}
                                 >
                                     <i className={pendingIncoming?.video ? "ri-vidicon-fill" : "ri-phone-fill"} aria-hidden />
-                                    Accepter
+                                    {t("chat.voice.accept")}
                                 </button>
                             </div>
                         </>
@@ -742,17 +740,16 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
                                 {phase === "outgoing" && (
                                     <>
                                         <Spinner animation="border" role="status" variant="light" className="mb-2" />
-                                        <p className="voice-call-modal__title mb-1 fw-semibold">Appel vidéo</p>
+                                        <p className="voice-call-modal__title mb-1 fw-semibold">{t("chat.voice.outgoingVideo")}</p>
                                         <p className="voice-call-modal__subtitle small mb-3">
-                                            Connexion à{" "}
-                                            <strong className="text-white">{peerContext?.label || "…"}</strong>…
+                                            {t("chat.voice.connectingLine", { name: peerContext?.label || "…" })}
                                         </p>
                                         <div className="voice-call-toolbar">
                                             <button
                                                 type="button"
                                                 className={`voice-call-btn ${micMuted ? "voice-call-btn--accent" : "voice-call-btn--ghost"}`}
                                                 onClick={toggleMicMute}
-                                                title={micMuted ? "Réactiver le micro" : "Couper le micro"}
+                                                title={micMuted ? t("chat.voice.micMuted") : t("chat.voice.micOn")}
                                             >
                                                 <i className={micMuted ? "ri-mic-off-line" : "ri-mic-line"} aria-hidden />
                                             </button>
@@ -760,7 +757,7 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
                                                 type="button"
                                                 className={`voice-call-btn ${camOff ? "voice-call-btn--accent" : "voice-call-btn--ghost"}`}
                                                 onClick={toggleCam}
-                                                title={camOff ? "Réactiver la caméra" : "Couper la caméra"}
+                                                title={camOff ? t("chat.voice.camOff") : t("chat.voice.camOn")}
                                             >
                                                 <i className={camOff ? "ri-camera-off-line" : "ri-camera-line"} aria-hidden />
                                             </button>
@@ -769,53 +766,54 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
                                             type="button"
                                             className="voice-call-btn voice-call-btn--hangup mt-2"
                                             onClick={() => hangup(true)}
-                                            title="Raccrocher"
-                                            aria-label="Raccrocher"
+                                            title={t("chat.voice.hangup")}
+                                            aria-label={t("chat.voice.hangupAria")}
                                         >
                                             <i
                                                 className="ri-phone-fill me-2"
                                                 style={{ transform: "rotate(135deg)" }}
                                                 aria-hidden
                                             />
-                                            Raccrocher
+                                            {t("chat.voice.hangup")}
                                         </button>
                                     </>
                                 )}
                                 {phase === "connected" && (
                                     <>
-                                        <p className="voice-call-modal__title mb-1 fw-semibold">Visioconférence</p>
+                                        <p className="voice-call-modal__title mb-1 fw-semibold">{t("chat.voice.videoConference")}</p>
                                         <p
                                             className="voice-call-modal__timer mb-1"
-                                            aria-label="Durée de l’appel"
+                                            aria-label={t("chat.voice.callDurationAria")}
                                             aria-live="polite"
                                         >
                                             {callTimerLabel}
                                         </p>
                                         <p className="voice-call-modal__subtitle small mb-2">
-                                            avec <strong className="text-white">{peerContext?.label || "…"}</strong>
+                                            {t("chat.voice.with")}{" "}
+                                            <strong className="text-white">{peerContext?.label || "…"}</strong>
                                         </p>
                                         <div className="voice-call-toolbar">
                                             <button
                                                 type="button"
                                                 className={`voice-call-btn ${micMuted ? "voice-call-btn--accent" : "voice-call-btn--ghost"}`}
                                                 onClick={toggleMicMute}
-                                                title={micMuted ? "Réactiver le micro" : "Couper le micro"}
+                                                title={micMuted ? t("chat.voice.micMuted") : t("chat.voice.micOn")}
                                                 aria-pressed={micMuted}
                                             >
                                                 <i className={micMuted ? "ri-mic-off-line" : "ri-mic-line"} aria-hidden />
                                                 <span className="d-none d-sm-inline">
-                                                    {micMuted ? "Micro" : "Micro"}
+                                                    {micMuted ? t("chat.voice.microphoneMuted") : t("chat.voice.microphone")}
                                                 </span>
                                             </button>
                                             <button
                                                 type="button"
                                                 className={`voice-call-btn ${camOff ? "voice-call-btn--accent" : "voice-call-btn--ghost"}`}
                                                 onClick={toggleCam}
-                                                title={camOff ? "Réactiver la caméra" : "Couper la caméra"}
+                                                title={camOff ? t("chat.voice.camOff") : t("chat.voice.camOn")}
                                                 aria-pressed={camOff}
                                             >
                                                 <i className={camOff ? "ri-camera-off-line" : "ri-camera-line"} aria-hidden />
-                                                <span className="d-none d-sm-inline">Caméra</span>
+                                                <span className="d-none d-sm-inline">{t("chat.voice.camera")}</span>
                                             </button>
                                             <button
                                                 type="button"
@@ -823,8 +821,8 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
                                                 onClick={toggleCallRecording}
                                                 title={
                                                     callRecording
-                                                        ? "Arrêter l’enregistrement et télécharger"
-                                                        : "Enregistrer la conversation (audio)"
+                                                        ? t("chat.voice.recordStop")
+                                                        : t("chat.voice.recordStart")
                                                 }
                                                 aria-pressed={callRecording}
                                             >
@@ -833,26 +831,26 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
                                                     aria-hidden
                                                 />
                                                 <span className="d-none d-sm-inline">
-                                                    {callRecording ? "Stop" : "Enreg."}
+                                                    {callRecording ? t("chat.voice.recordStopShort") : t("chat.voice.recordShort")}
                                                 </span>
                                             </button>
                                         </div>
                                         <p className="voice-call-modal__hint mb-2">
-                                            Enregistrement : audio .webm (mix des deux voix).
+                                            {t("chat.voice.hintVideo")}
                                         </p>
                                         <button
                                             type="button"
                                             className="voice-call-btn voice-call-btn--hangup"
                                             onClick={() => hangup(true)}
-                                            title="Raccrocher"
-                                            aria-label="Raccrocher"
+                                            title={t("chat.voice.hangup")}
+                                            aria-label={t("chat.voice.hangupAria")}
                                         >
                                             <i
                                                 className="ri-phone-fill me-2"
                                                 style={{ transform: "rotate(135deg)" }}
                                                 aria-hidden
                                             />
-                                            Raccrocher
+                                            {t("chat.voice.hangup")}
                                         </button>
                                     </>
                                 )}
@@ -866,21 +864,21 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
                                 <Spinner animation="border" role="status" variant="light" />
                             </div>
                             <p id="voice-call-modal-title" className="voice-call-modal__title mb-2 fw-semibold">
-                                Appel en cours
+                                {t("chat.voice.outgoingAudio")}
                             </p>
                             <p className="voice-call-modal__subtitle small mb-3">
-                                Connexion à <strong className="text-white">{peerContext?.label || "…"}</strong>…
+                                {t("chat.voice.connectingLine", { name: peerContext?.label || "…" })}
                             </p>
                             <div className="voice-call-toolbar">
                                 <button
                                     type="button"
                                     className={`voice-call-btn ${micMuted ? "voice-call-btn--accent" : "voice-call-btn--ghost"}`}
                                     onClick={toggleMicMute}
-                                    title={micMuted ? "Réactiver le micro" : "Couper le micro"}
+                                    title={micMuted ? t("chat.voice.micMuted") : t("chat.voice.micOn")}
                                 >
                                     <i className={micMuted ? "ri-mic-off-line" : "ri-mic-line"} aria-hidden />
                                     <span className="d-none d-sm-inline">
-                                        {micMuted ? "Micro coupé" : "Micro"}
+                                        {micMuted ? t("chat.voice.microphoneMuted") : t("chat.voice.microphone")}
                                     </span>
                                 </button>
                             </div>
@@ -888,11 +886,11 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
                                 type="button"
                                 className="voice-call-btn voice-call-btn--hangup"
                                 onClick={() => hangup(true)}
-                                title="Raccrocher"
-                                aria-label="Raccrocher"
+                                title={t("chat.voice.hangup")}
+                                aria-label={t("chat.voice.hangupAria")}
                             >
                                 <i className="ri-phone-fill me-2" style={{ transform: "rotate(135deg)" }} aria-hidden />
-                                Raccrocher
+                                {t("chat.voice.hangup")}
                             </button>
                         </>
                     )}
@@ -903,29 +901,30 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
                                 <i className="ri-phone-fill text-white" style={{ fontSize: "1.85rem" }} aria-hidden />
                             </div>
                             <p id="voice-call-modal-title" className="voice-call-modal__title mb-2 fw-semibold">
-                                En communication
+                                {t("chat.voice.inCall")}
                             </p>
                             <p
                                 className="voice-call-modal__timer mb-2"
-                                aria-label="Durée de l’appel"
+                                aria-label={t("chat.voice.callDurationAria")}
                                 aria-live="polite"
                             >
                                 {callTimerLabel}
                             </p>
                             <p className="voice-call-modal__subtitle small mb-3">
-                                avec <strong className="text-white">{peerContext?.label || "…"}</strong>
+                                {t("chat.voice.with")}{" "}
+                                <strong className="text-white">{peerContext?.label || "…"}</strong>
                             </p>
                             <div className="voice-call-toolbar">
                                 <button
                                     type="button"
                                     className={`voice-call-btn ${micMuted ? "voice-call-btn--accent" : "voice-call-btn--ghost"}`}
                                     onClick={toggleMicMute}
-                                    title={micMuted ? "Réactiver le micro" : "Couper le micro"}
+                                    title={micMuted ? t("chat.voice.micMuted") : t("chat.voice.micOn")}
                                     aria-pressed={micMuted}
                                 >
                                     <i className={micMuted ? "ri-mic-off-line" : "ri-mic-line"} aria-hidden />
                                     <span className="d-none d-sm-inline">
-                                        {micMuted ? "Micro coupé" : "Micro"}
+                                        {micMuted ? t("chat.voice.microphoneMuted") : t("chat.voice.microphone")}
                                     </span>
                                 </button>
                                 <button
@@ -934,8 +933,8 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
                                     onClick={toggleCallRecording}
                                     title={
                                         callRecording
-                                            ? "Arrêter l’enregistrement et télécharger"
-                                            : "Enregistrer la conversation (mix des deux voix)"
+                                            ? t("chat.voice.recordStop")
+                                            : t("chat.voice.recordStart")
                                     }
                                     aria-pressed={callRecording}
                                 >
@@ -944,22 +943,22 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
                                         aria-hidden
                                     />
                                     <span className="d-none d-sm-inline">
-                                        {callRecording ? "Arrêter l’enreg." : "Enregistrer"}
+                                        {callRecording ? t("chat.voice.recordStopShort") : t("chat.voice.recordShort")}
                                     </span>
                                 </button>
                             </div>
                             <p className="voice-call-modal__hint mb-3">
-                                Enregistrement : fichier .webm (voix locale + distante).
+                                {t("chat.voice.hintAudio")}
                             </p>
                             <button
                                 type="button"
                                 className="voice-call-btn voice-call-btn--hangup"
                                 onClick={() => hangup(true)}
-                                title="Raccrocher"
-                                aria-label="Raccrocher"
+                                title={t("chat.voice.hangup")}
+                                aria-label={t("chat.voice.hangupAria")}
                             >
                                 <i className="ri-phone-fill me-2" style={{ transform: "rotate(135deg)" }} aria-hidden />
-                                Raccrocher
+                                {t("chat.voice.hangup")}
                             </button>
                         </>
                     )}
@@ -973,7 +972,7 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
                 >
                     {errorHint}
                     <button type="button" className="btn btn-sm btn-link ms-2 p-0" onClick={() => setErrorHint(null)}>
-                        OK
+                        {t("chat.voice.ok")}
                     </button>
                 </div>
             )}
@@ -984,13 +983,14 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
 export default VoiceCallLayer;
 
 export function VoiceCallButton({ voiceCallEnabled, onVoiceCall, disabled }) {
+    const { t } = useTranslation();
     if (!voiceCallEnabled) return null;
     return (
         <button
             type="button"
             className="btn btn-icon btn-sm rounded-circle btn-primary-subtle text-primary ms-2"
-            title="Appel vocal"
-            aria-label="Appel vocal"
+            title={t("chat.data.voiceCall")}
+            aria-label={t("chat.data.voiceCall")}
             disabled={disabled}
             onClick={() => onVoiceCall?.()}
         >

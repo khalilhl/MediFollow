@@ -1,43 +1,28 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Dropdown } from "react-bootstrap";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { medicationApi, notificationApi } from "../services/api";
 import {
   getMissedMedicationSlotsToday,
   formatSlotClock,
   localDateStringYMD,
 } from "../utils/medicationReminders";
+import {
+  formatNotifTime,
+  formatNotifLate,
+  CHAT_PATH,
+  EMAIL_INBOX_PATH,
+  DASHBOARD_APPTS_HASH,
+  DASHBOARD_MEDS_HASH,
+} from "../utils/notificationMeta";
+import { translateNotificationDisplay } from "../utils/translateNotification";
 
 function normalizePatientId(raw) {
   if (raw == null) return "";
   if (typeof raw === "object" && raw !== null && "$oid" in raw) return String(raw.$oid);
   return String(raw);
 }
-
-function formatLate(minutesPast) {
-  if (minutesPast < 60) return `En retard de ${minutesPast} min`;
-  const h = Math.floor(minutesPast / 60);
-  const m = minutesPast % 60;
-  return m > 0 ? `En retard de ${h} h ${m} min` : `En retard de ${h} h`;
-}
-
-function formatNotifTime(iso) {
-  if (!iso) return "";
-  try {
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return "";
-    const diff = Date.now() - d.getTime();
-    if (diff < 45_000) return "À l'instant";
-    if (diff < 3_600_000) return `Il y a ${Math.floor(diff / 60_000)} min`;
-    return d.toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-  } catch {
-    return "";
-  }
-}
-
-const DASHBOARD_MEDS_HASH = "/dashboard-pages/patient-dashboard#patient-medications";
-const DASHBOARD_APPTS_HASH = "/dashboard-pages/patient-dashboard#patient-appointments";
-const CHAT_PATH = "/chat";
 
 /**
  * Notifications patient : RDV (API : nouveau / rappel 24 h) + rappels médicaments (créneaux non cochés).
@@ -46,6 +31,7 @@ export default function PatientMedicationNotificationsBell({
   className = "",
   toggleClassName = "nav-link d-none d-xl-block position-relative",
 }) {
+  const { t, i18n } = useTranslation();
   const [medications, setMedications] = useState([]);
   const [apiItems, setApiItems] = useState([]);
   const [apiUnread, setApiUnread] = useState(0);
@@ -171,26 +157,28 @@ export default function PatientMedicationNotificationsBell({
         <div className="m-0 card border-0 shadow-sm" style={{ overflow: "hidden", maxWidth: "100%" }}>
           <div className="py-3 px-3 d-flex justify-content-between align-items-center bg-primary mb-0 rounded-top-3">
             <h5 className="mb-0 text-white fw-bold d-flex align-items-center gap-2 flex-wrap min-w-0">
-              Toutes les notifications
+              {t("notifications.allNotifications")}
               <span className="badge bg-light text-dark rounded-2 px-2 py-1 small">{totalCount}</span>
             </h5>
           </div>
           <div className="p-0 card-body notif-dropdown-body">
             {!patientId && (
-              <div className="text-muted small text-center py-4 px-3">Session patient requise.</div>
+              <div className="text-muted small text-center py-4 px-3">{t("notifications.sessionRequiredPatient")}</div>
             )}
             {patientId && loading && apiItems.length === 0 && medications.length === 0 && (
-              <div className="text-center text-muted small py-4">Chargement…</div>
+              <div className="text-center text-muted small py-4">{t("notifications.loading")}</div>
             )}
             {patientId && !loading && totalCount === 0 && (
               <div className="text-muted small text-center py-4 px-3">
-                Aucune notification pour l’instant (rendez-vous, rappels médicaments, messages, appels).
+                {t("notifications.emptyDropdownPatient")}
               </div>
             )}
 
             {apiItems.map((n) => {
+              const disp = translateNotificationDisplay(n, t, i18n);
               const id = n._id || n.id;
               const isVirt = String(id).startsWith("virt-");
+              const isMail = n.type === "mail_inbox";
               const isChat =
                 n.type === "chat_message" ||
                 n.type === "chat_message_sent" ||
@@ -200,10 +188,16 @@ export default function PatientMedicationNotificationsBell({
                 n.type === "appointment_reminder_24h" ||
                 n.type === "appointment_new" ||
                 isVirt;
-              const href = isChat ? CHAT_PATH : isAppt ? DASHBOARD_APPTS_HASH : DASHBOARD_MEDS_HASH;
-              const icon = isChat
+              const mailHref =
+                isMail && n.meta?.stateId
+                  ? `${EMAIL_INBOX_PATH}?stateId=${encodeURIComponent(String(n.meta.stateId))}`
+                  : EMAIL_INBOX_PATH;
+              const href = isMail ? mailHref : isChat ? CHAT_PATH : isAppt ? DASHBOARD_APPTS_HASH : DASHBOARD_MEDS_HASH;
+              const icon = isMail
+                ? "ri-mail-line"
+                : isChat
                 ? n.type === "chat_voice_invite"
-                  ? String(n.title || "").includes("vidéo")
+                  ? n.meta?.isVideo === true || /vidéo|video/i.test(String(n.title || ""))
                     ? "ri-vidicon-line"
                     : "ri-phone-fill"
                   : n.type === "chat_message_sent"
@@ -212,7 +206,7 @@ export default function PatientMedicationNotificationsBell({
                 : isAppt
                   ? "ri-calendar-event-fill"
                   : "ri-information-line";
-              const time = formatNotifTime(n.createdAt);
+              const time = formatNotifTime(n.createdAt, t, i18n.language);
               return (
                 <Link
                   key={String(id)}
@@ -226,7 +220,7 @@ export default function PatientMedicationNotificationsBell({
                   <div className="d-flex align-items-start gap-2 px-3 py-3">
                     <div
                       className={`flex-shrink-0 rounded-3 d-flex align-items-center justify-content-center border ${
-                        isAppt || isChat ? "bg-primary-subtle text-primary" : "bg-light text-primary"
+                        isAppt || isChat || isMail ? "bg-primary-subtle text-primary" : "bg-light text-primary"
                       }`}
                       style={{ width: 50, height: 50 }}
                     >
@@ -234,7 +228,7 @@ export default function PatientMedicationNotificationsBell({
                     </div>
                     <div className="flex-grow-1 text-start min-w-0" style={{ minWidth: 0 }}>
                       <div className="d-flex align-items-start justify-content-between gap-2">
-                        <h6 className="mb-0 text-dark fw-semibold text-break flex-grow-1">{n.title || "Notification"}</h6>
+                        <h6 className="mb-0 text-dark fw-semibold text-break flex-grow-1">{disp.title || t("notifications.fallbackTitle")}</h6>
                         {time ? (
                           <small className="flex-shrink-0 text-muted text-nowrap" style={{ fontSize: "0.7rem" }}>
                             {time}
@@ -245,7 +239,7 @@ export default function PatientMedicationNotificationsBell({
                         className="mb-0 small text-muted text-break mt-1"
                         style={{ lineHeight: 1.35, wordBreak: "break-word", overflowWrap: "anywhere" }}
                       >
-                        {n.body}
+                        {disp.body}
                       </p>
                       {!n.read && !isVirt && (
                         <button
@@ -253,7 +247,7 @@ export default function PatientMedicationNotificationsBell({
                           className="btn btn-link btn-sm p-0 mt-1 small text-primary text-start"
                           onClick={(e) => onMarkReadApi(e, id)}
                         >
-                          Marquer lu
+                          {t("notifications.markReadLink")}
                         </button>
                       )}
                     </div>
@@ -265,10 +259,10 @@ export default function PatientMedicationNotificationsBell({
             {missed.map((row) => {
               const mid = row.med?._id || row.med?.id;
               const key = `med-${mid}-${row.slotIndex}`;
-              const title = row.med?.name || "Médicament";
+              const title = row.med?.name || t("notifications.medDefaultName");
               const dosage = row.med?.dosage ? String(row.med.dosage) : "";
               const slotLabel = row.slot?.label ? `${row.slot.label} · ` : "";
-              const subtitle = `${slotLabel}${dosage ? `${dosage} · ` : ""}Prévu ${formatSlotClock(row.slot)}`;
+              const subtitle = `${slotLabel}${dosage ? `${dosage} · ` : ""}${t("notifications.medScheduled", { time: formatSlotClock(row.slot) })}`;
               return (
                 <Link
                   key={key}
@@ -285,9 +279,9 @@ export default function PatientMedicationNotificationsBell({
                     </div>
                     <div className="flex-grow-1 text-start min-w-0" style={{ minWidth: 0 }}>
                       <div className="d-flex align-items-start justify-content-between gap-2">
-                        <h6 className="mb-0 text-dark fw-semibold text-break flex-grow-1">Rappel — {title}</h6>
+                        <h6 className="mb-0 text-dark fw-semibold text-break flex-grow-1">{t("notifications.medReminder", { name: title })}</h6>
                         <small className="flex-shrink-0 text-muted text-nowrap" style={{ fontSize: "0.7rem" }}>
-                          {formatLate(row.minutesPast)}
+                          {formatNotifLate(row.minutesPast, t)}
                         </small>
                       </div>
                       <p
@@ -301,6 +295,11 @@ export default function PatientMedicationNotificationsBell({
                 </Link>
               );
             })}
+          </div>
+          <div className="border-top py-2 px-3 text-center bg-light rounded-bottom-3">
+            <Link to="/notifications" className="btn btn-sm btn-primary text-white w-100">
+              {t("notifications.seeAll")}
+            </Link>
           </div>
         </div>
       </Dropdown.Menu>

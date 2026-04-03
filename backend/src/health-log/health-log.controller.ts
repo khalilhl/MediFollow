@@ -1,4 +1,15 @@
-import { BadRequestException, Controller, Post, Get, Body, Param, UseGuards, Request } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
 import { HealthLogService } from './health-log.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -34,10 +45,23 @@ export class HealthLogController {
     return this.healthLogService.submit(patientId, body);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get('nurse/pending-alerts')
+  async nursePendingAlerts(@Request() req: any) {
+    return this.healthLogService.listOpenAlertsForNurse(req.user);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('doctor/nurse-escalations')
+  async doctorNurseEscalations(@Request() req: any, @Query('status') status?: string) {
+    return this.healthLogService.listDoctorNurseEscalations(req.user, status);
+  }
+
   // GET endpoints do NOT require auth — patientId is in the URL
-  @Get('patient/:id')
-  async getHistory(@Param('id') id: string) {
-    return this.healthLogService.getHistory(id);
+  // Routes les plus spécifiques en premier (évite tout conflit de matching).
+  @Get('patient/:id/latest-doctor-consigne')
+  async getLatestDoctorConsigne(@Param('id') id: string) {
+    return this.healthLogService.getLatestDoctorResolutionNote(id);
   }
 
   @Get('patient/:id/latest')
@@ -45,5 +69,30 @@ export class HealthLogController {
     // Returns most recent log (not strictly UTC today)
     const log = await this.healthLogService.getLatest(id);
     return log ?? null;
+  }
+
+  @Get('patient/:id')
+  async getHistory(@Param('id') id: string) {
+    return this.healthLogService.getHistory(id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/escalate-to-doctor')
+  async escalateToDoctor(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body() body: { note?: string },
+  ) {
+    return this.healthLogService.escalateToDoctor(req.user, id, body?.note);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id/resolve')
+  async resolveEscalation(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body() body: { resolutionNote?: string },
+  ) {
+    return this.healthLogService.resolveEscalation(req.user, id, body?.resolutionNote);
   }
 }

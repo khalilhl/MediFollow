@@ -1,0 +1,118 @@
+import { useId } from "react";
+
+const svgBase = {
+  display: "block",
+  flexShrink: 0,
+  borderRadius: 2,
+  boxShadow: "0 0 0 1px rgba(0,0,0,.06)",
+};
+
+/** Royaume-Uni — SVG (évite l’affichage « GB » en lettres sous Windows). */
+export function SvgFlagGb({ className = "", style }) {
+  const clipId = useId().replace(/:/g, "");
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 60 30"
+      width="20"
+      height="10"
+      className={className}
+      style={{ ...svgBase, ...style }}
+      aria-hidden
+    >
+      <defs>
+        <clipPath id={clipId}>
+          <path d="M0 0v30h60V0z" />
+        </clipPath>
+      </defs>
+      <path fill="#012169" d="M0 0v30h60V0z" />
+      <path stroke="#fff" strokeWidth="6" d="M0 0l60 30M60 0L0 30" />
+      <path stroke="#C8102E" strokeWidth="4" d="M0 0l60 30M60 0L0 30" clipPath={`url(#${clipId})`} />
+      <path stroke="#fff" strokeWidth="10" d="M30 0v30M0 15h60" />
+      <path stroke="#C8102E" strokeWidth="6" d="M30 0v30M0 15h60" />
+    </svg>
+  );
+}
+
+/** France — tricolore. */
+export function SvgFlagFr({ className = "", style }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 3 2"
+      width="20"
+      height="13.333"
+      className={className}
+      style={{ ...svgBase, ...style }}
+      aria-hidden
+    >
+      <rect width="1" height="2" fill="#002395" />
+      <rect x="1" width="1" height="2" fill="#fff" />
+      <rect x="2" width="1" height="2" fill="#ED2939" />
+    </svg>
+  );
+}
+
+/** Tunisie — ressource officielle (PNG) pour un rendu fidèle au drapeau. */
+export function SvgFlagTn({ className = "", style, width = 20 }) {
+  const h = (width * 2) / 3;
+  return (
+    <img
+      src={`${import.meta.env.BASE_URL}flags/tunisia.png`}
+      alt=""
+      width={width}
+      height={h}
+      className={className}
+      style={{ ...svgBase, objectFit: "contain", ...style }}
+      draggable={false}
+      aria-hidden
+    />
+  );
+}
+
+/** Algérie — vert #006233 / blanc, croissant et étoile #D21034 (SVG). */
+export function SvgFlagDz({ className = "", style, width = 20 }) {
+  const clipId = useId().replace(/:/g, "");
+  const h = (width * 2) / 3;
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 12 8"
+      width={width}
+      height={h}
+      className={className}
+      style={{ ...svgBase, ...style }}
+      aria-hidden
+    >
+      <defs>
+        <clipPath id={clipId}>
+          <rect width="12" height="8" />
+        </clipPath>
+      </defs>
+      <g clipPath={`url(#${clipId})`}>
+        <rect width="6" height="8" fill="#006233" />
+        <rect x="6" width="6" height="8" fill="#fff" />
+        <path
+          fill="#D21034"
+          fillRule="evenodd"
+          d="M 6.25 4 m -2 0 a 2 2 0 1 1 4 0 a 2 2 0 1 1 -4 0 M 6.82 4 m -1.62 0 a 1.62 1.62 0 1 0 3.24 0 a 1.62 1.62 0 1 0 -3.24 0"
+        />
+        <path
+          fill="#D21034"
+          d="M6 3.45L6.13 3.8L6.52 3.86L6.24 4.12L6.34 4.52L6 4.28L5.66 4.52L5.76 4.12L5.48 3.86L5.87 3.8Z"
+        />
+      </g>
+    </svg>
+  );
+}
+
+const FLAGS = {
+  en: SvgFlagGb,
+  fr: SvgFlagFr,
+  ar: SvgFlagTn,
+};
+
+export function LanguageFlag({ code, className = "", style }) {
+  const C = FLAGS[code] || SvgFlagFr;
+  return <C className={className} style={style} />;
+}

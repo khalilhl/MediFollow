@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { ChatMessageCryptoService } from './chat-message-crypto.service';
 import { CareMessage } from './schemas/care-message.schema';
+import { StaffGroup } from './schemas/staff-group.schema';
 import { ChatReadState } from './schemas/chat-read-state.schema';
 import { Patient } from '../patient/schemas/patient.schema';
 import { Doctor } from '../doctor/schemas/doctor.schema';
@@ -32,6 +33,7 @@ function patientStaffThreadKey(patientId: string, staffRole: 'doctor' | 'nurse',
 export class ChatService {
   constructor(
     @InjectModel(CareMessage.name) private messageModel: Model<CareMessage>,
+    @InjectModel(StaffGroup.name) private staffGroupModel: Model<StaffGroup>,
     @InjectModel(ChatReadState.name) private readStateModel: Model<ChatReadState>,
     @InjectModel(Patient.name) private patientModel: Model<Patient>,
     @InjectModel(Doctor.name) private doctorModel: Model<Doctor>,
@@ -83,7 +85,7 @@ export class ChatService {
     return (n as any)?.department?.trim() || '';
   }
 
-  /** Fil pair : deux professionnels (médecin/infirmier), même département. */
+  /** Fil pair : médecin ou infirmier ↔ tout médecin / tout infirmier de l'établissement. */
   async assertPeerStaff(user: JwtUser, peerRole: 'doctor' | 'nurse', peerId: string): Promise<void> {
     const ur = user.role as string;
     if (ur === 'patient') throw new ForbiddenException('Messagerie pair réservée au personnel');
@@ -91,18 +93,18 @@ export class ChatService {
     const uid = this.uid(user);
     if (uid === peerId && ur === peerRole) throw new BadRequestException('Destinataire invalide');
 
-    let deptUser = '';
-    if (ur === 'doctor') deptUser = await this.deptOfDoctor(uid);
-    else if (ur === 'nurse') deptUser = await this.deptOfNurse(uid);
-    else throw new ForbiddenException();
-
-    let deptPeer = '';
-    if (peerRole === 'doctor') deptPeer = await this.deptOfDoctor(peerId);
-    else deptPeer = await this.deptOfNurse(peerId);
-
-    if (!deptUser || !deptPeer || deptUser !== deptPeer) {
-      throw new ForbiddenException('Échange autorisé uniquement au sein du même département');
+    if (ur === 'doctor' || ur === 'nurse') {
+      if (peerRole === 'doctor') {
+        const d = await this.doctorModel.findById(peerId).select('_id').lean().exec();
+        if (!d) throw new NotFoundException('Médecin introuvable');
+      } else {
+        const n = await this.nurseModel.findById(peerId).select('_id').lean().exec();
+        if (!n) throw new NotFoundException('Infirmier introuvable');
+      }
+      return;
     }
+
+    throw new ForbiddenException();
   }
 
   /** Patient ↔ médecin ou patient ↔ infirmier (référent ou même département). */
@@ -129,6 +131,114 @@ export class ChatService {
       if (dept && String((n as any).department || '').trim() === dept) return;
       throw new ForbiddenException('Infirmier non autorisé pour ce patient');
     }
+  }
+
+  private groupThreadKey(groupId: string): string {
+    return `group:${String(groupId).trim()}`;
+  }
+
+  private async assertGroupMember(user: JwtUser, groupId: string): Promise<void> {
+    const ur = user.role as string;
+    if (ur !== 'doctor' && ur !== 'nurse' && ur !== 'patient') throw new ForbiddenException();
+    const uid = this.uid(user);
+    const g = await this.staffGroupModel.findById(groupId).lean().exec();
+    if (!g) throw new NotFoundException('Groupe introuvable');
+    const ok = (g as any).members.some(
+      (m: { id: string; role: string }) => m.id === uid && m.role === ur,
+    );
+    if (!ok) throw new ForbiddenException('Vous n’êtes pas membre de ce groupe');
+  }
+
+  /** Création de groupe : réservée aux médecins et infirmiers. */
+  async createStaffGroup(
+    user: JwtUser,
+    body: { name: string; members: { role: 'doctor' | 'nurse' | 'patient'; id: string }[] },
+  ) {
+    const ur = user.role as string;
+    if (ur !== 'doctor' && ur !== 'nurse') throw new ForbiddenException();
+    const uid = this.uid(user);
+    const name = String(body.name || '').trim().slice(0, 120);
+    if (!name) throw new BadRequestException('Nom du groupe requis');
+    const raw = Array.isArray(body.members) ? body.members : [];
+    if (raw.length < 2) throw new BadRequestException('Au moins 2 membres (vous inclus)');
+    const norm = raw.map((m) => {
+      const r = String(m.role || '').toLowerCase();
+      const id = String(m.id || '').trim();
+      if (r === 'patient') return { role: 'patient' as const, id };
+      if (r === 'nurse') return { role: 'nurse' as const, id };
+      return { role: 'doctor' as const, id };
+    });
+    if (norm.some((m) => !m.id)) throw new BadRequestException('Membre invalide');
+    const uniq = new Set(norm.map((m) => `${m.role}:${m.id}`));
+    if (uniq.size !== norm.length) throw new BadRequestException('Membres en double');
+    const hasSelf = norm.some((m) => m.id === uid && m.role === ur);
+    if (!hasSelf) throw new BadRequestException('Vous devez être membre du groupe');
+    for (const m of norm) {
+      if (m.role === 'doctor') {
+        const d = await this.doctorModel.findById(m.id).select('_id').lean().exec();
+        if (!d) throw new BadRequestException('Médecin introuvable');
+      } else if (m.role === 'nurse') {
+        const n = await this.nurseModel.findById(m.id).select('_id').lean().exec();
+        if (!n) throw new BadRequestException('Infirmier introuvable');
+      } else {
+        const p = await this.patientModel.findById(m.id).select('doctorId nurseId').lean().exec();
+        if (!p) throw new BadRequestException('Patient introuvable');
+        if (ur === 'doctor' && String((p as any).doctorId || '') !== uid) {
+          throw new ForbiddenException('Vous ne pouvez ajouter que vos patients assignés');
+        }
+        if (ur === 'nurse' && String((p as any).nurseId || '') !== uid) {
+          throw new ForbiddenException('Vous ne pouvez ajouter que vos patients assignés');
+        }
+      }
+    }
+    const doc = await this.staffGroupModel.create({
+      name,
+      members: norm,
+      createdByRole: ur as 'doctor' | 'nurse',
+      createdById: uid,
+    });
+    return {
+      id: String(doc._id),
+      name: doc.name,
+      members: doc.members,
+      createdAt: (doc as any).createdAt,
+    };
+  }
+
+  async listStaffGroups(user: JwtUser) {
+    const ur = user.role as string;
+    if (ur !== 'doctor' && ur !== 'nurse' && ur !== 'patient') throw new ForbiddenException();
+    const uid = this.uid(user);
+    const rows = await this.staffGroupModel
+      .find({ members: { $elemMatch: { id: uid, role: ur } } })
+      .sort({ updatedAt: -1 })
+      .lean()
+      .exec();
+    return rows.map((x: any) => ({
+      id: String(x._id),
+      name: x.name,
+      members: x.members,
+      updatedAt: x.updatedAt,
+    }));
+  }
+
+  async getMessagesGroup(user: JwtUser, groupId: string, beforeIso?: string, limit = 50) {
+    await this.assertGroupMember(user, groupId);
+    return this.fetchMessagesQuery({ peerThreadKey: this.groupThreadKey(groupId) }, beforeIso, limit);
+  }
+
+  async markReadGroup(user: JwtUser, groupId: string) {
+    await this.assertGroupMember(user, groupId);
+    const ur = user.role as 'doctor' | 'nurse' | 'patient';
+    if (ur !== 'doctor' && ur !== 'nurse' && ur !== 'patient') throw new ForbiddenException();
+    const key = this.groupThreadKey(groupId);
+    const now = new Date();
+    await this.readStateModel.findOneAndUpdate(
+      { peerThreadKey: key, readerId: this.uid(user), readerRole: ur },
+      { $set: { lastReadAt: now } },
+      { upsert: true, new: true },
+    );
+    return { ok: true, lastReadAt: now };
   }
 
   /** Fil « Mon fil patient » : messages sans peerThreadKey (ancien fil équipe partagé). */
@@ -264,6 +374,8 @@ export class ChatService {
     if (kind === 'image') return 'Photo';
     if (kind === 'video') return 'Vidéo';
     if (kind === 'document') return 'Document';
+    if (kind === 'vital_alert') return 'Alerte constantes vitales';
+    if (kind === 'escalation') return 'Escalade infirmier → médecin';
     if (kind === 'call') {
       const raw = this.messageCrypto.decryptField(String((doc as any).body || ''));
       try {
@@ -288,7 +400,7 @@ export class ChatService {
   /** Chiffre les champs sensibles avant insertion (si clé configurée). */
   private sealForDb(payload: {
     body: string;
-    kind: 'text' | 'voice' | 'image' | 'video' | 'document' | 'call';
+    kind: 'text' | 'voice' | 'image' | 'video' | 'document' | 'call' | 'vital_alert' | 'escalation';
     audioUrl?: string;
     mediaUrl?: string;
     mimeType?: string;
@@ -312,7 +424,7 @@ export class ChatService {
     }
     return out as {
       body: string;
-      kind: 'text' | 'voice' | 'image' | 'video' | 'document' | 'call';
+      kind: 'text' | 'voice' | 'image' | 'video' | 'document' | 'call' | 'vital_alert' | 'escalation';
       audioUrl?: string;
       mediaUrl?: string;
       mimeType?: string;
@@ -393,18 +505,22 @@ export class ChatService {
 
     if (role === 'doctor') {
       const dept = await this.deptOfDoctor(uid);
-      const [doctors, nurses, patients] = await Promise.all([
+      const [sameDoctors, sameNurses, allDoctors, allNurses, patients] = await Promise.all([
         dept
           ? this.doctorModel.find({ department: dept }).select('-password').sort({ lastName: 1 }).lean().exec()
           : [],
         dept ? this.nurseModel.find({ department: dept }).select('-password').sort({ lastName: 1 }).lean().exec() : [],
+        this.doctorModel.find({}).select('-password').sort({ lastName: 1 }).lean().exec(),
+        this.nurseModel.find({}).select('-password').sort({ lastName: 1 }).lean().exec(),
         this.patientModel.find({ doctorId: uid }).select('firstName lastName profileImage').sort({ lastName: 1 }).lean().exec(),
       ]);
       return {
         department: dept,
         myRole: 'doctor',
-        doctors: doctors.filter((d) => String(d._id) !== uid).map((d) => this.mapDoc(d)),
-        nurses: nurses.map((n) => this.mapNurse(n)),
+        doctors: sameDoctors.filter((d) => String(d._id) !== uid).map((d) => this.mapDoc(d)),
+        nurses: sameNurses.map((n) => this.mapNurse(n)),
+        doctorsAll: allDoctors.filter((d) => String(d._id) !== uid).map((d) => this.mapDoc(d)),
+        nursesAll: allNurses.map((n) => this.mapNurse(n)),
         assignedPatients: patients.map((p: any) => ({
           id: String(p._id),
           role: 'patient' as const,
@@ -417,18 +533,22 @@ export class ChatService {
 
     if (role === 'nurse') {
       const dept = await this.deptOfNurse(uid);
-      const [doctors, nurses, patients] = await Promise.all([
+      const [sameDoctors, sameNurses, allDoctors, allNurses, patients] = await Promise.all([
         dept
           ? this.doctorModel.find({ department: dept }).select('-password').sort({ lastName: 1 }).lean().exec()
           : [],
         dept ? this.nurseModel.find({ department: dept }).select('-password').sort({ lastName: 1 }).lean().exec() : [],
+        this.doctorModel.find({}).select('-password').sort({ lastName: 1 }).lean().exec(),
+        this.nurseModel.find({}).select('-password').sort({ lastName: 1 }).lean().exec(),
         this.patientModel.find({ nurseId: uid }).select('firstName lastName profileImage').sort({ lastName: 1 }).lean().exec(),
       ]);
       return {
         department: dept,
         myRole: 'nurse',
-        doctors: doctors.map((d) => this.mapDoc(d)),
-        nurses: nurses.filter((n) => String(n._id) !== uid).map((n) => this.mapNurse(n)),
+        doctors: sameDoctors.map((d) => this.mapDoc(d)),
+        nurses: sameNurses.filter((n) => String(n._id) !== uid).map((n) => this.mapNurse(n)),
+        doctorsAll: allDoctors.map((d) => this.mapDoc(d)),
+        nursesAll: allNurses.filter((n) => String(n._id) !== uid).map((n) => this.mapNurse(n)),
         assignedPatients: patients.map((p: any) => ({
           id: String(p._id),
           role: 'patient' as const,
@@ -448,8 +568,10 @@ export class ChatService {
     const mtRaw = m.mimeType != null && m.mimeType !== '' ? String(m.mimeType) : undefined;
     const fnRaw = m.fileName != null && m.fileName !== '' ? String(m.fileName) : undefined;
     const body = this.messageCrypto.decryptField(String(m.body ?? ''));
-    let kind = (m.kind as 'text' | 'voice' | 'image' | 'video' | 'document' | 'call') || 'text';
-    if (kind === 'text') {
+    let kind = (m.kind as 'text' | 'voice' | 'image' | 'video' | 'document' | 'call' | 'vital_alert' | 'escalation') || 'text';
+    if (kind === 'vital_alert' || kind === 'escalation') {
+      /* garder le kind pour l’UI */
+    } else if (kind === 'text') {
       try {
         const t = body.trim();
         if (t.startsWith('{')) {
@@ -465,6 +587,8 @@ export class ChatService {
     return {
       id: String(m._id),
       patientId: m.patientId ? String(m.patientId) : undefined,
+      groupId: m.groupId ? String(m.groupId) : undefined,
+      healthLogId: m.healthLogId ? String(m.healthLogId) : undefined,
       peerThreadKey: m.peerThreadKey,
       senderRole: m.senderRole,
       senderId: m.senderId,
@@ -495,7 +619,7 @@ export class ChatService {
       mimeType?: string;
       fileName?: string;
     },
-    routing: { patientId?: string; peerRole?: 'doctor' | 'nurse'; peerId?: string },
+    routing: { patientId?: string; peerRole?: 'doctor' | 'nurse'; peerId?: string; groupId?: string },
   ) {
     const kind = content.kind;
     const text = String(content.text ?? '').trim();
@@ -544,6 +668,39 @@ export class ChatService {
           }
         : {}),
     });
+
+    if (routing.groupId && (role === 'doctor' || role === 'nurse' || role === 'patient')) {
+      const gid = String(routing.groupId).trim();
+      if (!Types.ObjectId.isValid(gid)) throw new BadRequestException('groupId invalide');
+      await this.assertGroupMember(user, gid);
+      const key = this.groupThreadKey(gid);
+      const oid = new Types.ObjectId(gid);
+      const doc = await this.messageModel.create({
+        ...base,
+        peerThreadKey: key,
+        groupId: oid,
+        senderRole: role,
+        senderId: uid,
+      });
+      const mapped = this.mapCreatedMessage(doc.toObject());
+      const g = await this.staffGroupModel.findById(oid).lean().exec();
+      if (g) {
+        const senderName = await this.notificationService.resolveChatSenderName(role, uid);
+        const bodyForNotify = isVoice ? '' : text;
+        await this.notificationService
+          .notifyGroupChatMessage({
+            senderRole: role,
+            senderId: uid,
+            senderName,
+            groupName: String((g as any).name || 'Groupe'),
+            members: (g as any).members as { role: 'doctor' | 'nurse' | 'patient'; id: string }[],
+            kind,
+            bodyText: bodyForNotify,
+          })
+          .catch(() => {});
+      }
+      return mapped;
+    }
 
     if (role === 'patient' && routing.peerRole && routing.peerId) {
       await this.assertPatientCanMessageStaff(uid, routing.peerRole, routing.peerId);
@@ -610,7 +767,7 @@ export class ChatService {
 
   private async notifyRecipientsAfterMessage(
     user: JwtUser,
-    routing: { patientId?: string; peerRole?: 'doctor' | 'nurse'; peerId?: string },
+    routing: { patientId?: string; peerRole?: 'doctor' | 'nurse'; peerId?: string; groupId?: string },
     payload: { kind: string; text: string },
     mapped: { patientId?: string },
   ) {
@@ -705,6 +862,7 @@ export class ChatService {
       patientId?: string;
       peerRole?: 'doctor' | 'nurse';
       peerId?: string;
+      groupId?: string;
     },
   ) {
     const kind = body.kind === 'call' ? 'call' : 'text';
@@ -712,14 +870,19 @@ export class ChatService {
     return this.routePostMessage(
       user,
       { kind, text },
-      { patientId: body.patientId, peerRole: body.peerRole, peerId: body.peerId },
+      {
+        patientId: body.patientId,
+        peerRole: body.peerRole,
+        peerId: body.peerId,
+        groupId: body.groupId,
+      },
     );
   }
 
   async postVoiceMessage(
     user: JwtUser,
     file: { filename: string; mimetype?: string },
-    fields: { patientId?: string; peerRole?: string; peerId?: string },
+    fields: { patientId?: string; peerRole?: string; peerId?: string; groupId?: string },
   ) {
     if (!file?.filename) throw new BadRequestException('Fichier audio requis');
     const mt = String(file.mimetype || '').toLowerCase();
@@ -736,7 +899,12 @@ export class ChatService {
     return this.routePostMessage(
       user,
       { kind: 'voice', text: '', audioUrl },
-      { patientId: fields.patientId, peerRole, peerId: fields.peerId },
+      {
+        patientId: fields.patientId,
+        peerRole,
+        peerId: fields.peerId,
+        groupId: fields.groupId,
+      },
     );
   }
 
@@ -749,6 +917,7 @@ export class ChatService {
       patientId?: string;
       peerRole?: string;
       peerId?: string;
+      groupId?: string;
     },
   ) {
     if (!file?.filename) throw new BadRequestException('Fichier requis');
@@ -796,7 +965,12 @@ export class ChatService {
         mimeType: file.mimetype || '',
         fileName: orig,
       },
-      { patientId: fields.patientId, peerRole, peerId: fields.peerId },
+      {
+        patientId: fields.patientId,
+        peerRole,
+        peerId: fields.peerId,
+        groupId: fields.groupId,
+      },
     );
   }
 
@@ -851,5 +1025,84 @@ export class ChatService {
       { upsert: true, new: true },
     );
     return { ok: true, lastReadAt: now };
+  }
+
+  /** Fil patient–infirmier : message auto (alerte constantes), expéditeur = patient. */
+  async insertVitalAlertPatientToNurse(patientId: string, nurseId: string, body: string, healthLogId: Types.ObjectId) {
+    const pid = this.pid(patientId);
+    const key = patientStaffThreadKey(patientId, 'nurse', nurseId);
+    const sealed = this.sealForDb({ body, kind: 'vital_alert' });
+    await this.messageModel.create({
+      ...sealed,
+      peerThreadKey: key,
+      patientId: pid,
+      senderRole: 'patient',
+      senderId: String(patientId),
+      healthLogId,
+    });
+  }
+
+  /** Pas d’infirmier assigné : même contenu sur le fil patient–médecin. */
+  async insertVitalAlertPatientToDoctor(patientId: string, doctorId: string, body: string, healthLogId: Types.ObjectId) {
+    const pid = this.pid(patientId);
+    const key = patientStaffThreadKey(patientId, 'doctor', doctorId);
+    const sealed = this.sealForDb({ body, kind: 'vital_alert' });
+    await this.messageModel.create({
+      ...sealed,
+      peerThreadKey: key,
+      patientId: pid,
+      senderRole: 'patient',
+      senderId: String(patientId),
+      healthLogId,
+    });
+  }
+
+  /** Fil patient–médecin : escalade infirmier → médecin. */
+  async insertEscalationNurseToDoctor(
+    patientId: string,
+    doctorId: string,
+    nurseId: string,
+    body: string,
+    healthLogId: Types.ObjectId,
+  ) {
+    const pid = this.pid(patientId);
+    const key = patientStaffThreadKey(patientId, 'doctor', doctorId);
+    const sealed = this.sealForDb({ body, kind: 'escalation' });
+    await this.messageModel.create({
+      ...sealed,
+      peerThreadKey: key,
+      patientId: pid,
+      senderRole: 'nurse',
+      senderId: nurseId,
+      healthLogId,
+    });
+  }
+
+  /** Fil patient–médecin : clôture par le médecin (notif patient comme un message classique). */
+  async insertDoctorResolutionCloture(patientId: string, doctorId: string, body: string, healthLogId: Types.ObjectId) {
+    const pid = this.pid(patientId);
+    const key = patientStaffThreadKey(patientId, 'doctor', doctorId);
+    const sealed = this.sealForDb({ body, kind: 'text' });
+    await this.messageModel.create({
+      ...sealed,
+      peerThreadKey: key,
+      patientId: pid,
+      senderRole: 'doctor',
+      senderId: doctorId,
+      healthLogId,
+    });
+    const text = String(body || '');
+    const senderName = await this.notificationService.resolveChatSenderName('doctor', String(doctorId));
+    await this.notificationService
+      .notifyChatDispatch({
+        senderRole: 'doctor',
+        senderId: String(doctorId),
+        senderName,
+        routing: { patientId: String(patientId) },
+        kind: 'text',
+        bodyText: text.slice(0, 500),
+        mappedPatientId: String(patientId),
+      })
+      .catch(() => {});
   }
 }

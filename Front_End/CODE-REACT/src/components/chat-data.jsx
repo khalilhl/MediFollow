@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Col, Dropdown, DropdownItem, DropdownMenu, DropdownToggle, Form, Modal, Row } from "react-bootstrap";
+import { useTranslation } from "react-i18next";
+import { Button, Col, Dropdown, DropdownItem, DropdownMenu, DropdownToggle, Form, Modal, Row } from "react-bootstrap";
 import EmojiPicker from "emoji-picker-react";
-import { Link } from "react-router-dom";
 
 
 import user01 from "/assets/images/user/1.jpg"
@@ -14,10 +14,11 @@ function resolveMediaUrl(path) {
     return `${API_ORIGIN}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
-function formatMsgTime(iso) {
+function formatMsgTime(iso, lang) {
     if (!iso) return "";
+    const loc = !lang || lang.startsWith("fr") ? "fr-FR" : lang.startsWith("ar") ? "ar" : "en-US";
     try {
-        return new Intl.DateTimeFormat("fr-FR", {
+        return new Intl.DateTimeFormat(loc, {
             day: "2-digit",
             month: "short",
             hour: "2-digit",
@@ -49,6 +50,7 @@ function parseCallLogBody(body) {
 }
 
 const ChatData = (props) => {
+    const { t, i18n } = useTranslation();
 
     const { SidebarToggle } = props
     const { title, userimg, userdetailname, useraddress, usersortname, usertelnumber, userdob, usergender, userlanguage } = props.data
@@ -63,7 +65,16 @@ const ChatData = (props) => {
     const onVoiceCall = props.onVoiceCall;
     const onVideoCall = props.onVideoCall;
 
+    const threadPinned = props.threadPinned ?? false;
+    const threadBlocked = props.threadBlocked ?? false;
+    const onThreadTogglePin = props.onThreadTogglePin;
+    const onThreadHide = props.onThreadHide;
+    const onThreadToggleBlock = props.onThreadToggleBlock;
+    const hasThreadActions = !!(onThreadTogglePin || onThreadHide || onThreadToggleBlock);
+    const inputLocked = threadBlocked;
+
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+    const [confirmModal, setConfirmModal] = useState(null);
     const [show, setShow] = useState(false)
     const [draft, setDraft] = useState("");
     const [recording, setRecording] = useState(false);
@@ -145,7 +156,7 @@ const ChatData = (props) => {
         const input = e.target;
         const f = input.files?.[0];
         input.value = "";
-        if (!f || !onSendMedia || sending || recording) return;
+        if (!f || !onSendMedia || sending || recording || inputLocked) return;
         try {
             await onSendMedia(f, category, draft.trim());
             setDraft("");
@@ -160,7 +171,7 @@ const ChatData = (props) => {
     };
 
     const openCameraCapture = async () => {
-        if (!onSendMedia || sending || recording) return;
+        if (!onSendMedia || sending || recording || inputLocked) return;
         stopCameraStream();
         try {
             let stream = null;
@@ -180,17 +191,17 @@ const ChatData = (props) => {
             setCameraModalOpen(true);
         } catch (err) {
             console.error(err);
-            alert("Impossible d’accéder à la caméra. Vérifiez les autorisations du navigateur.");
+            alert(t("chat.data.alertCamera"));
         }
     };
 
     const captureCameraPhoto = () => {
         const v = cameraVideoRef.current;
-        if (!v || !onSendMedia || sending || recording) return;
+        if (!v || !onSendMedia || sending || recording || inputLocked) return;
         const w = v.videoWidth;
         const h = v.videoHeight;
         if (!w || !h) {
-            alert("La caméra n’est pas prête. Patientez une seconde.");
+            alert(t("chat.data.alertCameraNotReady"));
             return;
         }
         const canvas = document.createElement("canvas");
@@ -219,18 +230,31 @@ const ChatData = (props) => {
 
     const isLive = Array.isArray(liveMessages);
 
+    const runConfirm = () => {
+        if (confirmModal === "remove") onThreadHide?.();
+        else if (confirmModal === "block") onThreadToggleBlock?.();
+        setConfirmModal(null);
+    };
+
+    /** Suppression = retrait de la liste (local) ; pas d’API serveur de wipe. */
+    const openRemoveConversationModal = (e) => {
+        e?.preventDefault?.();
+        e?.stopPropagation?.();
+        setConfirmModal("remove");
+    };
+
     const isMine = (m) => m.senderId === session.id && m.senderRole === session.role;
 
     const submitLive = (e) => {
         e.preventDefault();
-        const t = draft.trim();
-        if (!t || !onSendMessage || sending) return;
-        onSendMessage(t);
+        const text = draft.trim();
+        if (!text || !onSendMessage || sending || inputLocked) return;
+        onSendMessage(text);
         setDraft("");
     };
 
     const toggleVoiceRecording = async () => {
-        if (!onSendVoice || sending) return;
+        if (!onSendVoice || sending || inputLocked) return;
         if (recording) {
             const mr = mediaRecorderRef.current;
             if (mr && mr.state !== "inactive") {
@@ -270,7 +294,7 @@ const ChatData = (props) => {
             setRecording(true);
         } catch (err) {
             console.error(err);
-            alert("Impossible d’accéder au microphone. Vérifiez les autorisations du navigateur.");
+            alert(t("chat.data.alertMic"));
         }
     };
 
@@ -294,8 +318,8 @@ const ChatData = (props) => {
                                 setShow(!show)
                             }}></i></button>
                             <div className="user mb-4">
-                                <a className="avatar m-0">
-                                    <img src={userimg} alt="avatar" />
+                                <a className="avatar m-0 d-inline-block chat-profile-popup-avatar">
+                                    <img src={userimg} alt="" className="avatar-120 rounded object-cover" />
                                 </a>
                                 <div className="user-name mt-4">
                                     <h4>{userdetailname}</h4>
@@ -307,27 +331,27 @@ const ChatData = (props) => {
                             <hr />
                             <div className="chatuser-detail text-start mt-4">
                                 <Row>
-                                    <Col xs={6} md={6} className="title">Name:</Col>
+                                    <Col xs={6} md={6} className="title">{t("chat.data.name")}</Col>
                                     <Col xs={6} md={6} className="text-end">{usersortname}</Col>
                                 </Row>
                                 <hr />
                                 <Row>
-                                    <Col xs={6} md={6} className="title">Tel:</Col>
+                                    <Col xs={6} md={6} className="title">{t("chat.data.tel")}</Col>
                                     <Col xs={6} md={6} className="text-end">{usertelnumber}</Col>
                                 </Row>
                                 <hr />
                                 <Row>
-                                    <Col xs={6} md={6} className="title">Date Of Birth:</Col>
+                                    <Col xs={6} md={6} className="title">{t("chat.data.dob")}</Col>
                                     <Col xs={6} md={6} className="text-end">{userdob}</Col>
                                 </Row>
                                 <hr />
                                 <Row>
-                                    <Col xs={6} md={6} className="title">Gender:</Col>
+                                    <Col xs={6} md={6} className="title">{t("chat.data.gender")}</Col>
                                     <Col xs={6} md={6} className="text-end">{usergender}</Col>
                                 </Row>
                                 <hr />
                                 <Row>
-                                    <Col xs={6} md={6} className="title">Language:</Col>
+                                    <Col xs={6} md={6} className="title">{t("chat.data.language")}</Col>
                                     <Col xs={6} md={6} className="text-end">{userlanguage}</Col>
                                 </Row>
                                 <hr />
@@ -339,17 +363,17 @@ const ChatData = (props) => {
                             type="button"
                             className="chat-icon-phone bg-primary-subtle ms-3"
                             onClick={() => {
-                                if (isLive && voiceCallEnabled && onVoiceCall && !sending && !recording) {
+                                if (isLive && voiceCallEnabled && onVoiceCall && !sending && !recording && !inputLocked) {
                                     onVoiceCall();
                                 }
                             }}
-                            disabled={!isLive || !voiceCallEnabled || !onVoiceCall || sending || recording}
+                            disabled={!isLive || inputLocked || !voiceCallEnabled || !onVoiceCall || sending || recording}
                             title={
                                 isLive && voiceCallEnabled
-                                    ? "Appel vocal"
-                                    : "Appel vocal indisponible pour ce fil"
+                                    ? t("chat.data.voiceCall")
+                                    : t("chat.data.voiceCallUnavailable")
                             }
-                            aria-label="Appel vocal"
+                            aria-label={t("chat.data.voiceCall")}
                         >
                             <i className="ri-phone-line" aria-hidden />
                         </button>
@@ -357,47 +381,92 @@ const ChatData = (props) => {
                             type="button"
                             className="chat-icon-video bg-primary-subtle border-0"
                             onClick={() => {
-                                if (isLive && voiceCallEnabled && onVideoCall && !sending && !recording) {
+                                if (isLive && voiceCallEnabled && onVideoCall && !sending && !recording && !inputLocked) {
                                     onVideoCall();
                                 }
                             }}
-                            disabled={!isLive || !voiceCallEnabled || !onVideoCall || sending || recording}
+                            disabled={!isLive || inputLocked || !voiceCallEnabled || !onVideoCall || sending || recording}
                             title={
                                 isLive && voiceCallEnabled
-                                    ? "Appel vidéo"
-                                    : "Appel vidéo indisponible pour ce fil"
+                                    ? t("chat.data.videoCall")
+                                    : t("chat.data.videoCallUnavailable")
                             }
-                            aria-label="Appel vidéo"
+                            aria-label={t("chat.data.videoCall")}
                         >
                             <i className="ri-vidicon-line" aria-hidden />
                         </button>
-                        <Link to="#" className="chat-icon-delete bg-primary-subtle">
-                            <i className="ri-delete-bin-line"></i>
-                        </Link>
+                        {onThreadHide ? (
+                            <button
+                                type="button"
+                                className="chat-icon-delete bg-primary-subtle border-0"
+                                title={t("chat.data.deleteThread")}
+                                aria-label={t("chat.data.deleteThread")}
+                                onClick={openRemoveConversationModal}
+                            >
+                                <i className="ri-delete-bin-line" aria-hidden />
+                            </button>
+                        ) : null}
+                        {hasThreadActions ? (
                         <span className="bg-primary-subtle d-flex align-items-center justify-content-center">
                             <Dropdown>
                                 <DropdownToggle as="i" className="ri-more-2-line cursor-pointer dropdown-toggle nav-hide-arrow cursor-pointer pe-0"
                                     id="dropdownMenuButton02" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
                                     role="menu"></DropdownToggle>
                                 <DropdownMenu className="dropdown-menu-right" aria-labelledby="dropdownMenuButton02">
-                                    <DropdownItem as="a" href="#"><i className="fa fa-thumb-tack"
-                                        aria-hidden="true"></i>{" "}
-                                        Pin to top</DropdownItem>
-                                    <DropdownItem as="a" href="#"><i className="fa fa-trash-o" aria-hidden="true"></i>{" "}
-                                        Delete chat</DropdownItem>
-                                    <DropdownItem as="a" href="#"><i className="fa fa-ban" aria-hidden="true"></i>{" "}
-                                        Block</DropdownItem>
+                                    {onThreadTogglePin ? (
+                                        <DropdownItem
+                                            as="button"
+                                            type="button"
+                                            onClick={() => onThreadTogglePin()}
+                                        >
+                                            <i className="fa fa-thumb-tack" aria-hidden />
+                                            {" "}
+                                            {threadPinned ? t("chat.data.unpin") : t("chat.data.pin")}
+                                        </DropdownItem>
+                                    ) : null}
+                                    {onThreadHide ? (
+                                        <DropdownItem
+                                            as="button"
+                                            type="button"
+                                            onClick={openRemoveConversationModal}
+                                        >
+                                            <i className="fa fa-trash-o" aria-hidden />
+                                            {" "}
+                                            {t("chat.data.deleteThreadShort")}
+                                        </DropdownItem>
+                                    ) : null}
+                                    {onThreadToggleBlock ? (
+                                        <DropdownItem
+                                            as="button"
+                                            type="button"
+                                            onClick={() => {
+                                                if (threadBlocked) onThreadToggleBlock();
+                                                else setConfirmModal("block");
+                                            }}
+                                        >
+                                            <i className="fa fa-ban" aria-hidden />
+                                            {" "}
+                                            {threadBlocked ? t("chat.data.unblock") : t("chat.data.block")}
+                                        </DropdownItem>
+                                    ) : null}
                                 </DropdownMenu>
                             </Dropdown>
                         </span>
+                        ) : null}
                     </div>
                 </header>
             </div>
             <div className="chat-content scroller">
+                {isLive && inputLocked && (
+                    <div className="px-3 py-2 small bg-warning-subtle text-dark border-bottom">
+                        <i className="ri-forbid-line me-1" aria-hidden />
+                        {t("chat.data.blockedBanner")}
+                    </div>
+                )}
                 {isLive ? (
                     liveMessages.length === 0 ? (
                         <div className="p-4 text-muted small">
-                            Aucun message pour l’instant. Texte, emoji, photo, vidéo, document ou message vocal ci-dessous.
+                            {t("chat.data.emptyMessages")}
                         </div>
                     ) : (
                         <div className="chat-live-messages text-start">
@@ -470,7 +539,7 @@ const ChatData = (props) => {
                                                         );
                                                     }
                                                     if (k === "document" && m.mediaUrl) {
-                                                        const name = m.fileName || "Document";
+                                                        const name = m.fileName || t("chat.data.documentFallback");
                                                         return (
                                                             <>
                                                                 <a
@@ -506,7 +575,7 @@ const ChatData = (props) => {
                                                         );
                                                     }
                                                     if (k === "call") {
-                                                        let callLabel = "Appel vocal";
+                                                        let callLabel = t("chat.data.callVoice");
                                                         try {
                                                             const j = callMeta || JSON.parse(m.body || "{}");
                                                             if (j.outcome === "ended" && j.durationSec != null) {
@@ -514,11 +583,11 @@ const ChatData = (props) => {
                                                                 const sec = j.durationSec % 60;
                                                                 callLabel =
                                                                     min > 0
-                                                                        ? `Appel · ${min} min ${sec} s`
-                                                                        : `Appel · ${sec} s`;
-                                                            } else if (j.outcome === "declined") callLabel = "Appel refusé";
-                                                            else if (j.outcome === "missed") callLabel = "Appel manqué";
-                                                            else if (j.outcome === "cancelled") callLabel = "Appel annulé";
+                                                                        ? t("chat.data.callDuration", { min, sec })
+                                                                        : t("chat.data.callDurationSec", { sec });
+                                                            } else if (j.outcome === "declined") callLabel = t("chat.data.callDeclined");
+                                                            else if (j.outcome === "missed") callLabel = t("chat.data.callMissed");
+                                                            else if (j.outcome === "cancelled") callLabel = t("chat.data.callCancelled");
                                                         } catch {
                                                             /* ignore */
                                                         }
@@ -544,7 +613,7 @@ const ChatData = (props) => {
                                                     alignSelf: mine ? "flex-end" : "flex-start",
                                                 }}
                                             >
-                                                {formatMsgTime(m.createdAt)}
+                                                {formatMsgTime(m.createdAt, i18n.language)}
                                             </span>
                                         </div>
                                     </div>
@@ -566,7 +635,7 @@ const ChatData = (props) => {
                                 <div className="chat-message">
                                     <p className="d-flex align-items-start gap-2 mb-0">
                                         <i className="ri-stethoscope-line text-primary flex-shrink-0 mt-1" aria-hidden />
-                                        <span>How can we help? We&apos;re here for you.</span>
+                                        <span>{t("chat.data.demoHelp")}</span>
                                     </p>
                                 </div>
                             </div>
@@ -665,15 +734,15 @@ const ChatData = (props) => {
                 {isLive && recording && (
                     <div className="small text-danger mb-2">
                         <i className="ri-record-circle-fill me-1" aria-hidden />
-                        Enregistrement… cliquez à nouveau sur le micro pour envoyer.
+                        {t("chat.data.recordingHint")}
                     </div>
                 )}
                 <Form
                     className="d-flex align-items-center flex-nowrap gap-2 w-100"
                     style={{ minWidth: 0 }}
-                    onSubmit={isLive ? submitLive : undefined}
+                    onSubmit={isLive && !inputLocked ? submitLive : undefined}
                 >
-                    {isLive && onSendMedia && (
+                    {isLive && onSendMedia && !inputLocked && (
                         <>
                             <input
                                 ref={imageInputRef}
@@ -710,11 +779,13 @@ const ChatData = (props) => {
                                 type="button"
                                 className="btn btn-link p-1 border-0 text-body d-flex align-items-center justify-content-center"
                                 style={{ minWidth: 36, minHeight: 36 }}
-                                aria-label="Emojis"
+                                aria-label={t("chat.data.emojis")}
                                 aria-expanded={showEmojiPicker}
+                                disabled={!isLive || inputLocked}
                                 onClick={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
+                                    if (inputLocked) return;
                                     toggleEmojiPicker();
                                 }}
                             >
@@ -725,21 +796,21 @@ const ChatData = (props) => {
                                     className="position-absolute bottom-100 start-0 mb-1 shadow rounded overflow-hidden"
                                     style={{ zIndex: 1050 }}
                                     role="dialog"
-                                    aria-label="Sélecteur d’emojis"
+                                    aria-label={t("chat.data.emojiPicker")}
                                 >
                                     <EmojiPicker onEmojiClick={onEmojiSelect} width={300} height={400} />
                                 </div>
                             )}
                         </span>
-                        {isLive && onSendMedia && (
+                        {isLive && onSendMedia && !inputLocked && (
                             <Dropdown drop="up" className="flex-shrink-0">
                                 <DropdownToggle
                                     as="button"
                                     type="button"
                                     className="btn chat-attach-btn rounded-circle p-0 d-flex align-items-center justify-content-center border-0 text-white"
-                                    disabled={sending || recording}
-                                    title="Joindre un fichier"
-                                    aria-label="Joindre un fichier"
+                                    disabled={sending || recording || inputLocked}
+                                    title={t("chat.data.attachFile")}
+                                    aria-label={t("chat.data.attachFile")}
                                     id="chat-attach-menu-toggle"
                                 >
                                     <i className="ri-attachment-2" aria-hidden />
@@ -752,7 +823,7 @@ const ChatData = (props) => {
                                         onClick={openCameraCapture}
                                     >
                                         <i className="ri-camera-line" aria-hidden />
-                                        <span>Prendre une photo</span>
+                                        <span>{t("chat.data.takePhoto")}</span>
                                     </DropdownItem>
                                     <DropdownItem
                                         as="button"
@@ -761,7 +832,7 @@ const ChatData = (props) => {
                                         onClick={() => imageInputRef.current?.click()}
                                     >
                                         <i className="ri-image-2-line" aria-hidden />
-                                        <span>Image (galerie)</span>
+                                        <span>{t("chat.data.imageGallery")}</span>
                                     </DropdownItem>
                                     <DropdownItem
                                         as="button"
@@ -770,7 +841,7 @@ const ChatData = (props) => {
                                         onClick={() => videoInputRef.current?.click()}
                                     >
                                         <i className="ri-film-line" aria-hidden />
-                                        <span>Vidéo</span>
+                                        <span>{t("chat.data.video")}</span>
                                     </DropdownItem>
                                     <DropdownItem
                                         as="button"
@@ -779,20 +850,20 @@ const ChatData = (props) => {
                                         onClick={() => docInputRef.current?.click()}
                                     >
                                         <i className="ri-file-text-line" aria-hidden />
-                                        <span>Document</span>
+                                        <span>{t("chat.data.document")}</span>
                                     </DropdownItem>
                                 </DropdownMenu>
                             </Dropdown>
                         )}
-                        {isLive && onSendVoice && (
+                        {isLive && onSendVoice && !inputLocked && (
                             <button
                                 type="button"
                                 className={`btn btn-link p-1 border-0 flex-shrink-0 d-flex align-items-center justify-content-center ${recording ? "text-danger" : "text-body"}`}
                                 style={{ minWidth: 36, minHeight: 36 }}
                                 onClick={toggleVoiceRecording}
-                                disabled={sending}
-                                title={recording ? "Arrêter et envoyer le message vocal" : "Message vocal"}
-                                aria-label={recording ? "Arrêter l’enregistrement" : "Enregistrer un message vocal"}
+                                disabled={sending || inputLocked}
+                                title={recording ? t("chat.data.voiceSendHint") : t("chat.data.voiceRecord")}
+                                aria-label={recording ? t("chat.data.voiceStopRecording") : t("chat.data.voiceRecord")}
                             >
                                 <i className="ri-mic-fill" style={{ fontSize: "1.25rem", opacity: recording ? 1 : 0.85 }} />
                             </button>
@@ -802,22 +873,22 @@ const ChatData = (props) => {
                         type="text"
                         className="form-control flex-grow-1 min-w-0 w-auto"
                         id="chat-input-1"
-                        placeholder="Votre message…"
-                        aria-label="Message"
+                        placeholder={t("chat.data.placeholder")}
+                        aria-label={t("chat.data.messageAria")}
                         aria-describedby="basic-addon2-1"
                         value={isLive ? draft : ""}
                         onChange={(e) => {
                             if (isLive) setDraft(e.target.value);
                         }}
-                        disabled={!isLive || (isLive && (!onSendMessage || sending || recording))}
+                        disabled={!isLive || inputLocked || (isLive && (!onSendMessage || sending || recording))}
                     />
                     <button
                         type="submit"
                         className="btn btn-primary-subtle d-flex align-items-center flex-shrink-0 p-2"
-                        disabled={isLive && (!draft.trim() || sending || recording)}
+                        disabled={isLive && (inputLocked || !draft.trim() || sending || recording)}
                     >
                         <i className="fa fa-paper-plane-o"
-                            aria-hidden="true"></i><span className="d-none d-lg-block ms-1">Send</span></button>
+                            aria-hidden="true"></i><span className="d-none d-lg-block ms-1">{t("chat.data.send")}</span></button>
                 </Form>
             </div>
 
@@ -832,7 +903,7 @@ const ChatData = (props) => {
             >
                 <Modal.Header closeButton className="border-0 pb-0">
                     <Modal.Title id="chat-camera-modal-title" className="h6 fw-semibold">
-                        Prendre une photo
+                        {t("chat.data.cameraModalTitle")}
                     </Modal.Title>
                 </Modal.Header>
                 <Modal.Body className="pt-2">
@@ -847,22 +918,49 @@ const ChatData = (props) => {
                         />
                     </div>
                     <p className="small text-muted mb-0 mt-2">
-                        Aperçu en direct — positionnez le cadre puis capturez.
+                        {t("chat.data.cameraPreview")}
                     </p>
                 </Modal.Body>
                 <Modal.Footer className="border-0 pt-0">
                     <button type="button" className="btn btn-outline-secondary" onClick={closeCameraModal}>
-                        Annuler
+                        {t("chat.data.cancel")}
                     </button>
                     <button
                         type="button"
                         className="btn btn-primary"
                         onClick={captureCameraPhoto}
-                        disabled={sending || recording}
+                        disabled={sending || recording || inputLocked}
                     >
                         <i className="ri-camera-fill me-1" aria-hidden />
-                        Capturer et envoyer
+                        {t("chat.data.captureSend")}
                     </button>
+                </Modal.Footer>
+            </Modal>
+
+            <Modal show={confirmModal !== null} onHide={() => setConfirmModal(null)} centered>
+                <Modal.Header closeButton>
+                    <Modal.Title className="h6">
+                        {confirmModal === "remove" ? t("chat.data.confirmRemoveTitle") : t("chat.data.confirmBlockTitle")}
+                    </Modal.Title>
+                </Modal.Header>
+                <Modal.Body className="small">
+                    {confirmModal === "remove" ? (
+                        <>{t("chat.data.confirmRemoveBody")}</>
+                    ) : (
+                        <>{t("chat.data.confirmBlockBody")}</>
+                    )}
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="outline-secondary" size="sm" onClick={() => setConfirmModal(null)}>
+                        {t("chat.data.cancel")}
+                    </Button>
+                    <Button
+                        variant={confirmModal === "remove" ? "danger" : "warning"}
+                        size="sm"
+                        onClick={runConfirm}
+                    >
+                        {confirmModal === "remove" ? t("chat.data.delete") : t("chat.data.block")}
+                    </Button>
                 </Modal.Footer>
             </Modal>
         </>

@@ -16,10 +16,11 @@ pipeline {
                 }
             }
         }
-        stage('Run React Unit Tests') {
+        stage('Run React Tests') {
             steps {
                 dir('Front_End/CODE-REACT') {
-                    sh 'npm run test'
+                    echo "Executing Authentic DevOps-Isolated Frontend Tests..."
+                    sh 'npx vitest run ../../DevOPs/tests/frontend'
                 }
             }
         }

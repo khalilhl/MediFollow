@@ -13,13 +13,6 @@ import { useSelector } from 'react-redux';
 
 
 // Import Image
-import flag01 from "/assets/images/small/flag-01.png"
-import flag02 from "/assets/images/small/flag-02.png"
-import flag03 from "/assets/images/small/flag-03.png"
-import flag04 from "/assets/images/small/flag-04.png"
-import flag05 from "/assets/images/small/flag-05.png"
-import flag06 from "/assets/images/small/flag-06.png"
-
 import user01 from "/assets/images/user/01.jpg"
 import user02 from "/assets/images/user/02.jpg"
 import user03 from "/assets/images/user/03.jpg"
@@ -30,6 +23,7 @@ import user001 from "/assets/images/user/001.png"
 import StaffNotificationsBell from "../../StaffNotificationsBell"
 import PatientMedicationNotificationsBell from "../../PatientMedicationNotificationsBell"
 import LanguageSwitcher from "../../LanguageSwitcher"
+import { SvgFlagTn, SvgFlagDz } from "../../language-flag-svgs"
 import { useTranslation } from "react-i18next"
 
 const generatePath = (path) => {
@@ -302,6 +296,15 @@ const Header = () => {
                   </Col>
                   <Col lg={8} md={6}
                      className="d-flex justify-content-end align-items-center">
+                     <span
+                        className="d-inline-flex align-items-center gap-1 me-2 flex-shrink-0"
+                        title={t("nav.regionFlagsTitle")}
+                        role="img"
+                        aria-label={t("nav.regionFlagsTitle")}
+                     >
+                        <SvgFlagTn width={26} />
+                        <SvgFlagDz width={26} />
+                     </span>
                      <LanguageSwitcher toggleClassName="nav-link d-none d-xl-block" />
                      <Nav.Item as="li" className="nav-item iq-full-screen d-none d-xl-block"
                         id="fullscreen-item">

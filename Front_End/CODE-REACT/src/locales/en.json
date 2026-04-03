@@ -21,7 +21,8 @@
     "viewNurseProfile": "View your nurse profile.",
     "viewPatientProfile": "View your patient profile.",
     "adminProfileDetails": "View personal profile details.",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "regionFlagsTitle": "Tunisia–Algeria partnership"
   },
   "patientDashboard": {
     "alertFlaggedTitle": "Attention:",

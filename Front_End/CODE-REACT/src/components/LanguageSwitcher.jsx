@@ -1,14 +1,12 @@
 import React, { useId } from "react";
 import { Dropdown } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
-import flag01 from "/assets/images/small/flag-01.png";
-import flag02 from "/assets/images/small/flag-02.png";
-import flag03 from "/assets/images/small/flag-03.png";
+import { LanguageFlag } from "./language-flag-svgs";
 
 const LANGS = [
-  { code: "en", flag: flag01, labelKey: "lang.english" },
-  { code: "fr", flag: flag02, labelKey: "lang.french" },
-  { code: "ar", flag: flag03, labelKey: "lang.arabic" },
+  { code: "en", labelKey: "lang.english" },
+  { code: "fr", labelKey: "lang.french" },
+  { code: "ar", labelKey: "lang.arabic" },
 ];
 
 /** Sélecteur EN / FR / AR ; met à jour i18n et la direction du document (RTL pour l’arabe). */
@@ -30,7 +28,9 @@ export default function LanguageSwitcher({ toggleClassName }) {
         id={toggleId}
         style={{ cursor: "pointer" }}
       >
-        <img src={active.flag} alt="" className="img-fluid me-1" style={{ height: "16px", width: "16px" }} />{" "}
+        <span className="d-inline-flex align-items-center me-1" style={{ verticalAlign: "middle" }}>
+          <LanguageFlag code={active.code} />
+        </span>{" "}
         {t(active.labelKey)} <i className="ri-arrow-down-s-line" />
       </Dropdown.Toggle>
       <Dropdown.Menu
@@ -41,7 +41,7 @@ export default function LanguageSwitcher({ toggleClassName }) {
       >
         <div className="m-0 -none card">
           <div className="p-0 card-body">
-            {LANGS.map(({ code, flag, labelKey }) => (
+            {LANGS.map(({ code, labelKey }) => (
               <Dropdown.Item
                 key={code}
                 as="button"
@@ -50,7 +50,7 @@ export default function LanguageSwitcher({ toggleClassName }) {
                 onClick={() => void i18n.changeLanguage(code)}
               >
                 <div className="d-flex align-items-center">
-                  <img src={flag} alt="" loading="lazy" />
+                  <LanguageFlag code={code} />
                   <div className="ms-3 flex-grow-1 text-start">
                     <p className="mb-0">{t(labelKey)}</p>
                   </div>

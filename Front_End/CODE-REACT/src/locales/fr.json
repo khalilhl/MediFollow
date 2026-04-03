@@ -21,7 +21,8 @@
     "viewNurseProfile": "Voir votre profil infirmier.",
     "viewPatientProfile": "Voir votre profil patient.",
     "adminProfileDetails": "Voir les détails du profil personnel.",
-    "signOut": "Déconnexion"
+    "signOut": "Déconnexion",
+    "regionFlagsTitle": "Partenariat Tunisie–Algérie"
   },
   "patientDashboard": {
     "alertFlaggedTitle": "Attention :",

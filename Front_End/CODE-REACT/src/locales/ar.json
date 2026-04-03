@@ -21,7 +21,8 @@
     "viewNurseProfile": "عرض ملفك كممرض.",
     "viewPatientProfile": "عرض ملفك كمريض.",
     "adminProfileDetails": "عرض تفاصيل الملف الشخصي.",
-    "signOut": "تسجيل الخروج"
+    "signOut": "تسجيل الخروج",
+    "regionFlagsTitle": "شراكة تونس والجزائر"
   },
   "patientDashboard": {
     "alertFlaggedTitle": "تنبيه:",

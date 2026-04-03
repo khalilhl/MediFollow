@@ -43,6 +43,15 @@ const VerticalNav = () => {
         { path: "/email/inbox", nameKey: "emailInbox", icon: "ri-inbox-fill" },
         { path: "/email/email-compose", nameKey: "emailCompose", icon: "ri-edit-2-fill" },
     ];
+    const isEmailPathActive = (path) => {
+        if (path === "/email/email-compose") {
+            return (
+                location.pathname === "/email/email-compose" ||
+                location.pathname.startsWith("/email/email-compose/")
+            );
+        }
+        return location.pathname === path;
+    };
 
     /** Menu accordéon « Doctor » (admin / démo) — pas les outils du médecin connecté (voir branche isDoctor). */
     const doctorItems = [
@@ -160,6 +169,49 @@ const VerticalNav = () => {
         );
     }
 
+    /** E-mail (inbox + rédiger) — même bloc accordéon que le menu démo. */
+    function renderEmailAccordion() {
+        const emailActive = location.pathname.startsWith("/email");
+        return (
+            <Accordion bsPrefix="bg-none" onSelect={() => {}} defaultActiveKey={emailActive ? "Email" : undefined}>
+                <Accordion.Item as="li" className={`nav-item ${emailActive ? "active" : ""}`}>
+                    <div className="colors">
+                        <CustomToggle
+                            eventKey="Email"
+                            activeClass={emailItems.some((item) => isEmailPathActive(item.path))}
+                            onClick={() => {}}
+                        >
+                            <OverlayTrigger
+                                key="Email-nav"
+                                placement="right"
+                                overlay={<Tooltip id="tooltip-email-nav">{t("sidebar.tooltipEmail")}</Tooltip>}
+                            >
+                                <i className="ri-mail-open-fill"></i>
+                            </OverlayTrigger>
+                            <span className="item-name">{t("sidebar.email")}</span>
+                            <i className="right-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" className="icon-18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </i>
+                        </CustomToggle>
+                        <Accordion.Collapse eventKey="Email" as="ul" className="sub-nav" id="Email-sub">
+                            <>
+                                {emailItems.map(({ path, nameKey, icon }) => (
+                                    <li key={path}>
+                                        <Link className={`nav-link ${isEmailPathActive(path) ? "active" : ""}`} to={path}>
+                                            <i className={`icon ${icon}`}></i>
+                                            <span className="item-name">{t(`sidebar.${nameKey}`)}</span>
+                                        </Link>
+                                    </li>
+                                ))}
+                            </>
+                        </Accordion.Collapse>
+                    </div>
+                </Accordion.Item>
+            </Accordion>
+        );
+    }
 
     if (isPatient) {
         return (
@@ -176,6 +228,7 @@ const VerticalNav = () => {
                         <span className="item-name">{t("sidebar.secureMessaging")}</span>
                     </Link>
                 </Nav.Item>
+                {renderEmailAccordion()}
                 <Nav.Item as="li">
                     <Link
                         to="/dashboard-pages/patient-medication-history"
@@ -237,6 +290,7 @@ const VerticalNav = () => {
                         <span className="item-name">{t("sidebar.secureMessaging")}</span>
                     </Link>
                 </Nav.Item>
+                {renderEmailAccordion()}
                 <Nav.Item as="li">
                     <Link to={`/nurse/nurse-profile/${nurseUser?.id}`} className={`nav-link ${location.pathname === `/nurse/nurse-profile/${nurseUser?.id}` ? "active" : ""}`}>
                         <i className="ri-nurse-fill"></i>
@@ -268,6 +322,7 @@ const VerticalNav = () => {
                         <span className="item-name">{t("sidebar.secureMessaging")}</span>
                     </Link>
                 </Nav.Item>
+                {renderEmailAccordion()}
                 <Nav.Item as="li">
                     <Link
                         to="/doctor/my-patients"
@@ -498,11 +553,11 @@ const VerticalNav = () => {
                             <span className="mini-icon">-</span>
                         </Nav.Link>
                     </Nav.Item>
-                    <Accordion.Item as="li" className={`nav-item ${active === "Email" && 'active'} ${location.pathname === "/email/inbox" || location.pathname === "/email /compose" ? "active" : ""}`} onClick={() => setActive("Email")}>
+                    <Accordion.Item as="li" className={`nav-item ${active === "Email" && 'active'} ${location.pathname.startsWith("/email") ? "active" : ""}`} onClick={() => setActive("Email")}>
                         <div className="colors">
                             <CustomToggle
                                 eventKey="Email"
-                                activeClass={emailItems.some(item => location.pathname === item.path)}
+                                activeClass={emailItems.some(item => isEmailPathActive(item.path))}
                                 onClick={(activeKey) => setActiveMenu(activeKey)}
                             >
                                 <OverlayTrigger
@@ -528,7 +583,7 @@ const VerticalNav = () => {
                                 <>
                                     {emailItems.map(({ path, nameKey, icon }) => (
                                         <li key={path}>
-                                            <Link className={`nav-link ${location.pathname === path ? "active" : ""}`} to={path}>
+                                            <Link className={`nav-link ${isEmailPathActive(path) ? "active" : ""}`} to={path}>
                                                 <i className={`icon ${icon}`}></i>
                                                 <span className="item-name">{t(`sidebar.${nameKey}`)}</span>
                                             </Link>

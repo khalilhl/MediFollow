@@ -199,6 +199,10 @@ export const DefaultRoute = [
         path: '/email/email-compose',
         element: <EmailCompose />
       },
+      {
+        path: '/email/email-compose/:draftMessageId',
+        element: <EmailCompose />
+      },
 
       //  ------ Doctor Route ------ 
       {

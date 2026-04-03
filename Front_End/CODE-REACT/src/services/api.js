@@ -893,3 +893,44 @@ export const appointmentApi = {
   updateAsAdmin: (id, data) => api.putWithAdminToken(`/appointments/${id}`, data),
   remove: (id) => api.delete(`/appointments/${id}`),
 };
+
+/** JWT patient / médecin / infirmier — messagerie interne (API /mail). */
+export const mailApi = {
+  recipients: () => api.get('/mail/recipients'),
+  storage: () => api.get('/mail/storage'),
+  counts: () => api.get('/mail/counts'),
+  listMessages: (params = {}) => {
+    const q = new URLSearchParams();
+    if (params.folder) q.set('folder', params.folder);
+    if (params.starred) q.set('starred', 'true');
+    if (params.page) q.set('page', String(params.page));
+    if (params.limit) q.set('limit', String(params.limit));
+    const s = q.toString();
+    return api.get(`/mail/messages${s ? `?${s}` : ''}`);
+  },
+  getMessage: (stateId) => api.get(`/mail/messages/${encodeURIComponent(stateId)}`),
+  send: (body) => api.post('/mail/send', body),
+  saveDraft: (body) => api.post('/mail/drafts', body),
+  getDraft: (messageId) => api.get(`/mail/drafts/${encodeURIComponent(messageId)}`),
+  updateDraft: (messageId, body) =>
+    api.patch(`/mail/drafts/${encodeURIComponent(messageId)}`, body),
+  sendDraft: (messageId) => api.post(`/mail/drafts/${encodeURIComponent(messageId)}/send`, {}),
+  markRead: (stateId, read = true) =>
+    api.patch(`/mail/messages/${encodeURIComponent(stateId)}/read`, { read }),
+  move: (stateId, folder) =>
+    api.patch(`/mail/messages/${encodeURIComponent(stateId)}/move`, { folder }),
+  deleteMessage: (stateId) =>
+    api.delete(`/mail/messages/${encodeURIComponent(stateId)}`),
+  emptyTrash: () => api.post('/mail/trash/empty', {}),
+  star: (stateId, starred) =>
+    api.patch(`/mail/messages/${encodeURIComponent(stateId)}/star`, { starred }),
+  snooze: (stateId, until) =>
+    api.patch(`/mail/messages/${encodeURIComponent(stateId)}/snooze`, { until: until || null }),
+  listLabels: () => api.get('/mail/labels'),
+  createLabel: (body) => api.post('/mail/labels', body),
+  deleteLabel: (labelId) => api.delete(`/mail/labels/${encodeURIComponent(labelId)}`),
+  addLabel: (stateId, labelId) =>
+    api.post(`/mail/messages/${encodeURIComponent(stateId)}/labels/${encodeURIComponent(labelId)}`, {}),
+  removeLabel: (stateId, labelId) =>
+    api.delete(`/mail/messages/${encodeURIComponent(stateId)}/labels/${encodeURIComponent(labelId)}`),
+};

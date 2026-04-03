@@ -12,6 +12,7 @@ import {
 } from "../../utils/medicationReminders";
 import { broadcastDoctorHealthLogResolved, subscribeDoctorHealthLogResolved } from "../../utils/healthLogResolveBroadcast";
 import { translateSymptom } from "../../utils/symptomLabels";
+import { formatMedicationFrequencyDisplay } from "../../utils/medicationFrequencyLabel";
 import "./doctor-patient-dossier.css";
 
 const VITALS_TZ = "Africa/Tunis";
@@ -805,7 +806,7 @@ export default function DoctorPatientDossierView({ patient }) {
                         <tr key={mid}>
                           <td className="fw-semibold">{m.name}</td>
                           <td>{m.dosage || "—"}</td>
-                          <td>{m.frequency || "—"}</td>
+                          <td>{formatMedicationFrequencyDisplay(m.frequency, t)}</td>
                           <td>{m.prescribedBy || "—"}</td>
                           <td className="small text-muted">
                             {startStr ? formatDisplayDateYmd(startStr, dateLocale) : "—"}

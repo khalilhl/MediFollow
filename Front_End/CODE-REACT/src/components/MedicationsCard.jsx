@@ -13,6 +13,7 @@ import {
   getSlotRecordedAtIso,
   formatSlotTimeLocal,
 } from "../utils/medicationReminders";
+import { formatMedicationFrequencyDisplay } from "../utils/medicationFrequencyLabel";
 
 const FREQUENCIES = ["Once daily", "Twice daily", "Three times daily", "Every 8 hours", "Weekly", "As needed"];
 
@@ -183,7 +184,7 @@ const MedicationsCard = ({ patientId, medications: initialMeds, onUpdate, allowA
                       <div className="fw-bold small">{m.name}</div>
                       <div className="text-muted" style={{ fontSize: "0.72rem" }}>
                         {m.dosage && <span className="me-2">{m.dosage}</span>}
-                        <span>{m.frequency}</span>
+                        <span>{formatMedicationFrequencyDisplay(m.frequency, t)}</span>
                         {m.prescribedBy && <span className="ms-2 text-primary">Dr. {m.prescribedBy}</span>}
                         {m.startDate && (
                           <span className="ms-1 d-block text-muted">

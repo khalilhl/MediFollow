@@ -10,6 +10,7 @@ import {
   getIntakeHistoryByDate,
   formatSlotTimeLocal,
 } from "../../utils/medicationReminders";
+import { formatMedicationFrequencyDisplay } from "../../utils/medicationFrequencyLabel";
 
 function dateLocaleFromI18n(lang) {
   const base = String(lang || "en").split("-")[0];
@@ -152,7 +153,7 @@ const PatientMedicationHistory = () => {
                     <h6 className="fw-bold text-primary mb-1">{m.name}</h6>
                     <div className="small text-muted">
                       {m.dosage && <span className="me-2">{m.dosage}</span>}
-                      <span>{m.frequency}</span>
+                      <span>{formatMedicationFrequencyDisplay(m.frequency, t)}</span>
                       {m.prescribedBy && (
                         <span className="ms-2">{t("patientMedicationHistory.prescribedBy", { name: m.prescribedBy })}</span>
                       )}

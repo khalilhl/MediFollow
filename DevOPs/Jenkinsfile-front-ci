@@ -12,7 +12,7 @@ pipeline {
         stage('Install Front-End Dependencies') {
             steps {
                 dir('Front_End/CODE-REACT') {
-                    sh 'npm install'
+                    sh 'npm install --legacy-peer-deps'
                 }
             }
         }

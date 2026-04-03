@@ -657,7 +657,7 @@
     "profileImageAlt": "Administrateur",
     "pageTitle": "Connexion administrateur",
     "intro": "Entrez vos identifiants pour accéder au tableau de bord.",
-    "pendingEmailCheck": "Vérifiez votre e-mail pour confirmer la connexion.",
+    "pendingEmailCheck": "Un lien de confirmation a été envoyé à votre adresse e-mail. Cliquez dessus pour accéder à votre session.",
     "loginFailed": "E-mail ou mot de passe incorrect",
     "retryOtherLogin": "Réessayer une autre connexion",
     "email": "E-mail",

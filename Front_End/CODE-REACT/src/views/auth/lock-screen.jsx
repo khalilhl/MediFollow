@@ -17,7 +17,6 @@ const LockScreen = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [pending, setPending] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -27,7 +26,6 @@ const LockScreen = () => {
       const data = await authApi.login(email || "admin@medifollow.com", password);
       if (data.pending) {
         setPending(true);
-        setSuccessMessage(data.message || t("lockScreen.pendingEmailCheck"));
       } else {
         localStorage.setItem("adminToken", data.access_token);
         localStorage.setItem("adminUser", JSON.stringify(data.user || { email, role: "admin" }));
@@ -97,7 +95,7 @@ const LockScreen = () => {
                   {pending && (
                     <div className="alert alert-success py-2" role="alert">
                       <i className="ri-mail-line me-2"></i>
-                      {successMessage}
+                      {t("lockScreen.pendingEmailCheck")}
                     </div>
                   )}
                   {error && (
@@ -106,7 +104,7 @@ const LockScreen = () => {
                     </div>
                   )}
                   {pending && (
-                    <button type="button" className="btn btn-outline-secondary mt-2" onClick={() => { setPending(false); setSuccessMessage(""); }}>
+                    <button type="button" className="btn btn-outline-secondary mt-2" onClick={() => { setPending(false); }}>
                       {t("lockScreen.retryOtherLogin")}
                     </button>
                   )}

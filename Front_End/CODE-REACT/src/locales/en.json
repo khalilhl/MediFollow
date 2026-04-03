@@ -657,7 +657,7 @@
     "profileImageAlt": "Administrator",
     "pageTitle": "Administrator login",
     "intro": "Enter your credentials to access the dashboard.",
-    "pendingEmailCheck": "Check your email to confirm login.",
+    "pendingEmailCheck": "A confirmation link has been sent to your email address. Click it to access your session.",
     "loginFailed": "Incorrect email or password",
     "retryOtherLogin": "Try another login",
     "email": "Email",

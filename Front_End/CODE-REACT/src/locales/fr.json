@@ -7,7 +7,21 @@
   "nav": {
     "searchPlaceholder": "Rechercher…",
     "connected": "Connecté",
-    "userAvatarAlt": "Photo de profil"
+    "userAvatarAlt": "Photo de profil",
+    "allNotifications": "Toutes les notifications",
+    "available": "Disponible",
+    "myProfile": "Mon profil",
+    "viewDoctorProfile": "Voir votre profil médecin.",
+    "editProfile": "Modifier le profil",
+    "modifyPersonalDetails": "Modifier vos informations personnelles.",
+    "accountSettings": "Paramètres du compte",
+    "manageAccountSettings": "Gérer les paramètres du compte.",
+    "privacySettings": "Paramètres de confidentialité",
+    "controlPrivacy": "Contrôler vos paramètres de confidentialité.",
+    "viewNurseProfile": "Voir votre profil infirmier.",
+    "viewPatientProfile": "Voir votre profil patient.",
+    "adminProfileDetails": "Voir les détails du profil personnel.",
+    "signOut": "Déconnexion"
   },
   "patientDashboard": {
     "alertFlaggedTitle": "Attention :",

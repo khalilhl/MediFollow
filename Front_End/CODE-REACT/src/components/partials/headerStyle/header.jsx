@@ -523,8 +523,8 @@ const Header = () => {
                               <div
                                  className="py-3 card-header d-flex justify-content-between bg-primary mb-0 rounded-top-3">
                                  <div className="header-title">
-                                    <h5 className="mb-0 text-white">All Notifications</h5>
-                                    <span className="text-white ">Available</span>
+                                    <h5 className="mb-0 text-white">{t("nav.allNotifications")}</h5>
+                                    <span className="text-white ">{t("nav.available")}</span>
                                  </div>
                               </div>
                               <div className="p-0 card-body">
@@ -536,8 +536,8 @@ const Header = () => {
                                           <i className="ri-file-user-line "></i>
                                        </div>
                                        <div className="ms-3 flex-grow-1 text-start">
-                                          <h6 className="mb-0 ">My Profile</h6>
-                                          <p className="mb-0">View your doctor profile.</p>
+                                          <h6 className="mb-0 ">{t("nav.myProfile")}</h6>
+                                          <p className="mb-0">{t("nav.viewDoctorProfile")}</p>
                                        </div>
                                     </div>
                                  </Link>
@@ -547,8 +547,8 @@ const Header = () => {
                                           <i className="ri-profile-line "></i>
                                        </div>
                                        <div className="ms-3 flex-grow-1 text-start">
-                                          <h6 className="mb-0 ">Edit Profile</h6>
-                                          <p className="mb-0">Modify your personal details.</p>
+                                          <h6 className="mb-0 ">{t("nav.editProfile")}</h6>
+                                          <p className="mb-0">{t("nav.modifyPersonalDetails")}</p>
                                        </div>
                                     </div>
                                  </Link>
@@ -558,8 +558,8 @@ const Header = () => {
                                           <i className="ri-account-box-line "></i>
                                        </div>
                                        <div className="ms-3 flex-grow-1 text-start">
-                                          <h6 className="mb-0 ">Account Settings</h6>
-                                          <p className="mb-0">Manage your account parameters.</p>
+                                          <h6 className="mb-0 ">{t("nav.accountSettings")}</h6>
+                                          <p className="mb-0">{t("nav.manageAccountSettings")}</p>
                                        </div>
                                     </div>
                                  </Link>
@@ -569,8 +569,8 @@ const Header = () => {
                                           <i className="ri-lock-line"></i>
                                        </div>
                                        <div className="ms-3 flex-grow-1 text-start">
-                                          <h6 className="mb-0 ">Privacy Settings</h6>
-                                          <p className="mb-0">Control your privacy parameters.</p>
+                                          <h6 className="mb-0 ">{t("nav.privacySettings")}</h6>
+                                          <p className="mb-0">{t("nav.controlPrivacy")}</p>
                                        </div>
                                     </div>
                                  </Link>
@@ -583,8 +583,8 @@ const Header = () => {
                                           <i className="ri-file-user-line "></i>
                                        </div>
                                        <div className="ms-3 flex-grow-1 text-start">
-                                          <h6 className="mb-0 ">Mon profil</h6>
-                                          <p className="mb-0">Voir mon profil infirmier.</p>
+                                          <h6 className="mb-0 ">{t("nav.myProfile")}</h6>
+                                          <p className="mb-0">{t("nav.viewNurseProfile")}</p>
                                        </div>
                                     </div>
                                  </Link>
@@ -594,8 +594,8 @@ const Header = () => {
                                           <i className="ri-account-box-line "></i>
                                        </div>
                                        <div className="ms-3 flex-grow-1 text-start">
-                                          <h6 className="mb-0 ">Paramètres du compte</h6>
-                                          <p className="mb-0">Gérer vos paramètres.</p>
+                                          <h6 className="mb-0 ">{t("nav.accountSettings")}</h6>
+                                          <p className="mb-0">{t("nav.manageAccountSettings")}</p>
                                        </div>
                                     </div>
                                  </Link>
@@ -608,8 +608,8 @@ const Header = () => {
                                           <i className="ri-file-user-line "></i>
                                        </div>
                                        <div className="ms-3 flex-grow-1 text-start">
-                                          <h6 className="mb-0 ">Mon profil</h6>
-                                          <p className="mb-0">Voir mon profil patient.</p>
+                                          <h6 className="mb-0 ">{t("nav.myProfile")}</h6>
+                                          <p className="mb-0">{t("nav.viewPatientProfile")}</p>
                                        </div>
                                     </div>
                                  </Link>
@@ -619,8 +619,8 @@ const Header = () => {
                                           <i className="ri-account-box-line "></i>
                                        </div>
                                        <div className="ms-3 flex-grow-1 text-start">
-                                          <h6 className="mb-0 ">Paramètres du compte</h6>
-                                          <p className="mb-0">Gérer vos paramètres.</p>
+                                          <h6 className="mb-0 ">{t("nav.accountSettings")}</h6>
+                                          <p className="mb-0">{t("nav.manageAccountSettings")}</p>
                                        </div>
                                     </div>
                                  </Link>
@@ -634,9 +634,8 @@ const Header = () => {
                                           <i className="ri-file-user-line "></i>
                                        </div>
                                        <div className="ms-3 flex-grow-1 text-start">
-                                          <h6 className="mb-0 ">My Profile</h6>
-                                          <p className="mb-0">View personal profile
-                                             details.</p>
+                                          <h6 className="mb-0 ">{t("nav.myProfile")}</h6>
+                                          <p className="mb-0">{t("nav.adminProfileDetails")}</p>
                                        </div>
 
                                     </div>
@@ -648,9 +647,8 @@ const Header = () => {
                                           <i className="ri-profile-line "></i>
                                        </div>
                                        <div className="ms-3 flex-grow-1 text-start">
-                                          <h6 className="mb-0 ">Edit Profile</h6>
-                                          <p className="mb-0">Modify your personal
-                                             details.</p>
+                                          <h6 className="mb-0 ">{t("nav.editProfile")}</h6>
+                                          <p className="mb-0">{t("nav.modifyPersonalDetails")}</p>
                                        </div>
 
                                     </div>
@@ -662,9 +660,8 @@ const Header = () => {
                                           <i className="ri-account-box-line "></i>
                                        </div>
                                        <div className="ms-3 flex-grow-1 text-start">
-                                          <h6 className="mb-0 ">Account Settings</h6>
-                                          <p className="mb-0">Manage your account
-                                             parameters.</p>
+                                          <h6 className="mb-0 ">{t("nav.accountSettings")}</h6>
+                                          <p className="mb-0">{t("nav.manageAccountSettings")}</p>
                                        </div>
 
                                     </div>
@@ -676,9 +673,8 @@ const Header = () => {
                                           <i className="ri-lock-line"></i>
                                        </div>
                                        <div className="ms-3 flex-grow-1 text-start">
-                                          <h6 className="mb-0 ">Privacy Settings</h6>
-                                          <p className="mb-0">Control your privacy
-                                             parameters.</p>
+                                          <h6 className="mb-0 ">{t("nav.privacySettings")}</h6>
+                                          <p className="mb-0">{t("nav.controlPrivacy")}</p>
                                        </div>
 
                                     </div>
@@ -691,7 +687,7 @@ const Header = () => {
                                        className="btn btn-primary-subtle w-100"
                                        onClick={handleSignOut}
                                     >
-                                       Sign out
+                                       {t("nav.signOut")}
                                        <i className="ri-login-box-line ms-2"></i>
                                     </button>
                                  </div>
@@ -740,7 +736,7 @@ const Header = () => {
                               <div
                                  className="py-3 card-header d-flex justify-content-between bg-primary mb-0">
                                  <div className="header-title">
-                                    <h5 className="mb-0 text-white">All Notifications</h5>
+                                    <h5 className="mb-0 text-white">{t("nav.allNotifications")}</h5>
                                  </div>
                               </div>
                               <div className="p-0 card-body">
@@ -816,7 +812,7 @@ const Header = () => {
                               <div
                                  className="py-3 card-header d-flex justify-content-between bg-primary mb-0">
                                  <div className="header-title">
-                                    <h5 className="mb-0 text-white">All Notifications</h5>
+                                    <h5 className="mb-0 text-white">{t("nav.allNotifications")}</h5>
                                  </div>
                               </div>
                               <div className="p-0 card-body">

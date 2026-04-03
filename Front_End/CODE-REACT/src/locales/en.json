@@ -7,7 +7,21 @@
   "nav": {
     "searchPlaceholder": "Type here to search...",
     "connected": "Connected",
-    "userAvatarAlt": "Profile photo"
+    "userAvatarAlt": "Profile photo",
+    "allNotifications": "All Notifications",
+    "available": "Available",
+    "myProfile": "My Profile",
+    "viewDoctorProfile": "View your doctor profile.",
+    "editProfile": "Edit Profile",
+    "modifyPersonalDetails": "Modify your personal details.",
+    "accountSettings": "Account Settings",
+    "manageAccountSettings": "Manage your account parameters.",
+    "privacySettings": "Privacy Settings",
+    "controlPrivacy": "Control your privacy parameters.",
+    "viewNurseProfile": "View your nurse profile.",
+    "viewPatientProfile": "View your patient profile.",
+    "adminProfileDetails": "View personal profile details.",
+    "signOut": "Sign out"
   },
   "patientDashboard": {
     "alertFlaggedTitle": "Attention:",

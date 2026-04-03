@@ -7,7 +7,21 @@
   "nav": {
     "searchPlaceholder": "ابحث هنا…",
     "connected": "متصل",
-    "userAvatarAlt": "صورة الملف الشخصي"
+    "userAvatarAlt": "صورة الملف الشخصي",
+    "allNotifications": "جميع الإشعارات",
+    "available": "متاح",
+    "myProfile": "ملفي الشخصي",
+    "viewDoctorProfile": "عرض ملف الطبيب الخاص بك.",
+    "editProfile": "تعديل الملف الشخصي",
+    "modifyPersonalDetails": "تعديل بياناتك الشخصية.",
+    "accountSettings": "إعدادات الحساب",
+    "manageAccountSettings": "إدارة إعدادات حسابك.",
+    "privacySettings": "إعدادات الخصوصية",
+    "controlPrivacy": "التحكم في إعدادات الخصوصية.",
+    "viewNurseProfile": "عرض ملفك كممرض.",
+    "viewPatientProfile": "عرض ملفك كمريض.",
+    "adminProfileDetails": "عرض تفاصيل الملف الشخصي.",
+    "signOut": "تسجيل الخروج"
   },
   "patientDashboard": {
     "alertFlaggedTitle": "تنبيه:",

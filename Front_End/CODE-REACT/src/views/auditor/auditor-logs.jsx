@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Row, Col, Form, Button, Table, Spinner, Modal, Pagination, Badge } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
 import { auditorApi } from "../../services/api";
@@ -33,8 +34,8 @@ function rowClass(visual) {
   return "auditor-logs__row--neutral";
 }
 
-function formatJson(obj) {
-  if (obj == null) return "—";
+function formatJson(obj, emptyLabel) {
+  if (obj == null) return emptyLabel;
   try {
     return JSON.stringify(obj, null, 2);
   } catch {
@@ -42,8 +43,34 @@ function formatJson(obj) {
   }
 }
 
+function labelAction(t, code) {
+  if (!code) return t("auditorLogs.noValue");
+  if (code === "LOGIN_FAILED") return t("auditorLogs.loginFailed");
+  return t(`auditorLogs.actionLabels.${code}`, { defaultValue: code });
+}
+
+function labelResource(t, row) {
+  const type = row.resourceType;
+  const custom = row.resourceLabel;
+  if (custom && type && custom !== type) return custom;
+  if (type) return t(`auditorLogs.resourceLabels.${type}`, { defaultValue: type });
+  if (custom) return custom;
+  return t("auditorLogs.noValue");
+}
+
+function labelRole(t, role) {
+  if (!role) return t("auditorLogs.noValue");
+  return t(`auditorLogs.roleLabels.${role}`, { defaultValue: role });
+}
+
 const AuditorLogsPage = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const dateLocale = (() => {
+    const l = (i18n.language || "en").split("-")[0];
+    if (l === "fr") return "fr-FR";
+    if (l === "ar") return "ar-SA";
+    return "en-US";
+  })();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [data, setData] = useState({ items: [], total: 0, page: 1, totalPages: 1, limit: 25 });
@@ -74,12 +101,12 @@ const AuditorLogsPage = () => {
         });
         setData(res);
       } catch (e) {
-        setError(e.message || "Error");
+        setError(e.message || t("auditorLogs.errorGeneric"));
       } finally {
         setLoading(false);
       }
     },
-    [userSearch, actorRole, actionType, resourceType, datePreset]
+    [userSearch, actorRole, actionType, resourceType, datePreset, t]
   );
 
   useEffect(() => {
@@ -114,187 +141,296 @@ const AuditorLogsPage = () => {
 
   return (
     <div className="auditor-logs">
-      <h1 className="auditor-logs__title">{t("auditorLogs.pageTitle")}</h1>
-      <p className="auditor-logs__subtitle">{t("auditorLogs.subtitle")}</p>
+      <header className="auditor-logs__header">
+        <Link to="/auditor/dashboard" className="auditor-logs__back">
+          <i className="ri-arrow-left-line" aria-hidden />
+          {t("auditorLogs.backDashboard")}
+        </Link>
+
+        <div className="auditor-logs__hero">
+          <div className="auditor-logs__hero-text">
+            <div className="auditor-logs__hero-icon" aria-hidden>
+              <i className="ri-file-list-3-line" />
+            </div>
+            <div>
+              <h1 className="auditor-logs__title">{t("auditorLogs.pageTitle")}</h1>
+              <p className="auditor-logs__subtitle">{t("auditorLogs.subtitle")}</p>
+              <div className="auditor-logs__legend">
+                <span className="auditor-logs__legend-item auditor-logs__legend-item--danger">{t("auditorLogs.legendDelete")}</span>
+                <span className="auditor-logs__legend-item auditor-logs__legend-item--warning">{t("auditorLogs.legendLoginFailed")}</span>
+                <span className="auditor-logs__legend-item auditor-logs__legend-item--neutral">{t("auditorLogs.legendNeutral")}</span>
+              </div>
+              <p className="auditor-logs__legend-desc">{t("auditorLogs.legendHint")}</p>
+            </div>
+          </div>
+          {!loading && (
+            <div className="auditor-logs__stat">
+              <div className="auditor-logs__stat-value">{data.total}</div>
+              <div className="auditor-logs__stat-label">{t("auditorLogs.statTotalLabel")}</div>
+            </div>
+          )}
+        </div>
+      </header>
 
       <div className="auditor-logs__filters">
-        <Row className="g-2 align-items-end">
-          <Col md={6} lg={3}>
-            <Form.Label className="small text-muted mb-1">{t("auditorLogs.filterUser")}</Form.Label>
-            <Form.Control
-              size="sm"
-              type="search"
-              placeholder={t("auditorLogs.filterUserPlaceholder")}
-              value={userSearch}
-              onChange={(e) => setUserSearch(e.target.value)}
-            />
-          </Col>
-          <Col md={6} lg={2}>
-            <Form.Label className="small text-muted mb-1">{t("auditorLogs.filterRole")}</Form.Label>
-            <Form.Select size="sm" value={actorRole} onChange={(e) => setActorRole(e.target.value)}>
-              <option value="">{t("auditorLogs.all")}</option>
-              {ROLE_OPTIONS.filter(Boolean).map((r) => (
-                <option key={r} value={r}>
-                  {r}
-                </option>
-              ))}
-            </Form.Select>
-          </Col>
-          <Col md={6} lg={2}>
-            <Form.Label className="small text-muted mb-1">{t("auditorLogs.filterActionType")}</Form.Label>
-            <Form.Select size="sm" value={actionType} onChange={(e) => setActionType(e.target.value)}>
-              <option value="">{t("auditorLogs.all")}</option>
-              {ACTION_TYPES.filter(Boolean).map((a) => (
-                <option key={a} value={a}>
-                  {a === "LOGIN_FAILED" ? t("auditorLogs.loginFailed") : a}
-                </option>
-              ))}
-            </Form.Select>
-          </Col>
-          <Col md={6} lg={2}>
-            <Form.Label className="small text-muted mb-1">{t("auditorLogs.filterResourceType")}</Form.Label>
-            <Form.Select size="sm" value={resourceType} onChange={(e) => setResourceType(e.target.value)}>
-              <option value="">{t("auditorLogs.all")}</option>
-              {RESOURCE_TYPES.filter(Boolean).map((r) => (
-                <option key={r} value={r}>
-                  {r}
-                </option>
-              ))}
-            </Form.Select>
-          </Col>
-          <Col md={6} lg={2}>
-            <Form.Label className="small text-muted mb-1">{t("auditorLogs.filterPeriod")}</Form.Label>
-            <Form.Select size="sm" value={datePreset} onChange={(e) => setDatePreset(e.target.value)}>
-              {DATE_PRESETS.map((p) => (
-                <option key={p} value={p}>
-                  {t(`auditorLogs.preset.${p}`)}
-                </option>
-              ))}
-            </Form.Select>
-          </Col>
-          <Col md={6} lg={1} className="d-grid">
-            <Button variant="primary" size="sm" className="mt-3 mt-lg-0" onClick={applyFilters}>
-              {t("auditorLogs.apply")}
-            </Button>
-          </Col>
-        </Row>
+        <div className="auditor-logs__filters-head">
+          <i className="ri-filter-3-line" aria-hidden />
+          {t("auditorLogs.sectionFilters")}
+        </div>
+        <div className="auditor-logs__filters-body">
+          <Row className="g-3 align-items-end">
+            <Col md={6} lg={3}>
+              <Form.Label className="auditor-logs__label">{t("auditorLogs.filterUser")}</Form.Label>
+              <Form.Control
+                className="auditor-logs__control"
+                size="sm"
+                type="search"
+                placeholder={t("auditorLogs.filterUserPlaceholder")}
+                value={userSearch}
+                onChange={(e) => setUserSearch(e.target.value)}
+              />
+            </Col>
+            <Col md={6} lg={2}>
+              <Form.Label className="auditor-logs__label">{t("auditorLogs.filterRole")}</Form.Label>
+              <Form.Select
+                className="auditor-logs__control"
+                size="sm"
+                value={actorRole}
+                onChange={(e) => setActorRole(e.target.value)}
+              >
+                <option value="">{t("auditorLogs.all")}</option>
+                {ROLE_OPTIONS.filter(Boolean).map((r) => (
+                  <option key={r} value={r}>
+                    {t(`auditorLogs.roleLabels.${r}`)}
+                  </option>
+                ))}
+              </Form.Select>
+            </Col>
+            <Col md={6} lg={2}>
+              <Form.Label className="auditor-logs__label">{t("auditorLogs.filterActionType")}</Form.Label>
+              <Form.Select
+                className="auditor-logs__control"
+                size="sm"
+                value={actionType}
+                onChange={(e) => setActionType(e.target.value)}
+              >
+                <option value="">{t("auditorLogs.all")}</option>
+                {ACTION_TYPES.filter(Boolean).map((a) => (
+                  <option key={a} value={a}>
+                    {labelAction(t, a)}
+                  </option>
+                ))}
+              </Form.Select>
+            </Col>
+            <Col md={6} lg={2}>
+              <Form.Label className="auditor-logs__label">{t("auditorLogs.filterResourceType")}</Form.Label>
+              <Form.Select
+                className="auditor-logs__control"
+                size="sm"
+                value={resourceType}
+                onChange={(e) => setResourceType(e.target.value)}
+              >
+                <option value="">{t("auditorLogs.all")}</option>
+                {RESOURCE_TYPES.filter(Boolean).map((r) => (
+                  <option key={r} value={r}>
+                    {t(`auditorLogs.resourceLabels.${r}`)}
+                  </option>
+                ))}
+              </Form.Select>
+            </Col>
+            <Col md={6} lg={2}>
+              <Form.Label className="auditor-logs__label">{t("auditorLogs.filterPeriod")}</Form.Label>
+              <Form.Select
+                className="auditor-logs__control"
+                size="sm"
+                value={datePreset}
+                onChange={(e) => setDatePreset(e.target.value)}
+              >
+                {DATE_PRESETS.map((p) => (
+                  <option key={p} value={p}>
+                    {t(`auditorLogs.preset.${p}`)}
+                  </option>
+                ))}
+              </Form.Select>
+            </Col>
+            <Col md={6} lg={1} className="d-grid">
+              <Button size="sm" className="auditor-logs__btn-apply mt-1 mt-lg-0" onClick={applyFilters}>
+                {t("auditorLogs.apply")}
+              </Button>
+            </Col>
+          </Row>
+        </div>
       </div>
 
-      {error && <p className="text-danger small">{error}</p>}
+      {error && <div className="auditor-logs__alert">{error}</div>}
 
       <div className="auditor-logs__table-card">
+        {!loading && (
+          <div className="auditor-logs__toolbar">
+            <h2 className="auditor-logs__toolbar-title">{t("auditorLogs.sectionResults")}</h2>
+            <span className="auditor-logs__toolbar-meta">
+              {t("auditorLogs.paginationInfo", { total: data.total, page: data.page, pages: data.totalPages })}
+            </span>
+          </div>
+        )}
+
         {loading ? (
-          <div className="d-flex justify-content-center py-5">
-            <Spinner animation="border" style={{ color: "#635bff" }} />
+          <div className="auditor-logs__loader">
+            <Spinner animation="border" className="text-primary" role="status" />
+            <span>{t("auditorLogs.loadingLogs")}</span>
           </div>
         ) : (
           <>
-            <Table responsive hover className="auditor-logs__table mb-0">
-              <thead>
-                <tr>
-                  <th>{t("auditorLogs.colWhen")}</th>
-                  <th>{t("auditorLogs.colWho")}</th>
-                  <th>{t("auditorLogs.colRole")}</th>
-                  <th>{t("auditorLogs.colActionType")}</th>
-                  <th>{t("auditorLogs.colWhat")}</th>
-                  <th>{t("auditorLogs.colResource")}</th>
-                  <th>{t("auditorLogs.colIp")}</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.items?.length === 0 && (
+            <div className="auditor-logs__table-scroll">
+              <Table responsive className="auditor-logs__table mb-0">
+                <thead>
                   <tr>
-                    <td colSpan={8} className="text-center text-muted py-4">
-                      {t("auditorLogs.empty")}
-                    </td>
+                    <th>{t("auditorLogs.colWhen")}</th>
+                    <th>{t("auditorLogs.colWho")}</th>
+                    <th>{t("auditorLogs.colRole")}</th>
+                    <th>{t("auditorLogs.colActionType")}</th>
+                    <th>{t("auditorLogs.colWhat")}</th>
+                    <th>{t("auditorLogs.colResource")}</th>
+                    <th>{t("auditorLogs.colIp")}</th>
+                    <th className="text-end">{t("auditorLogs.detail")}</th>
                   </tr>
-                )}
-                {(data.items || []).map((row) => (
-                  <tr key={row.id} className={rowClass(row.visual)}>
-                    <td className="text-nowrap small">{row.createdAt ? new Date(row.createdAt).toLocaleString() : "—"}</td>
-                    <td>{row.actorEmail || "—"}</td>
-                    <td>{row.actorRole || "—"}</td>
-                    <td>
-                      <Badge
-                        bg={row.visual === "danger" ? "danger" : row.visual === "warning" ? "warning" : "secondary"}
-                        text={row.visual === "warning" ? "dark" : undefined}
-                        className="auditor-logs__badge"
-                      >
-                        {row.actionType === "LOGIN_FAILED" ? t("auditorLogs.loginFailed") : row.actionType || "—"}
-                      </Badge>
-                    </td>
-                    <td>
-                      <span title={row.action}>{row.action?.length > 56 ? `${row.action.slice(0, 56)}…` : row.action}</span>
-                    </td>
-                    <td>
-                      <span className="text-muted">{row.resourceLabel || row.resourceType || "—"}</span>
-                    </td>
-                    <td className="small font-monospace">{row.ipAddress || "—"}</td>
-                    <td>
-                      <Button variant="outline-primary" size="sm" onClick={() => openDetail(row.id)}>
-                        {t("auditorLogs.detail")}
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-            {data.totalPages > 1 && (
-              <div className="d-flex justify-content-between align-items-center px-3 py-2 border-top bg-light">
-                <span className="small text-muted">
-                  {t("auditorLogs.paginationInfo", { total: data.total, page: data.page, pages: data.totalPages })}
-                </span>
+                </thead>
+                <tbody>
+                  {data.items?.length === 0 && (
+                    <tr>
+                      <td colSpan={8}>
+                        <div className="auditor-logs__empty">
+                          <div className="auditor-logs__empty-icon">
+                            <i className="ri-inbox-line" />
+                          </div>
+                          <p>{t("auditorLogs.empty")}</p>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  {(data.items || []).map((row) => (
+                    <tr key={row.id} className={rowClass(row.visual)}>
+                      <td className="auditor-logs__cell-time text-nowrap">
+                        {row.createdAt ? new Date(row.createdAt).toLocaleString(dateLocale) : t("auditorLogs.noValue")}
+                      </td>
+                      <td>{row.actorEmail || t("auditorLogs.noValue")}</td>
+                      <td>
+                        <span className="auditor-logs__cell-muted">{labelRole(t, row.actorRole)}</span>
+                      </td>
+                      <td>
+                        <Badge
+                          bg={row.visual === "danger" ? "danger" : row.visual === "warning" ? "warning" : "secondary"}
+                          text={row.visual === "warning" ? "dark" : undefined}
+                          className="auditor-logs__badge"
+                        >
+                          {labelAction(t, row.actionType)}
+                        </Badge>
+                      </td>
+                      <td className="auditor-logs__cell-action">
+                        <span title={row.action}>
+                          {row.action?.length > 56 ? `${row.action.slice(0, 56)}…` : row.action}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="auditor-logs__cell-muted">{labelResource(t, row)}</span>
+                      </td>
+                      <td className="small font-monospace auditor-logs__cell-muted">{row.ipAddress || t("auditorLogs.noValue")}</td>
+                      <td className="text-end">
+                        <Button
+                          variant="outline-primary"
+                          size="sm"
+                          className="auditor-logs__btn-detail"
+                          onClick={() => openDetail(row.id)}
+                        >
+                          <i className="ri-eye-line" aria-hidden />
+                          {t("auditorLogs.detail")}
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </div>
+
+            <div className="auditor-logs__footer">
+              <span className="auditor-logs__footer-info">
+                {t("auditorLogs.paginationInfo", { total: data.total, page: data.page, pages: data.totalPages })}
+              </span>
+              {data.totalPages > 1 ? (
                 <Pagination className="mb-0">
-                  <Pagination.Prev disabled={data.page <= 1} onClick={() => handlePage(data.page - 1)} />
+                  <Pagination.Prev
+                    aria-label={t("auditorLogs.paginationPrev")}
+                    disabled={data.page <= 1}
+                    onClick={() => handlePage(data.page - 1)}
+                  />
                   <Pagination.Item active>{data.page}</Pagination.Item>
-                  <Pagination.Next disabled={data.page >= data.totalPages} onClick={() => handlePage(data.page + 1)} />
+                  <Pagination.Next
+                    aria-label={t("auditorLogs.paginationNext")}
+                    disabled={data.page >= data.totalPages}
+                    onClick={() => handlePage(data.page + 1)}
+                  />
                 </Pagination>
-              </div>
-            )}
+              ) : (
+                <span className="auditor-logs__footer-info" style={{ opacity: 0.75 }}>
+                  {t("auditorLogs.noValue")}
+                </span>
+              )}
+            </div>
           </>
         )}
       </div>
 
-      <Modal show={showModal} onHide={closeModal} size="lg" centered>
-        <Modal.Header closeButton>
-          <Modal.Title>{t("auditorLogs.detailTitle")}</Modal.Title>
+      <Modal
+        show={showModal}
+        onHide={closeModal}
+        size="lg"
+        centered
+        dialogClassName="auditor-logs__modal-dialog"
+        contentClassName="auditor-logs__modal-content"
+      >
+        <Modal.Header closeButton className="auditor-logs__modal-header">
+          <Modal.Title as="h5" className="auditor-logs__modal-title mb-0">
+            {t("auditorLogs.detailTitle")}
+          </Modal.Title>
         </Modal.Header>
-        <Modal.Body>
+        <Modal.Body className="auditor-logs__modal-body">
           {detailLoading && (
             <div className="text-center py-4">
-              <Spinner animation="border" size="sm" />
+              <Spinner animation="border" size="sm" className="text-primary" role="status" />
             </div>
           )}
-          {!detailLoading && detail?._error && <p className="text-danger">{detail._error}</p>}
+          {!detailLoading && detail?._error && <p className="text-danger mb-0">{detail._error}</p>}
           {!detailLoading && detail && !detail._error && (
             <>
-              <Row className="g-2 mb-3 small">
-                <Col sm={6}>
-                  <strong>{t("auditorLogs.colWho")}</strong> {detail.actorEmail || "—"}
-                </Col>
-                <Col sm={6}>
-                  <strong>{t("auditorLogs.colIp")}</strong> {detail.ipAddress || "—"}
-                </Col>
-                <Col sm={12}>
-                  <strong>{t("auditorLogs.colWhat")}</strong> {detail.action}
-                </Col>
-              </Row>
-              <h6 className="mt-3">{t("auditorLogs.before")}</h6>
-              <pre className="auditor-logs__json">{formatJson(detail.beforeSnapshot)}</pre>
-              <h6 className="mt-3">{t("auditorLogs.after")}</h6>
-              <pre className="auditor-logs__json">{formatJson(detail.afterSnapshot)}</pre>
+              <dl className="auditor-logs__detail-grid">
+                <div className="auditor-logs__detail-field">
+                  <dt>{t("auditorLogs.colWho")}</dt>
+                  <dd>{detail.actorEmail || t("auditorLogs.noValue")}</dd>
+                </div>
+                <div className="auditor-logs__detail-field">
+                  <dt>{t("auditorLogs.colIp")}</dt>
+                  <dd className="font-monospace">{detail.ipAddress || t("auditorLogs.noValue")}</dd>
+                </div>
+                <div className="auditor-logs__detail-field auditor-logs__detail-field--full">
+                  <dt>{t("auditorLogs.colWhat")}</dt>
+                  <dd>{detail.action}</dd>
+                </div>
+              </dl>
+              <h6 className="auditor-logs__snapshot-title">{t("auditorLogs.before")}</h6>
+              <pre className="auditor-logs__json">{formatJson(detail.beforeSnapshot, t("auditorLogs.noValue"))}</pre>
+              <h6 className="auditor-logs__snapshot-title mt-3">{t("auditorLogs.after")}</h6>
+              <pre className="auditor-logs__json">{formatJson(detail.afterSnapshot, t("auditorLogs.noValue"))}</pre>
               {detail.metadata && (
                 <>
-                  <h6 className="mt-3">{t("auditorLogs.metadata")}</h6>
-                  <pre className="auditor-logs__json">{formatJson(detail.metadata)}</pre>
+                  <h6 className="auditor-logs__snapshot-title mt-3">{t("auditorLogs.metadata")}</h6>
+                  <pre className="auditor-logs__json">{formatJson(detail.metadata, t("auditorLogs.noValue"))}</pre>
                 </>
               )}
             </>
           )}
         </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={closeModal}>
+        <Modal.Footer className="auditor-logs__modal-footer">
+          <Button variant="secondary" className="auditor-logs__btn-close-modal" onClick={closeModal}>
             {t("auditorLogs.close")}
           </Button>
         </Modal.Footer>

@@ -423,6 +423,39 @@ const VerticalNav = () => {
         )
     }
 
+    /** Session auditeur uniquement : menu minimal (pas de démos template). */
+    if (isAuditor && !isSuperAdmin) {
+        return (
+            <>
+                <ul className="navbar-nav iq-main-menu" id="sidebar-menu">
+                    <Nav.Item as="li" className="static-item ms-2">
+                        <Link className="nav-link static-item disabled text-start" tabIndex="-1">
+                            <span className="default-icon">{t("sidebar.auditorSection")}</span>
+                        </Link>
+                    </Nav.Item>
+                    <Nav.Item as="li">
+                        <Link
+                            to="/auditor/dashboard"
+                            className={`nav-link ${location.pathname === "/auditor/dashboard" ? "active" : ""}`}
+                        >
+                            <i className="ri-bar-chart-box-fill"></i>
+                            <span className="item-name">{t("sidebar.auditorDashboard")}</span>
+                        </Link>
+                    </Nav.Item>
+                    <Nav.Item as="li">
+                        <Link
+                            to="/auditor/logs"
+                            className={`nav-link ${location.pathname === "/auditor/logs" ? "active" : ""}`}
+                        >
+                            <i className="ri-file-list-3-line"></i>
+                            <span className="item-name">{t("sidebar.auditorLogs")}</span>
+                        </Link>
+                    </Nav.Item>
+                </ul>
+            </>
+        );
+    }
+
     return (
         <>
             <ul className="navbar-nav iq-main-menu" id="sidebar-menu">
@@ -460,28 +493,6 @@ const VerticalNav = () => {
 
                     </Link>
                 </Nav.Item>
-                {isAuditor && (
-                    <>
-                        <li><hr className="hr-horizontal" /></li>
-                        <Nav.Item as="li" className="static-item ms-2">
-                            <Link className="nav-link static-item disabled text-start" tabIndex="-1">
-                                <span className="default-icon">{t("sidebar.auditorSection")}</span>
-                            </Link>
-                        </Nav.Item>
-                        <Nav.Item as="li">
-                            <Link to="/auditor/dashboard" className={`nav-link ${location.pathname === "/auditor/dashboard" ? "active" : ""}`}>
-                                <i className="ri-bar-chart-box-fill"></i>
-                                <span className="item-name">{t("sidebar.auditorDashboard")}</span>
-                            </Link>
-                        </Nav.Item>
-                        <Nav.Item as="li">
-                            <Link to="/auditor/logs" className={`nav-link ${location.pathname === "/auditor/logs" ? "active" : ""}`}>
-                                <i className="ri-file-list-3-line"></i>
-                                <span className="item-name">{t("sidebar.auditorLogs")}</span>
-                            </Link>
-                        </Nav.Item>
-                    </>
-                )}
                 {adminUser && !isAuditor && (
                     <>
                         <Nav.Item as="li">

@@ -154,6 +154,7 @@
     "vitalsHistory": "Historique constantes",
     "appointmentRequest": "Demande de rendez-vous",
     "questionnairesFollowUp": "Questionnaires suivi",
+    "labAnalysisPhoto": "Analyse bilans (photo)",
     "myProfile": "Mon profil",
     "doctorSpace": "Espace médecin",
     "dashboard": "Tableau de bord",
@@ -2349,6 +2350,63 @@
     "riskScore": "Risque {{score}}/100",
     "watchFlag": "À surveiller",
     "dash": "—"
+  },
+  "labAnalysis": {
+    "title": "Analyse de photo de bilan",
+    "subtitle": "Téléchargez une photo nette de votre compte-rendu d’analyses (PDF scanné ou photo du papier).",
+    "whatIsPossibleAnomaly": "« Anomalie possible » ne veut pas dire qu’une maladie précise a été identifiée : l’outil repère des mots ou bouts de phrase lus sur l’image (OCR) qui évoquent souvent un résultat à interpréter avec un professionnel. Ce n’est pas un diagnostic.",
+    "disclaimer": "Cet outil ne remplace pas un avis médical. Il combine reconnaissance de caractères (OCR) et mots-clés pour une orientation indicative uniquement. Consultez toujours un professionnel de santé.",
+    "chooseFile": "Choisir une image",
+    "analyze": "Analyser",
+    "analyzing": "Analyse en cours…",
+    "error": "L’analyse a échoué. Vérifiez la photo et réessayez.",
+    "badType": "Formats acceptés : JPEG, PNG ou WebP.",
+    "tooLarge": "Fichier trop volumineux (max. 8 Mo).",
+    "statusLabel": {
+      "normal": "Normal",
+      "anomaly": "Anomalie possible",
+      "indeterminate": "Indéterminé"
+    },
+    "anomalyStrengthLabel": {
+      "strong": "Signal net",
+      "approximate": "Signal approximatif",
+      "none": ""
+    },
+    "anomalyStrengthBody": {
+      "strong": "Au moins une formulation « forte » a été lue (ex. positif, hors norme, critique…). À confirmer avec un professionnel.",
+      "approximate": "Seulement des indices « légers » (ex. limite, à surveiller, anomalie sans contexte). Interprétation plus incertaine : demandez l’avis de votre médecin."
+    },
+    "detectedSignals": "Formulations repérées (indicateurs texte, pas diagnostic)",
+    "detectedSignalsNormal": "Formulations rassurantes repérées",
+    "noHints": "Aucune expression listée — le score repose sur d’autres occurrences de texte.",
+    "statusBody": {
+      "normal": "D’après le texte détecté, aucun signal fort d’anomalie n’a été mis en évidence. Restez prudent et faites valider par votre médecin.",
+      "anomaly": "Le texte lu sur l’image contient plus d’indices « à surveiller » que de formulations rassurantes. Voir la liste ci-dessous pour ce qui a déclenché l’alerte. Ce n’est pas un diagnostic.",
+      "indeterminate": "Texte illisible, trop court, ou sans mot-clé exploitable. Refaites une photo plus nette ou consultez votre médecin."
+    },
+    "confidence": "Confiance (classification) : {{pct}} %",
+    "ocrConfidence": "Qualité de lecture du texte (OCR) : {{pct}} %",
+    "previewText": "Extrait du texte détecté",
+    "history": "Historique récent",
+    "historyHint": "Cliquez sur une entrée pour afficher le détail de l’analyse.",
+    "viewingHistoryEntry": "Analyse enregistrée du {{date}}.",
+    "noHistory": "Aucune analyse enregistrée pour le moment.",
+    "backDashboard": "Retour au tableau de bord",
+    "resultPlaceholder": "Le résumé de l’analyse apparaîtra ici après envoi.",
+    "referenceTableTitle": "Comparaison aux intervalles de référence (adulte, indicatif)",
+    "intervalsDisclaimer": "Plages affichées : valeurs usuelles pour un adulte, à titre d’orientation seulement. Elles peuvent différer du laboratoire, de votre âge, sexe, grossesse ou traitements. Seul le laboratoire / votre médecin valide les normes qui vous concernent.",
+    "colParameter": "Paramètre",
+    "colValue": "Résultat",
+    "colRef": "Référence indicative",
+    "colStatus": "Statut",
+    "valueHigh": "Élevé",
+    "valueLow": "Bas",
+    "valueNormal": "Dans la cible",
+    "elevatedTitle": "Valeurs hors cible (à confirmer)",
+    "elevatedVsRef": "au-dessus de l’intervalle indicatif",
+    "lowVsRef": "en dessous de l’intervalle indicatif",
+    "orientationsTitle": "Orientations possibles (exemples : diabète, lipides, rein…)",
+    "orientationsDisclaimer": "Ce ne sont pas des diagnostics. Plusieurs maladies ou situations peuvent donner les mêmes chiffres. Un médecin interprète le bilan dans son ensemble."
   },
   "patientAppointmentRequest": {
     "backToDashboard": "Retour au tableau de bord",

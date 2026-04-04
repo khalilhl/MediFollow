@@ -15,6 +15,7 @@ import { QuestionnaireModule } from './questionnaire/questionnaire.module';
 import { ChatModule } from './chat/chat.module';
 import { VoiceCallModule } from './voice-call/voice-call.module';
 import { MailModule } from './mail/mail.module';
+import { LabAnalysisModule } from './lab-analysis/lab-analysis.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { MailModule } from './mail/mail.module';
     ChatModule,
     VoiceCallModule,
     MailModule,
+    LabAnalysisModule,
   ],
 })
 export class AppModule {}

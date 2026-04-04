@@ -17,6 +17,7 @@ async function bootstrap() {
   app.useWebSocketAdapter(new IoAdapter(app));
   const mediaDir = join(process.cwd(), 'uploads', 'chat');
   mkdirSync(mediaDir, { recursive: true });
+  mkdirSync(join(process.cwd(), 'uploads', 'lab-analysis'), { recursive: true });
   app.useStaticAssets(mediaDir, { prefix: '/api/chat/media/' });
   app.use(json({ limit: '10mb' }));
   app.use(urlencoded({ extended: true, limit: '10mb' }));

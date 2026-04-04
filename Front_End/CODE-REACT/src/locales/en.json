@@ -154,6 +154,7 @@
     "vitalsHistory": "Vitals history",
     "appointmentRequest": "Appointment request",
     "questionnairesFollowUp": "Follow-up questionnaires",
+    "labAnalysisPhoto": "Lab report photo analysis",
     "myProfile": "My profile",
     "doctorSpace": "Doctor area",
     "dashboard": "Dashboard",
@@ -2349,6 +2350,63 @@
     "riskScore": "Risk {{score}}/100",
     "watchFlag": "Watch closely",
     "dash": "—"
+  },
+  "labAnalysis": {
+    "title": "Lab report photo analysis",
+    "subtitle": "Upload a clear photo or scan of your lab results.",
+    "whatIsPossibleAnomaly": "“Possible anomaly” does not mean a specific disease was found. The tool spots words or phrases in the OCR text that often warrant review with a clinician—not a diagnosis.",
+    "disclaimer": "This is not medical advice. It uses OCR and keyword hints for orientation only. Always consult a qualified professional.",
+    "chooseFile": "Choose image",
+    "analyze": "Analyze",
+    "analyzing": "Analyzing…",
+    "error": "Analysis failed. Check the image and try again.",
+    "badType": "Allowed formats: JPEG, PNG, or WebP.",
+    "tooLarge": "File too large (max 8 MB).",
+    "statusLabel": {
+      "normal": "Likely within usual range",
+      "anomaly": "Possible concern",
+      "indeterminate": "Unclear"
+    },
+    "anomalyStrengthLabel": {
+      "strong": "Clear signal",
+      "approximate": "Approximate signal",
+      "none": ""
+    },
+    "anomalyStrengthBody": {
+      "strong": "At least one “strong” phrase was read (e.g. positive, out of range, critical). Confirm with a professional.",
+      "approximate": "Only “softer” hints (e.g. borderline, to monitor, anomaly without context). More uncertain—ask your clinician."
+    },
+    "detectedSignals": "Phrases detected (text cues, not a diagnosis)",
+    "detectedSignalsNormal": "Reassuring phrases detected",
+    "noHints": "No phrases listed—the score may rely on other text matches.",
+    "statusBody": {
+      "normal": "From the detected text, no strong anomaly signal was found. Still confirm with your clinician.",
+      "anomaly": "The OCR text has more “watch” cues than reassuring wording. See the list below for what triggered the flag. This is not a diagnosis.",
+      "indeterminate": "Text was too short, unreadable, or had no clear signal. Retake a sharper photo or ask your doctor."
+    },
+    "confidence": "Classification confidence: {{pct}}%",
+    "ocrConfidence": "Text read quality (OCR): {{pct}}%",
+    "previewText": "Detected text excerpt",
+    "history": "Recent history",
+    "historyHint": "Click an entry to see the full report.",
+    "viewingHistoryEntry": "Saved analysis from {{date}}.",
+    "noHistory": "No analyses yet.",
+    "backDashboard": "Back to dashboard",
+    "resultPlaceholder": "Analysis summary will appear here after upload.",
+    "referenceTableTitle": "Comparison to reference intervals (adult, indicative only)",
+    "intervalsDisclaimer": "Ranges shown are typical adult targets for orientation only. Your lab, age, sex, pregnancy, or drugs may use different limits. Only your clinician/lab defines what applies to you.",
+    "colParameter": "Test",
+    "colValue": "Result",
+    "colRef": "Indicative reference",
+    "colStatus": "Status",
+    "valueHigh": "High",
+    "valueLow": "Low",
+    "valueNormal": "On target",
+    "elevatedTitle": "Values outside target (to be confirmed)",
+    "elevatedVsRef": "above the indicative range",
+    "lowVsRef": "below the indicative range",
+    "orientationsTitle": "Possible orientations (e.g. glucose, lipids, kidney…)",
+    "orientationsDisclaimer": "These are not diagnoses. Many conditions can cause similar numbers. A doctor interprets the full picture."
   },
   "patientAppointmentRequest": {
     "backToDashboard": "Back to dashboard",

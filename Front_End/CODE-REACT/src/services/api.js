@@ -569,6 +569,19 @@ export const patientApi = {
   getCareTeam: (id) => api.get(`/patients/${id}/care-team`),
 };
 
+/** Photo de bilan : OCR + classification (JWT patient, multipart). */
+export const labAnalysisApi = {
+  analyzePhoto: (file) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return api.postMultipart("/lab-analysis/analyze", fd);
+  },
+  myHistory: (limit) => {
+    const q = limit != null ? `?limit=${encodeURIComponent(String(limit))}` : "";
+    return api.getWithPatientToken(`/lab-analysis/my-history${q}`);
+  },
+};
+
 export const nurseApi = {
   create: (data) => api.post("/nurses", data),
   getAll: () => api.get("/nurses"),

@@ -599,6 +599,10 @@ export const departmentApi = {
   getMyDoctorsAsDoctor: () => api.getWithDoctorToken("/departments/doctor/my-doctors"),
   usersByDepartment: (department) =>
     api.get(`/departments/users?department=${encodeURIComponent(department)}`),
+  /** Coordinateur : patients du même département + scores de suivi (JWT adminToken). */
+  coordinatorMyPatients: () => api.getWithAdminToken("/departments/coordinator/my-patients"),
+  coordinatorPatientHistory: (patientId) =>
+    api.getWithAdminToken(`/departments/coordinator/patient/${encodeURIComponent(patientId)}/history`),
 };
 
 export const superAdminApi = {

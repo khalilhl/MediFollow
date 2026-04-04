@@ -473,6 +473,17 @@ const VerticalNav = () => {
                         </Link>
                     </Nav.Item>
                 )}
+                {isCareCoordinator && (
+                    <Nav.Item as="li">
+                        <Link
+                            to="/dashboard-pages/care-coordinator-patients"
+                            className={`nav-link ${location.pathname.startsWith("/dashboard-pages/care-coordinator-patient") ? "active" : ""}`}
+                        >
+                            <i className="ri-team-line"></i>
+                            <span className="item-name">{t("sidebar.careCoordinatorPatients")}</span>
+                        </Link>
+                    </Nav.Item>
+                )}
                 {showHospitalAdminMenu && (
                     <>
                         <Nav.Item as="li">

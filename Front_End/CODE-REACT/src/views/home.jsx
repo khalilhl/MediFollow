@@ -21,7 +21,7 @@ const generatePath = (path) => {
   return url.replace(/([^:])\/\/+/g, "$1/");
 };
 
-const img = (name) => generatePath(`assets/images/hospital/${name}`);
+const landingImg = (name) => generatePath(`assets/images/landing/${name}`);
 
 const Home = () => {
   const { t, i18n } = useTranslation();
@@ -206,21 +206,19 @@ const Home = () => {
       </div>
 
       <div
-        className="container-fluid bg-primary py-5 mb-5 hero-header"
+        className="container-fluid bg-primary py-5 mb-5 hero-header landing-hero"
         style={{
-          backgroundImage: `url(${img("hero.jpg")})`,
-          backgroundPosition: "top right",
+          backgroundImage: `url(${landingImg("chu-hero.jpg")})`,
+          backgroundPosition: "center",
           backgroundRepeat: "no-repeat",
           backgroundSize: "cover",
         }}
       >
         <Container className="py-5">
+          <span className="visually-hidden">{t("landing.heroImageAlt")}</span>
           <Row className="justify-content-start">
             <Col lg={8} className="text-center text-lg-start">
-              <h5
-                className="d-inline-block text-primary text-uppercase border-bottom border-5 mb-3"
-                style={{ borderColor: "rgba(256, 256, 256, .3) !important" }}
-              >
+              <h5 className="hero-kicker d-inline-block text-uppercase border-bottom border-5 border-primary mb-3">
                 {t("landing.heroKicker")}
               </h5>
               <h1 className="display-1 text-white mb-md-4">{t("landing.heroTitle")}</h1>
@@ -243,7 +241,12 @@ const Home = () => {
           <Row className="gx-5">
             <Col lg={5} className="mb-5 mb-lg-0" style={{ minHeight: "500px" }}>
               <div className="position-relative h-100">
-                <img className="position-absolute w-100 h-100 rounded" src={img("about.jpg")} alt="" style={{ objectFit: "cover" }} />
+                <img
+                  className="position-absolute w-100 h-100 rounded"
+                  src={landingImg("chu-about.jpg")}
+                  alt={t("landing.aboutImageAlt")}
+                  style={{ objectFit: "cover" }}
+                />
               </div>
             </Col>
             <Col lg={7}>

@@ -255,3 +255,42 @@
         align-items: center;
     }
 }
+
+/* MediFollow landing — hero lisible sur photo claire (voile + ombres) */
+.hospital-home .hero-header.landing-hero {
+    position: relative;
+    background-color: var(--dark);
+}
+
+.hospital-home .hero-header.landing-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: linear-gradient(
+        105deg,
+        rgba(29, 42, 77, 0.92) 0%,
+        rgba(29, 42, 77, 0.78) 42%,
+        rgba(29, 42, 77, 0.45) 72%,
+        rgba(29, 42, 77, 0.25) 100%
+    );
+}
+
+.hospital-home .hero-header.landing-hero > .container {
+    position: relative;
+    z-index: 1;
+}
+
+.hospital-home .hero-header.landing-hero h1.display-1 {
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5), 0 4px 28px rgba(0, 0, 0, 0.35);
+}
+
+.hospital-home .hero-header.landing-hero .lead.text-white {
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.55), 0 2px 14px rgba(0, 0, 0, 0.35);
+}
+
+.hospital-home .hero-header.landing-hero .hero-kicker {
+    color: var(--primary) !important;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
+    border-bottom-color: var(--primary) !important;
+}

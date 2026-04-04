@@ -1,4 +1,5 @@
 import { useId } from "react";
+import tunisiaFlagUrl from "../assets/flags/Flag_of_Tunisia.svg.png";
 
 const svgBase = {
   display: "block",
@@ -55,13 +56,11 @@ export function SvgFlagFr({ className = "", style, width = 20 }) {
   );
 }
 
-/** Tunisie — fichier image du dépôt : `public/flags/Flag_of_Tunisia.svg.png` (rendu tel quel). */
+/** Tunisie — image importée par Vite (`src/assets/flags/…`) pour une URL fiable (évite les soucis de BASE_URL / fichiers publics manquants). */
 export function SvgFlagTn({ className = "", style, width = 20 }) {
-  const base = String(import.meta.env.BASE_URL || "/").replace(/\/+$/, "") || "";
-  const src = `${base}/flags/Flag_of_Tunisia.svg.png`.replace(/([^:])\/\/+/g, "$1/");
   return (
     <img
-      src={src}
+      src={tunisiaFlagUrl}
       alt=""
       width={width}
       className={className}

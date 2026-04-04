@@ -38,6 +38,9 @@ const VerticalNav = () => {
     const isNurse = !!nurseUser
     const isDoctor = !!doctorUser && !isPatient && !isNurse
     const isSuperAdmin = adminUser?.role === "superadmin"
+    const isCareCoordinator = adminUser?.role === "carecoordinator"
+    const showHospitalAdminMenu =
+        adminUser && !["auditor", "carecoordinator"].includes(adminUser.role)
 
     const emailItems = [
         { path: "/email/inbox", nameKey: "emailInbox", icon: "ri-inbox-fill" },
@@ -459,7 +462,18 @@ const VerticalNav = () => {
 
                     </Link>
                 </Nav.Item>
-                {adminUser && (
+                {isCareCoordinator && (
+                    <Nav.Item as="li">
+                        <Link
+                            to="/dashboard-pages/care-coordinator-dashboard"
+                            className={`nav-link ${location.pathname === "/dashboard-pages/care-coordinator-dashboard" ? "active" : ""}`}
+                        >
+                            <i className="ri-heart-pulse-fill"></i>
+                            <span className="item-name">{t("sidebar.careCoordinatorDashboard")}</span>
+                        </Link>
+                    </Nav.Item>
+                )}
+                {showHospitalAdminMenu && (
                     <>
                         <Nav.Item as="li">
                             <Link to="/admin/dashboard" className={`nav-link ${location.pathname === "/admin/dashboard" ? "active" : ""}`}>

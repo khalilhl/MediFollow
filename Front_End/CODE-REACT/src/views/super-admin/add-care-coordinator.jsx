@@ -4,20 +4,9 @@ import { Button, Col, Container, Form, Row } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { superAdminApi } from "../../services/api";
+import { HOSPITAL_DEPARTMENTS, hospitalDepartmentLabel } from "../../constants/hospitalDepartments";
 
 const generatePath = (path) => window.origin + import.meta.env.BASE_URL + path;
-
-const SPECIALTIES = ["Coordination des soins", "Suivi post-opératoire", "Maladies chroniques", "Pédiatrie", "Gériatrie", "Oncologie", "Autre"];
-
-const SPECIALTY_I18N = {
-  "Coordination des soins": "specCareCoordination",
-  "Suivi post-opératoire": "specPostOp",
-  "Maladies chroniques": "specChronic",
-  Pédiatrie: "specPediatrics",
-  Gériatrie: "specGeriatrics",
-  Oncologie: "specOncology",
-  Autre: "specOther",
-};
 
 const AddCareCoordinator = () => {
   const { t } = useTranslation();
@@ -54,10 +43,12 @@ const AddCareCoordinator = () => {
     }
     const profileImage = profilePreview.startsWith("data:") ? profilePreview : null;
     try {
+      const dept = form.department?.value?.trim() || "";
       await superAdminApi.createCareCoordinator({
         firstName: form.fname?.value, lastName: form.lname?.value,
         email: form.email?.value, password,
-        specialty: form.specialty?.value, department: form.department?.value,
+        department: dept,
+        specialty: dept,
         phone: form.phone?.value, address: form.address?.value,
         city: form.city?.value, country: form.country?.value,
         profileImage,
@@ -130,19 +121,15 @@ const AddCareCoordinator = () => {
                   </Col>
                   <Col md={6}>
                     <Form.Group>
-                      <Form.Label>{t("addCareCoordinator.labelSpecialty")}</Form.Label>
-                      <Form.Select name="specialty">
-                        <option value="">{t("addCareCoordinator.selectSpecialty")}</option>
-                        {SPECIALTIES.map((s) => (
-                          <option key={s} value={s}>{t(`addCareCoordinator.${SPECIALTY_I18N[s]}`)}</option>
+                      <Form.Label>{t("addCareCoordinator.labelDepartment")}</Form.Label>
+                      <Form.Select name="department">
+                        <option value="">{t("addPatient.selectDepartment")}</option>
+                        {HOSPITAL_DEPARTMENTS.map((s) => (
+                          <option key={s} value={s}>
+                            {hospitalDepartmentLabel(s, t)}
+                          </option>
                         ))}
                       </Form.Select>
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group>
-                      <Form.Label>{t("addCareCoordinator.labelDepartment")}</Form.Label>
-                      <Form.Control type="text" name="department" placeholder={t("addCareCoordinator.placeholderDepartment")} />
                     </Form.Group>
                   </Col>
                   <Col md={6}>

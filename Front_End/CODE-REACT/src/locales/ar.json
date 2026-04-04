@@ -167,6 +167,7 @@
     "sectionDashboard": "لوحة التحكم",
     "homeTooltip": "الرئيسية",
     "adminDashboard": "لوحة تحكم المشرف",
+    "careCoordinatorDashboard": "لوحة منسّق الرعاية",
     "departments": "الأقسام",
     "appointmentRequests": "طلبات المواعيد",
     "questionnaireBank": "بنك الاستبيانات",
@@ -787,6 +788,18 @@
     "roleBullet1": "المتابعة اليومية: مراقبة المرضى بعد الخروج من المستشفى.",
     "roleBullet2": "إدخال البيانات: تسجيل بيانات الصحة والملاحظات.",
     "roleBullet3": "متابعة التنبيهات: إدارة إشعارات وتنبيهات المرضى."
+  },
+  "careCoordinatorDashboard": {
+    "pageTitle": "لوحة التحكم — منسّق الرعاية",
+    "roleBadge": "منسّق رعاية",
+    "quickAccessTitle": "وصول سريع",
+    "quickNotifications": "الإشعارات",
+    "quickNotificationsDesc": "تنبيهات وتحديثات متعلقة بمتابعة المرضى.",
+    "quickChat": "مراسلة آمنة",
+    "quickChatDesc": "التواصل مع الفرق الطبية والمرضى.",
+    "quickMail": "البريد الداخلي",
+    "quickMailDesc": "البريد الإلكتروني الداخلي للمؤسسة.",
+    "introHint": "مساحتك لتنسيق الرعاية. استخدم الاختصارات أعلاه للبقاء على اطلاع ومتصلاً بالفرق."
   },
   "superAdminDashboard": {
     "pageTitle": "لوحة المسؤول الأعلى",

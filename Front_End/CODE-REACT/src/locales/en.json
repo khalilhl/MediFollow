@@ -167,6 +167,7 @@
     "sectionDashboard": "Dashboard",
     "homeTooltip": "Home",
     "adminDashboard": "Admin dashboard",
+    "careCoordinatorDashboard": "Care coordinator dashboard",
     "departments": "Departments",
     "appointmentRequests": "Appointment requests",
     "questionnaireBank": "Questionnaire bank",
@@ -787,6 +788,18 @@
     "roleBullet1": "Daily follow-up: monitoring patients in post-hospitalization follow-up.",
     "roleBullet2": "Data entry: recording health data and observations.",
     "roleBullet3": "Alert tracking: managing notifications and patient alerts."
+  },
+  "careCoordinatorDashboard": {
+    "pageTitle": "Dashboard — Care coordinator",
+    "roleBadge": "Care coordinator",
+    "quickAccessTitle": "Quick access",
+    "quickNotifications": "Notifications",
+    "quickNotificationsDesc": "Alerts and updates about patient follow-up.",
+    "quickChat": "Secure messaging",
+    "quickChatDesc": "Chat with care teams and patients.",
+    "quickMail": "Internal mail",
+    "quickMailDesc": "Hospital internal email.",
+    "introHint": "Your space for care coordination. Use the shortcuts above to stay informed and connected with teams."
   },
   "superAdminDashboard": {
     "pageTitle": "Super Administrator dashboard",

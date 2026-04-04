@@ -12,6 +12,7 @@ import PatientAppointmentRequest from "../views/dashboard-pages/patient-appointm
 import PatientQuestionnairesPage from "../views/dashboard-pages/patient-questionnaires"
 import PatientLabAnalysisPage from "../views/dashboard-pages/patient-lab-analysis"
 import NurseDashboard from "../views/dashboard-pages/nurse-dashboard"
+import CareCoordinatorDashboard from "../views/dashboard-pages/care-coordinator-dashboard"
 import Covid19Dashboard from "../views/dashboard-pages/covid-19-dashboard"
 
 // Email Page
@@ -192,6 +193,10 @@ export const DefaultRoute = [
       {
         path: '/dashboard-pages/nurse-dashboard',
         element: <NurseDashboard />
+      },
+      {
+        path: '/dashboard-pages/care-coordinator-dashboard',
+        element: <CareCoordinatorDashboard />
       },
       {
         path: '/dashboard-pages/dashboard-4',

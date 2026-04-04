@@ -3,31 +3,21 @@ import { Row, Col, Card, Button, Badge, Spinner, Alert } from "react-bootstrap";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { superAdminApi } from "../../services/api";
+import { hospitalDepartmentLabel } from "../../constants/hospitalDepartments";
 
-const SPECIALTY_I18N = {
-  "Coordination des soins": "specCareCoordination",
-  "Suivi post-opératoire": "specPostOp",
-  "Maladies chroniques": "specChronic",
-  Pédiatrie: "specPediatrics",
-  Gériatrie: "specGeriatrics",
-  Oncologie: "specOncology",
-  Autre: "specOther",
-};
-
-function specialtyLabel(specialty, t) {
-  if (!specialty) return "";
-  const key = SPECIALTY_I18N[specialty];
-  return key ? t(`addCareCoordinator.${key}`) : specialty;
+function coordinatorDepartmentDisplay(coord, t) {
+  const raw = coord.department || coord.specialty;
+  if (!raw) return "";
+  return hospitalDepartmentLabel(raw, t);
 }
 
 const FIELD_DEFS = [
   { labelKey: "labelEmail", getValue: (a) => a.email, icon: "ri-mail-line" },
   { labelKey: "labelPhone", getValue: (a) => a.phone, icon: "ri-phone-line" },
-  { labelKey: "labelDepartment", getValue: (a) => a.department, icon: "ri-building-2-line" },
   {
-    labelKey: "labelSpecialty",
-    getValue: (a, t) => specialtyLabel(a.specialty, t),
-    icon: "ri-stethoscope-line",
+    labelKey: "labelDepartment",
+    getValue: (a, t) => coordinatorDepartmentDisplay(a, t),
+    icon: "ri-building-2-line",
   },
   { labelKey: "labelAddress", getValue: (a) => a.address, icon: "ri-map-pin-line" },
   { labelKey: "labelCity", getValue: (a) => a.city, icon: "ri-building-line" },

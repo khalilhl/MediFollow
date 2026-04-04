@@ -22,12 +22,13 @@ async function bootstrap() {
   app.use(json({ limit: '10mb' }));
   app.use(urlencoded({ extended: true, limit: '10mb' }));
   app.enableCors({
-    origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000'],
+    origin: process.env.FRONTEND_URL || ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000'],
     credentials: true,
   });
   app.setGlobalPrefix('api');
 
-  await app.listen(3000);
+  const port = process.env.PORT || 3000;
+  await app.listen(port, '0.0.0.0');
 
   // Créer/mettre à jour l'admin par défaut (après connexion DB)
   setTimeout(async () => {
@@ -35,12 +36,12 @@ async function bootstrap() {
       const authService = app.get(AuthService);
       await authService.createAdmin('25k01a2003c@gmail.com', 'Admin123!', 'Admin MediFollow');
       console.log('Admin prêt: 25k01a2003c@gmail.com / Admin123!');
-      await authService.createSuperAdmin('kacemtrabelsi77@gmail.com', 'SuperAdmin123!', 'Super Admin MediFollow');
-      console.log('Super Admin prêt: kacemtrabelsi77@gmail.com / SuperAdmin123!');
+      await authService.createSuperAdmin('khalilhlila2@gmail.com', 'SuperAdmin123!', 'Super Admin MediFollow');
+      console.log('Super Admin prêt: khalilhlila2@gmail.com / SuperAdmin123!');
     } catch (e) {
       // Ignorer si erreur
     }
   }, 2000);
-  console.log('MediFollow API running on http://localhost:3000');
+  console.log(`MediFollow API running on port ${port}`);
 }
 bootstrap();

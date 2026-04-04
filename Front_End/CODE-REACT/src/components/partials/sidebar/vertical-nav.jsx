@@ -38,12 +38,7 @@ const VerticalNav = () => {
     const isNurse = !!nurseUser
     const isDoctor = !!doctorUser && !isPatient && !isNurse
     const isSuperAdmin = adminUser?.role === "superadmin"
-    const isCareCoordinator = adminUser?.role === "carecoordinator"
-    const isCareCoordinatorPatientsActive =
-        location.pathname === "/dashboard-pages/care-coordinator-patients" ||
-        /^\/dashboard-pages\/care-coordinator-patient\/[^/]+$/.test(location.pathname)
-    const showHospitalAdminMenu =
-        adminUser && !["auditor", "carecoordinator"].includes(adminUser.role)
+    const isAuditor = adminUser?.role === "auditor"
 
     const emailItems = [
         { path: "/email/inbox", nameKey: "emailInbox", icon: "ri-inbox-fill" },
@@ -426,6 +421,39 @@ const VerticalNav = () => {
                 </Nav.Item>
             </ul>
         )
+    }
+
+    /** Session auditeur uniquement : menu minimal (pas de démos template). */
+    if (isAuditor && !isSuperAdmin) {
+        return (
+            <>
+                <ul className="navbar-nav iq-main-menu" id="sidebar-menu">
+                    <Nav.Item as="li" className="static-item ms-2">
+                        <Link className="nav-link static-item disabled text-start" tabIndex="-1">
+                            <span className="default-icon">{t("sidebar.auditorSection")}</span>
+                        </Link>
+                    </Nav.Item>
+                    <Nav.Item as="li">
+                        <Link
+                            to="/auditor/dashboard"
+                            className={`nav-link ${location.pathname === "/auditor/dashboard" ? "active" : ""}`}
+                        >
+                            <i className="ri-bar-chart-box-fill"></i>
+                            <span className="item-name">{t("sidebar.auditorDashboard")}</span>
+                        </Link>
+                    </Nav.Item>
+                    <Nav.Item as="li">
+                        <Link
+                            to="/auditor/logs"
+                            className={`nav-link ${location.pathname === "/auditor/logs" ? "active" : ""}`}
+                        >
+                            <i className="ri-file-list-3-line"></i>
+                            <span className="item-name">{t("sidebar.auditorLogs")}</span>
+                        </Link>
+                    </Nav.Item>
+                </ul>
+            </>
+        );
     }
 
     return (
@@ -1249,6 +1277,18 @@ const VerticalNav = () => {
                             <Link to="/super-admin/users" className={`nav-link ${location.pathname === "/super-admin/users" ? "active" : ""}`}>
                                 <i className="ri-team-fill"></i>
                                 <span className="item-name">{t("sidebar.allUsers")}</span>
+                            </Link>
+                        </Nav.Item>
+                        <Nav.Item as="li">
+                            <Link to="/auditor/dashboard" className={`nav-link ${location.pathname === "/auditor/dashboard" ? "active" : ""}`}>
+                                <i className="ri-bar-chart-box-fill"></i>
+                                <span className="item-name">{t("sidebar.auditorDashboard")}</span>
+                            </Link>
+                        </Nav.Item>
+                        <Nav.Item as="li">
+                            <Link to="/auditor/logs" className={`nav-link ${location.pathname === "/auditor/logs" ? "active" : ""}`}>
+                                <i className="ri-file-list-3-line"></i>
+                                <span className="item-name">{t("sidebar.auditorLogs")}</span>
                             </Link>
                         </Nav.Item>
                         <Nav.Item as="li">

@@ -1,24 +1,13 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { Container, Button, Row, Col } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import LandingShell from "../components/landing/LandingShell";
 import { landingImg } from "./landing/landingPaths";
+import { LANDING_FEATURE_CARDS } from "./landing/landingFeatureCards";
 
 const Home = () => {
   const { t } = useTranslation();
-
-  const features = useMemo(
-    () => [
-      { icon: "bi-person-circle", titleKey: "landing.f1Title", descKey: "landing.f1Desc" },
-      { icon: "bi-calendar-check", titleKey: "landing.f2Title", descKey: "landing.f2Desc" },
-      { icon: "bi-chat-dots-fill", titleKey: "landing.f3Title", descKey: "landing.f3Desc" },
-      { icon: "bi-heart-pulse-fill", titleKey: "landing.f4Title", descKey: "landing.f4Desc" },
-      { icon: "bi-clipboard2-pulse", titleKey: "landing.f5Title", descKey: "landing.f5Desc" },
-      { icon: "bi-diagram-3-fill", titleKey: "landing.f6Title", descKey: "landing.f6Desc" },
-    ],
-    [],
-  );
 
   return (
     <LandingShell navActive="home">
@@ -84,7 +73,7 @@ const Home = () => {
             <h1 className="display-4">{t("landing.featuresTitle")}</h1>
           </div>
           <Row className="g-5">
-            {features.map((s, i) => (
+            {LANDING_FEATURE_CARDS.map((s, i) => (
               <Col key={i} lg={4} md={6}>
                 <div className="service-item bg-white rounded d-flex flex-column align-items-center justify-content-center text-center shadow-sm">
                   <div className="service-icon mb-4">

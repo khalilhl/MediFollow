@@ -11,8 +11,8 @@ import {
 } from "../../views/landing/landingPaths";
 
 /**
- * En-tête + pied de page communs aux pages publiques (accueil, à propos).
- * @param {"home" | "about"} navActive
+ * En-tête + pied de page communs aux pages publiques (accueil, à propos, fonctionnalités).
+ * @param {"home" | "about" | "features"} navActive
  */
 export default function LandingShell({ navActive = "home", children }) {
   const { t, i18n } = useTranslation();
@@ -110,28 +110,9 @@ export default function LandingShell({ navActive = "home", children }) {
                 <Nav.Link as={Link} to="/about" className={navActive === "about" ? "active" : ""}>
                   {t("landing.navAbout")}
                 </Nav.Link>
-                <Nav.Link as={Link} to="/#features">
+                <Nav.Link as={Link} to="/features" className={navActive === "features" ? "active" : ""}>
                   {t("landing.navFeatures")}
                 </Nav.Link>
-                <Dropdown as={Nav.Item}>
-                  <Dropdown.Toggle as={Nav.Link} className="dropdown-toggle">
-                    {t("landing.navMore")}
-                  </Dropdown.Toggle>
-                  <Dropdown.Menu>
-                    <Dropdown.Item as={Link} to="/dashboard">
-                      {t("landing.navDashboard")}
-                    </Dropdown.Item>
-                    <Dropdown.Item as={Link} to="/doctor/doctor-list">
-                      {t("landing.navDoctors")}
-                    </Dropdown.Item>
-                    <Dropdown.Item as={Link} to="/auth/sign-in">
-                      {t("landing.navSignIn")}
-                    </Dropdown.Item>
-                    <Dropdown.Item as={Link} to="/auth/sign-up">
-                      {t("landing.navSignUp")}
-                    </Dropdown.Item>
-                  </Dropdown.Menu>
-                </Dropdown>
                 <Nav.Link as={Link} to="/#contact">
                   {t("landing.navContact")}
                 </Nav.Link>
@@ -216,13 +197,9 @@ export default function LandingShell({ navActive = "home", children }) {
                   <i className="fas fa-angle-right me-2" aria-hidden />
                   {t("landing.navAbout")}
                 </Link>
-                <Link to="/#features" className="text-light mb-2 text-decoration-none">
+                <Link to="/features" className="text-light mb-2 text-decoration-none">
                   <i className="fas fa-angle-right me-2" aria-hidden />
                   {t("landing.navFeatures")}
-                </Link>
-                <Link to="/doctor/doctor-list" className="text-light mb-2 text-decoration-none">
-                  <i className="fas fa-angle-right me-2" aria-hidden />
-                  {t("landing.navDoctors")}
                 </Link>
                 <Link to="/auth/sign-in" className="text-light text-decoration-none">
                   <i className="fas fa-angle-right me-2" aria-hidden />

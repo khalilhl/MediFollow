@@ -2550,5 +2550,14 @@
     "ctaLead": "Sign in with credentials issued by the CHU, or return home to explore features.",
     "btnHome": "Back to home",
     "btnSignIn": "Sign in"
+  },
+  "featuresPage": {
+    "heroKicker": "Features",
+    "heroTitle": "What MediFollow offers at the hospital",
+    "heroLead": "Patient portal, appointments, secure messaging, vitals, questionnaires, and staff coordination—one foundation for follow-up and traceability.",
+    "introTitle": "Six pillars for the care pathway",
+    "introLead": "Each module connects with the others so patients and teams share the same information when it matters.",
+    "ctaTitle": "Start using the platform",
+    "ctaLead": "Sign in with credentials issued by the hospital, or return home to browse the site."
   }
 }

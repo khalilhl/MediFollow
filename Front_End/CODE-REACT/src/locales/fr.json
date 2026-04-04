@@ -2550,5 +2550,14 @@
     "ctaLead": "Accédez à MediFollow avec les identifiants fournis par le CHU, ou retournez à l’accueil pour découvrir les fonctionnalités.",
     "btnHome": "Retour à l’accueil",
     "btnSignIn": "Connexion"
+  },
+  "featuresPage": {
+    "heroKicker": "Fonctionnalités",
+    "heroTitle": "Tout ce que MediFollow propose au CHU",
+    "heroLead": "Espace patient, rendez-vous, messagerie, constantes, questionnaires et coordination entre professionnels : un socle unique pour le suivi et la traçabilité.",
+    "introTitle": "Six piliers pour le parcours de soins",
+    "introLead": "Chaque module s’articule avec les autres pour que patients et équipes partagent les mêmes informations, au bon moment.",
+    "ctaTitle": "Utiliser la plateforme",
+    "ctaLead": "Connectez-vous avec les identifiants fournis par le CHU, ou revenez à l’accueil pour parcourir le site."
   }
 }

@@ -601,6 +601,11 @@ export const departmentApi = {
     api.get(`/departments/users?department=${encodeURIComponent(department)}`),
 };
 
+/** Tableau de bord audit (JWT auditeur ou super admin). */
+export const auditorApi = {
+  getDashboard: () => api.get("/audit/dashboard"),
+};
+
 export const superAdminApi = {
   getAllUsers: () => api.get("/auth/users"),
   toggleUserActive: (id) => api.put(`/auth/users/${id}/toggle-active`, {}),

@@ -38,6 +38,7 @@ const VerticalNav = () => {
     const isNurse = !!nurseUser
     const isDoctor = !!doctorUser && !isPatient && !isNurse
     const isSuperAdmin = adminUser?.role === "superadmin"
+    const isAuditor = adminUser?.role === "auditor"
 
     const emailItems = [
         { path: "/email/inbox", nameKey: "emailInbox", icon: "ri-inbox-fill" },
@@ -459,7 +460,23 @@ const VerticalNav = () => {
 
                     </Link>
                 </Nav.Item>
-                {adminUser && (
+                {isAuditor && (
+                    <>
+                        <li><hr className="hr-horizontal" /></li>
+                        <Nav.Item as="li" className="static-item ms-2">
+                            <Link className="nav-link static-item disabled text-start" tabIndex="-1">
+                                <span className="default-icon">{t("sidebar.auditorSection")}</span>
+                            </Link>
+                        </Nav.Item>
+                        <Nav.Item as="li">
+                            <Link to="/auditor/dashboard" className={`nav-link ${location.pathname === "/auditor/dashboard" ? "active" : ""}`}>
+                                <i className="ri-bar-chart-box-fill"></i>
+                                <span className="item-name">{t("sidebar.auditorDashboard")}</span>
+                            </Link>
+                        </Nav.Item>
+                    </>
+                )}
+                {adminUser && !isAuditor && (
                     <>
                         <Nav.Item as="li">
                             <Link to="/admin/dashboard" className={`nav-link ${location.pathname === "/admin/dashboard" ? "active" : ""}`}>
@@ -1199,6 +1216,12 @@ const VerticalNav = () => {
                             <Link to="/super-admin/users" className={`nav-link ${location.pathname === "/super-admin/users" ? "active" : ""}`}>
                                 <i className="ri-team-fill"></i>
                                 <span className="item-name">{t("sidebar.allUsers")}</span>
+                            </Link>
+                        </Nav.Item>
+                        <Nav.Item as="li">
+                            <Link to="/auditor/dashboard" className={`nav-link ${location.pathname === "/auditor/dashboard" ? "active" : ""}`}>
+                                <i className="ri-bar-chart-box-fill"></i>
+                                <span className="item-name">{t("sidebar.auditorDashboard")}</span>
                             </Link>
                         </Nav.Item>
                         <Nav.Item as="li">

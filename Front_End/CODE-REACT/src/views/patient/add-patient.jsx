@@ -4,21 +4,9 @@ import { Button, Col, Container, Form, InputGroup, Row } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { patientApi, doctorApi, nurseApi } from "../../services/api";
-import { HOSPITAL_DEPARTMENTS } from "../../constants/hospitalDepartments";
+import { HOSPITAL_DEPARTMENTS, hospitalDepartmentLabel } from "../../constants/hospitalDepartments";
 
 const generatePath = (path) => window.origin + import.meta.env.BASE_URL + path;
-
-/** Stable slug for editPatient.departments.* */
-function departmentSlug(name) {
-  return name
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/-/g, "_")
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, "_")
-    .replace(/[^a-z0-9_]/g, "");
-}
 
 const FLAG_CDN = "https://flagcdn.com/w40";
 const COUNTRIES = [
@@ -207,7 +195,7 @@ const AddPatient = () => {
                     <option value="">{t("addPatient.selectDepartment")}</option>
                     {HOSPITAL_DEPARTMENTS.map((s) => (
                       <option key={s} value={s}>
-                        {t(`editPatient.departments.${departmentSlug(s)}`)}
+                        {hospitalDepartmentLabel(s, t)}
                       </option>
                     ))}
                   </Form.Control>
@@ -313,7 +301,7 @@ const AddPatient = () => {
                   {showDeptHint && (
                     <div className="alert alert-info py-2 small mb-3">
                       {t("addPatient.deptHint", {
-                        dept: t(`editPatient.departments.${departmentSlug(patientDepartment)}`),
+                        dept: hospitalDepartmentLabel(patientDepartment, t),
                       })}
                     </div>
                   )}

@@ -12,6 +12,11 @@ import PatientAppointmentRequest from "../views/dashboard-pages/patient-appointm
 import PatientQuestionnairesPage from "../views/dashboard-pages/patient-questionnaires"
 import PatientLabAnalysisPage from "../views/dashboard-pages/patient-lab-analysis"
 import NurseDashboard from "../views/dashboard-pages/nurse-dashboard"
+import CareCoordinatorDashboard from "../views/dashboard-pages/care-coordinator-dashboard"
+import CareCoordinatorPatients from "../views/dashboard-pages/care-coordinator-patients"
+import CareCoordinatorPatientDetail from "../views/dashboard-pages/care-coordinator-patient-detail"
+import CareCoordinatorAppointments from "../views/dashboard-pages/care-coordinator-appointments"
+import CareCoordinatorCommunication from "../views/dashboard-pages/care-coordinator-communication"
 import Covid19Dashboard from "../views/dashboard-pages/covid-19-dashboard"
 
 // Email Page
@@ -195,6 +200,26 @@ export const DefaultRoute = [
       {
         path: '/dashboard-pages/nurse-dashboard',
         element: <NurseDashboard />
+      },
+      {
+        path: '/dashboard-pages/care-coordinator-dashboard',
+        element: <CareCoordinatorDashboard />
+      },
+      {
+        path: '/dashboard-pages/care-coordinator-patients',
+        element: <CareCoordinatorPatients />
+      },
+      {
+        path: '/dashboard-pages/care-coordinator-patient/:patientId',
+        element: <CareCoordinatorPatientDetail />
+      },
+      {
+        path: '/dashboard-pages/care-coordinator-appointments',
+        element: <CareCoordinatorAppointments />
+      },
+      {
+        path: '/dashboard-pages/care-coordinator-communication',
+        element: <CareCoordinatorCommunication />
       },
       {
         path: '/dashboard-pages/dashboard-4',

@@ -493,7 +493,51 @@ const VerticalNav = () => {
 
                     </Link>
                 </Nav.Item>
-                {adminUser && !isAuditor && (
+                {isCareCoordinator && (
+                    <Nav.Item as="li">
+                        <Link
+                            to="/dashboard-pages/care-coordinator-dashboard"
+                            className={`nav-link ${location.pathname === "/dashboard-pages/care-coordinator-dashboard" ? "active" : ""}`}
+                        >
+                            <i className="ri-heart-pulse-fill"></i>
+                            <span className="item-name">{t("sidebar.careCoordinatorDashboard")}</span>
+                        </Link>
+                    </Nav.Item>
+                )}
+                {isCareCoordinator && (
+                    <Nav.Item as="li">
+                        <Link
+                            to="/dashboard-pages/care-coordinator-patients"
+                            className={`nav-link ${isCareCoordinatorPatientsActive ? "active" : ""}`}
+                        >
+                            <i className="ri-team-line"></i>
+                            <span className="item-name">{t("sidebar.careCoordinatorPatients")}</span>
+                        </Link>
+                    </Nav.Item>
+                )}
+                {isCareCoordinator && (
+                    <Nav.Item as="li">
+                        <Link
+                            to="/dashboard-pages/care-coordinator-appointments"
+                            className={`nav-link ${location.pathname === "/dashboard-pages/care-coordinator-appointments" ? "active" : ""}`}
+                        >
+                            <i className="ri-calendar-check-line"></i>
+                            <span className="item-name">{t("sidebar.careCoordinatorAppointments")}</span>
+                        </Link>
+                    </Nav.Item>
+                )}
+                {isCareCoordinator && (
+                    <Nav.Item as="li">
+                        <Link
+                            to="/dashboard-pages/care-coordinator-communication"
+                            className={`nav-link ${location.pathname === "/dashboard-pages/care-coordinator-communication" ? "active" : ""}`}
+                        >
+                            <i className="ri-message-3-line"></i>
+                            <span className="item-name">{t("sidebar.careCoordinatorCommunication")}</span>
+                        </Link>
+                    </Nav.Item>
+                )}
+                {showHospitalAdminMenu && (
                     <>
                         <Nav.Item as="li">
                             <Link to="/admin/dashboard" className={`nav-link ${location.pathname === "/admin/dashboard" ? "active" : ""}`}>

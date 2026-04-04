@@ -3,18 +3,7 @@ import { Row, Col, Card, Form, Button, Alert, Spinner } from "react-bootstrap";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { superAdminApi } from "../../services/api";
-
-const SPECIALTIES = ["Coordination des soins", "Suivi post-opératoire", "Maladies chroniques", "Pédiatrie", "Gériatrie", "Oncologie", "Autre"];
-
-const SPECIALTY_I18N = {
-  "Coordination des soins": "specCareCoordination",
-  "Suivi post-opératoire": "specPostOp",
-  "Maladies chroniques": "specChronic",
-  Pédiatrie: "specPediatrics",
-  Gériatrie: "specGeriatrics",
-  Oncologie: "specOncology",
-  Autre: "specOther",
-};
+import { HOSPITAL_DEPARTMENTS, hospitalDepartmentLabel } from "../../constants/hospitalDepartments";
 
 const EditCareCoordinator = () => {
   const { t } = useTranslation();
@@ -26,7 +15,7 @@ const EditCareCoordinator = () => {
   const [success, setSuccess] = useState("");
   const [form, setForm] = useState({
     firstName: "", lastName: "", email: "", phone: "",
-    department: "", specialty: "", address: "", city: "", country: "",
+    department: "", address: "", city: "", country: "",
     password: "", confirmPassword: "",
   });
 
@@ -40,8 +29,7 @@ const EditCareCoordinator = () => {
           lastName: u.lastName || u.name?.split(" ").slice(1).join(" ") || "",
           email: u.email || "",
           phone: u.phone || "",
-          department: u.department || "",
-          specialty: u.specialty || "",
+          department: u.department || u.specialty || "",
           address: u.address || "",
           city: u.city || "",
           country: u.country || "",
@@ -81,6 +69,7 @@ const EditCareCoordinator = () => {
       const payload = { ...form };
       delete payload.confirmPassword;
       if (!payload.password) delete payload.password;
+      payload.specialty = form.department || "";
       await superAdminApi.updateCareCoordinator(id, payload);
       setSuccess(t("editCareCoordinator.updateSuccess"));
       setTimeout(() => navigate("/super-admin/care-coordinators"), 1500);
@@ -91,7 +80,7 @@ const EditCareCoordinator = () => {
     }
   };
 
-  const legacySpecialty = form.specialty && !SPECIALTIES.includes(form.specialty);
+  const legacyDepartment = form.department && !HOSPITAL_DEPARTMENTS.includes(form.department);
 
   if (loading) {
     return (
@@ -145,24 +134,15 @@ const EditCareCoordinator = () => {
                 <Col md={6}>
                   <Form.Group>
                     <Form.Label>{t("editCareCoordinator.labelDepartment")}</Form.Label>
-                    <Form.Control
-                      name="department"
-                      value={form.department}
-                      onChange={handleChange}
-                      placeholder={t("addCareCoordinator.placeholderDepartment")}
-                    />
-                  </Form.Group>
-                </Col>
-                <Col md={6}>
-                  <Form.Group>
-                    <Form.Label>{t("editCareCoordinator.labelSpecialty")}</Form.Label>
-                    <Form.Select name="specialty" value={form.specialty} onChange={handleChange}>
-                      <option value="">{t("addCareCoordinator.selectSpecialty")}</option>
-                      {legacySpecialty && (
-                        <option value={form.specialty}>{form.specialty}</option>
+                    <Form.Select name="department" value={form.department} onChange={handleChange}>
+                      <option value="">{t("addPatient.selectDepartment")}</option>
+                      {legacyDepartment && (
+                        <option value={form.department}>{hospitalDepartmentLabel(form.department, t)}</option>
                       )}
-                      {SPECIALTIES.map((s) => (
-                        <option key={s} value={s}>{t(`addCareCoordinator.${SPECIALTY_I18N[s]}`)}</option>
+                      {HOSPITAL_DEPARTMENTS.map((s) => (
+                        <option key={s} value={s}>
+                          {hospitalDepartmentLabel(s, t)}
+                        </option>
                       ))}
                     </Form.Select>
                   </Form.Group>

@@ -1,10 +1,14 @@
-import { Controller, ForbiddenException, Get, Query, Req, UseGuards } from '@nestjs/common';
+import { Controller, ForbiddenException, Get, Param, Query, Req, UseGuards } from '@nestjs/common';
 import { DepartmentService } from './department.service';
+import { CareCoordinatorFollowupService } from './care-coordinator-followup.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('departments')
 export class DepartmentController {
-  constructor(private departmentService: DepartmentService) {}
+  constructor(
+    private departmentService: DepartmentService,
+    private careCoordinatorFollowup: CareCoordinatorFollowupService,
+  ) {}
 
   @UseGuards(JwtAuthGuard)
   @Get('summary')
@@ -38,5 +42,30 @@ export class DepartmentController {
   @Get('users')
   async usersByDepartment(@Query('department') department: string) {
     return this.departmentService.getUsersByDepartment(department || '');
+  }
+
+  /** Patients du même département + scores de suivi (7 jours). */
+  @UseGuards(JwtAuthGuard)
+  @Get('coordinator/my-patients')
+  async coordinatorMyPatients(@Req() req: { user?: { id?: unknown; role?: string; department?: string } }) {
+    const user = req.user;
+    if (!user || user.role !== 'carecoordinator') {
+      throw new ForbiddenException('Accès réservé aux coordinateurs de soins');
+    }
+    return this.careCoordinatorFollowup.listMyDepartmentPatients(user as any);
+  }
+
+  /** Historique constantes + médicaments (12 mois) pour un patient du département. */
+  @UseGuards(JwtAuthGuard)
+  @Get('coordinator/patient/:patientId/history')
+  async coordinatorPatientHistory(
+    @Req() req: { user?: { id?: unknown; role?: string; department?: string } },
+    @Param('patientId') patientId: string,
+  ) {
+    const user = req.user;
+    if (!user || user.role !== 'carecoordinator') {
+      throw new ForbiddenException('Accès réservé aux coordinateurs de soins');
+    }
+    return this.careCoordinatorFollowup.getPatientHistory(user as any, patientId);
   }
 }

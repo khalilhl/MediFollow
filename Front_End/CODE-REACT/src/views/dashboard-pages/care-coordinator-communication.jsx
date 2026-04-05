@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Row, Col, Card as BsCard, Badge, Button, Spinner } from "react-bootstrap";
+import { Row, Col, Card as BsCard, Badge, Button, Spinner, Form, InputGroup } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import Card from "../../components/Card";
@@ -27,6 +27,7 @@ const CareCoordinatorCommunication = () => {
     const [contacts, setContacts] = useState(null);
     const [loadError, setLoadError] = useState(null);
     const [copiedId, setCopiedId] = useState(null);
+    const [searchContact, setSearchContact] = useState("");
 
     useEffect(() => {
         const token = localStorage.getItem("adminToken");
@@ -99,7 +100,13 @@ const CareCoordinatorCommunication = () => {
     return out;
   }, [contacts, t]);
 
-  const { page, setPage, totalPages, paginated: paginatedContacts, totalItems } = usePagination(contactRows, 2);
+  const filteredContacts = useMemo(() => {
+    if (!searchContact.trim()) return contactRows;
+    const q = searchContact.toLowerCase();
+    return contactRows.filter((r) => r.name.toLowerCase().includes(q));
+  }, [contactRows, searchContact]);
+
+  const { page, setPage, totalPages, paginated: paginatedContacts, totalItems } = usePagination(filteredContacts, 5);
 
     const copyTemplate = useCallback(
         async (id) => {
@@ -180,6 +187,27 @@ const CareCoordinatorCommunication = () => {
                             )}
                             {contactRows.length > 0 && (
                                 <>
+                                    {/* Recherche contacts */}
+                                    <Row className="g-2 mb-3">
+                                        <Col md={5}>
+                                            <InputGroup size="sm">
+                                                <InputGroup.Text><i className="ri-search-line" /></InputGroup.Text>
+                                                <Form.Control
+                                                    placeholder="Search by name..."
+                                                    value={searchContact}
+                                                    onChange={(e) => setSearchContact(e.target.value)}
+                                                />
+                                                {searchContact && (
+                                                    <Button variant="outline-secondary" size="sm" onClick={() => setSearchContact("")}>
+                                                        <i className="ri-close-line" />
+                                                    </Button>
+                                                )}
+                                            </InputGroup>
+                                        </Col>
+                                        <Col md={2} className="d-flex align-items-center">
+                                            <small className="text-muted">{filteredContacts.length} / {contactRows.length} contacts</small>
+                                        </Col>
+                                    </Row>
                                     <div className="table-responsive">
                                         <table className="table table-sm align-middle mb-0">
                                             <thead>
@@ -221,7 +249,7 @@ const CareCoordinatorCommunication = () => {
                                         page={page}
                                         totalPages={totalPages}
                                         totalItems={totalItems}
-                                        pageSize={2}
+                                        pageSize={5}
                                         onPageChange={setPage}
                                     />
                                 </>

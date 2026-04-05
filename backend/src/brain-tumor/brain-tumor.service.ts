@@ -59,33 +59,50 @@ export interface BrainTumorUploadMeta {
 @Injectable()
 export class BrainTumorService {
   /**
-   * Interpréteur avec TensorFlow : variable d’environnement, sinon venv du dossier brain-tumor-detection.
-   * Sur Windows, un chemin non quoté dans `.env` du type `C:\Users\...` peut être mal lu (séquence `\U`) :
-   * utiliser des `/` ou des guillemets.
+   * Interpréteur Python (TensorFlow) :
+   * - `BRAIN_TUMOR_PYTHON` optionnel : chemin absolu, ou relatif au dossier `brain-tumor-detection` (ex. `.venv/Scripts/python.exe`).
+   * - Sinon : `brain-tumor-detection/.venv/...` (portable après clone + `pip install` dans le venv).
+   * - Sinon : `python` du PATH.
+   * Ne pas commiter de chemin absolu type `C:/Users/...` : laisser la variable vide pour l’équipe.
    */
   private async resolvePythonBinary(root: string): Promise<string> {
-    const fromEnv = process.env.BRAIN_TUMOR_PYTHON?.trim();
+    const raw = process.env.BRAIN_TUMOR_PYTHON?.trim();
+    const fromEnv = raw?.replace(/^["']|["']$/g, '') ?? '';
+
+    const candidates: string[] = [];
+    const seen = new Set<string>();
+
+    const push = (p: string) => {
+      const n = path.normalize(p);
+      if (!seen.has(n)) {
+        seen.add(n);
+        candidates.push(n);
+      }
+    };
+
     if (fromEnv) {
-      try {
-        await fs.access(fromEnv);
-        return fromEnv;
-      } catch {
-        console.warn(`[brain-tumor] BRAIN_TUMOR_PYTHON introuvable (${fromEnv}), essai .venv local.`);
+      if (path.isAbsolute(fromEnv)) {
+        push(fromEnv);
+      } else {
+        push(path.join(root, fromEnv));
+        push(path.resolve(process.cwd(), fromEnv));
       }
     }
-    const winVenv = path.join(root, '.venv', 'Scripts', 'python.exe');
-    const unixVenv = path.join(root, '.venv', 'bin', 'python');
-    try {
-      await fs.access(winVenv);
-      return winVenv;
-    } catch {
-      /* linux / mac */
-    }
-    try {
-      await fs.access(unixVenv);
-      return unixVenv;
-    } catch {
-      /* dernier recours */
+
+    push(path.join(root, '.venv', 'Scripts', 'python.exe'));
+    push(path.join(root, '.venv', 'bin', 'python'));
+    push('python');
+
+    for (const c of candidates) {
+      if (c === 'python') {
+        return c;
+      }
+      try {
+        await fs.access(c);
+        return c;
+      } catch {
+        /* suivant */
+      }
     }
     return 'python';
   }
@@ -214,6 +231,29 @@ export class BrainTumorService {
       };
     } catch (e: unknown) {
       if (e instanceof BadRequestException) throw e;
+      /** Python sort parfois en code 1 avec un JSON d’erreur sur stdout ; execFile rejette quand même. */
+      const stdoutFromErr =
+        typeof e === 'object' &&
+        e !== null &&
+        'stdout' in e &&
+        Buffer.isBuffer((e as { stdout?: Buffer }).stdout)
+          ? (e as { stdout: Buffer }).stdout.toString('utf8')
+          : typeof e === 'object' &&
+              e !== null &&
+              'stdout' in e &&
+              typeof (e as { stdout?: string }).stdout === 'string'
+            ? (e as { stdout: string }).stdout
+            : '';
+      if (stdoutFromErr.trim()) {
+        try {
+          const rawErr = parsePythonJsonStdout(stdoutFromErr);
+          if (typeof rawErr.error === 'string') {
+            throw new BadRequestException(rawErr.error);
+          }
+        } catch (inner) {
+          if (inner instanceof BadRequestException) throw inner;
+        }
+      }
       const msg = e instanceof Error ? e.message : String(e);
       console.error('[brain-tumor] exec failed', msg);
       throw new BadRequestException(

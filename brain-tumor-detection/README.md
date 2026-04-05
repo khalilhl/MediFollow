@@ -92,11 +92,10 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-Dans le `.env` du backend, utilisez des **slashs** ou des **guillemets** pour le chemin Windows, sinon `C:\Users\...` peut être tronqué par dotenv (`\U`) :
+**Ne pas** mettre un chemin absolu perso (`C:/Users/...`) dans un fichier partagé : après un `git clone`, ce chemin n’existe pas chez les autres.
 
-`BRAIN_TUMOR_PYTHON="C:/chemin/vers/brain-tumor-detection/.venv/Scripts/python.exe"`
-
-Si cette variable est absente ou invalide, l’API essaie automatiquement `brain-tumor-detection/.venv/Scripts/python.exe` (Windows) ou `.venv/bin/python` (Linux/macOS).
+- **Recommandé :** ne pas définir `BRAIN_TUMOR_PYTHON` dans le `.env` local. Tant que le venv existe sous `brain-tumor-detection/.venv`, l’API NestJS l’utilise automatiquement.
+- **Optionnel :** `BRAIN_TUMOR_PYTHON=.venv/Scripts/python.exe` (relatif au dossier `brain-tumor-detection`, portable pour toute l’équipe sur la même structure de repo).
 
 ## Notebook
 

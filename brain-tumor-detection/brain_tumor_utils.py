@@ -18,7 +18,6 @@ import numpy as np
 import tensorflow as tf
 
 IMAGE_SIZE = 224
-LAST_CONV_LAYER = "conv5_block3_out"
 RESNET_LAYER_NAME = "resnet50"
 
 
@@ -117,62 +116,136 @@ def build_model() -> tf.keras.Model:
     return tf.keras.Model(inputs=base.input, outputs=out, name="brain_tumor_resnet")
 
 
-def get_resnet_submodel(model: tf.keras.Model) -> tf.keras.Model:
-    """Accès au backbone ResNet50 (nom par défaut)."""
+def get_last_conv_output_tensor(model: tf.keras.Model) -> tf.Tensor:
+    """
+    Sortie 4D avant GAP : soit couche `resnet50` (entraînement), soit dernière conv ResNet50
+    quand le `.h5` a été sauvegardé avec un graphe aplati (`conv5_block3_out`, …).
+    """
     try:
-        return model.get_layer(RESNET_LAYER_NAME)
+        inner = model.get_layer(RESNET_LAYER_NAME)
+        return inner.output
     except ValueError:
-        for layer in model.layers:
-            if isinstance(layer, tf.keras.Model) and "resnet" in layer.name.lower():
-                return layer
-        raise
+        pass
+    for name in ("conv5_block3_out", "conv5_block3_out_activation"):
+        try:
+            return model.get_layer(name).output
+        except ValueError:
+            continue
+    gap_idx = next((i for i, layer in enumerate(model.layers) if layer.name == "gap"), None)
+    layers_before = model.layers[:gap_idx] if gap_idx is not None else model.layers
+    for layer in reversed(layers_before):
+        try:
+            sh = layer.output_shape
+        except Exception:
+            continue
+        if isinstance(sh, list):
+            sh = sh[0] if sh else None
+        if sh is not None and len(sh) == 4 and sh[-1] and sh[-1] > 1:
+            return layer.output
+    raise ValueError(
+        "Impossible de trouver la sortie conv 4D (ResNet). "
+        "Couches connues : " + ", ".join(l.name for l in model.layers[:12]) + "…"
+    )
+
+
+def _heatmap_to_rgb_overlay(
+    hm224: np.ndarray,
+    img_u8: np.ndarray,
+    *,
+    overlay_alpha: float = 0.58,
+) -> np.ndarray:
+    """JET sur [0,255] puis fusion — poids colormap élevé pour contraste visible vs IRM."""
+    hm_u8 = np.clip(hm224 * 255.0, 0, 255).astype(np.uint8)
+    heat_bgr = cv2.applyColorMap(hm_u8, cv2.COLORMAP_JET)
+    heat_rgb = cv2.cvtColor(heat_bgr, cv2.COLOR_BGR2RGB)
+    a = float(np.clip(overlay_alpha, 0.35, 0.78))
+    # addWeighted évite les arrondis qui ternissent les couleurs
+    return cv2.addWeighted(img_u8, 1.0 - a, heat_rgb, a, 0)
+
+
+def _normalize_heatmap_vis(heatmap_np: np.ndarray) -> np.ndarray:
+    """Étire les percentiles pour que JET ne reste pas bleu/gris (gradients faibles)."""
+    h = heatmap_np.astype(np.float64)
+    flat = h.flatten()
+    lo, hi = np.percentile(flat, [5.0, 95.0])
+    if hi <= lo + 1e-8:
+        h = (h - h.min()) / (h.max() - h.min() + 1e-8)
+    else:
+        h = (h - lo) / (hi - lo)
+    return np.clip(h, 0.0, 1.0).astype(np.float32)
+
+
+def _build_grad_model(model: tf.keras.Model) -> tf.keras.Model:
+    """Sous-modèle [entrée complète] → [carte conv ResNet, probabilité]."""
+    conv_out = get_last_conv_output_tensor(model)
+    outs = [conv_out, model.output]
+    try:
+        return tf.keras.Model(inputs=model.inputs, outputs=outs)
+    except Exception:
+        return tf.keras.Model(inputs=model.input, outputs=outs)
+
+
+def activation_map_overlay(model: tf.keras.Model, img_batch: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Carte sans gradient : moyenne des |activation| par pixel (toujours colorée après JET).
+    Repli si Grad-CAM échoue.
+    """
+    img_t = tf.convert_to_tensor(img_batch, dtype=tf.float32)
+    conv_tensor = get_last_conv_output_tensor(model)
+    try:
+        feat_model = tf.keras.Model(inputs=model.inputs, outputs=conv_tensor)
+    except Exception:
+        feat_model = tf.keras.Model(inputs=model.input, outputs=conv_tensor)
+    feats = feat_model(img_t, training=False)
+    heatmap = tf.reduce_mean(tf.abs(feats[0]), axis=-1).numpy()
+    heatmap_np = _normalize_heatmap_vis(heatmap.astype(np.float64))
+    hm224 = cv2.resize(heatmap_np, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_CUBIC)
+    hm224 = np.clip(hm224, 0.0, 1.0)
+    img_u8 = (img_batch[0] * 255.0).clip(0, 255).astype(np.uint8)
+    overlay = _heatmap_to_rgb_overlay(hm224, img_u8, overlay_alpha=0.62)
+    return hm224, overlay
 
 
 def grad_cam_overlay(
     model: tf.keras.Model,
     img_batch: np.ndarray,
-    last_conv_name: str = LAST_CONV_LAYER,
+    last_conv_name: str | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     Grad-CAM : heatmap (H, W) normalisée et image RGB (H, W, 3) superposée.
     img_batch : (1, 224, 224, 3) float32 [0,1]
     """
-    resnet = get_resnet_submodel(model)
-    conv_layer = resnet.get_layer(last_conv_name)
+    _ = last_conv_name  # rétrocompat API
+    img_t = tf.convert_to_tensor(img_batch, dtype=tf.float32)
 
-    grad_model = tf.keras.Model(
-        inputs=[model.inputs],
-        outputs=[conv_layer.output, model.output],
-    )
+    grad_model = _build_grad_model(model)
 
-    with tf.GradientTape() as tape:
-        conv_out, preds = grad_model(img_batch)
-        # Sortie binaire : score = probabilité classe « tumeur »
-        class_channel = preds[:, 0]
+    with tf.GradientTape(persistent=True) as tape:
+        conv_out, preds = grad_model(img_t)
+        class_score = preds[:, 0]
 
-    grads = tape.gradient(class_channel, conv_out)
-    if grads is None:
-        raise RuntimeError("Grad-CAM : gradient nul.")
+    grads = tape.gradient(class_score, conv_out)
+    del tape
 
-    pooled_grads = tf.reduce_mean(grads, axis=(1, 2))  # (batch, channels)
+    conv_np = conv_out[0].numpy()
 
-    conv_out = conv_out[0]
-    pooled = pooled_grads[0]
-    heatmap = tf.reduce_sum(conv_out * pooled, axis=-1)
-    heatmap = tf.nn.relu(heatmap)
-    hmax = tf.reduce_max(heatmap)
-    heatmap = heatmap / (hmax + 1e-7)
-    heatmap_np = heatmap.numpy().astype(np.float32)
+    if grads is not None:
+        pooled_grads = tf.reduce_mean(grads, axis=(1, 2))
+        pooled = pooled_grads[0].numpy()
+        heatmap = np.sum(conv_np * pooled, axis=-1)
+        heatmap = np.maximum(heatmap, 0)
+        if np.max(heatmap) < 1e-8:
+            heatmap = np.mean(np.abs(conv_np), axis=-1)
+    else:
+        heatmap = np.mean(np.abs(conv_np), axis=-1)
+
+    heatmap_np = _normalize_heatmap_vis(heatmap.astype(np.float64))
 
     hm224 = cv2.resize(heatmap_np, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_CUBIC)
     hm224 = np.clip(hm224, 0.0, 1.0)
 
     img_u8 = (img_batch[0] * 255.0).clip(0, 255).astype(np.uint8)
-    heat_color = cv2.applyColorMap((hm224 * 255).astype(np.uint8), cv2.COLORMAP_JET)
-    heat_color = cv2.cvtColor(heat_color, cv2.COLOR_BGR2RGB)
-    overlay = (0.6 * img_u8.astype(np.float32) + 0.4 * heat_color.astype(np.float32)).clip(0, 255).astype(
-        np.uint8
-    )
+    overlay = _heatmap_to_rgb_overlay(hm224, img_u8, overlay_alpha=0.58)
     return hm224, overlay
 
 
@@ -204,8 +277,8 @@ def predict(
     try:
         _, overlay_rgb = grad_cam_overlay(model, batch.astype(np.float32))
     except Exception:
-        # Fallback : image seule si Grad-CAM échoue (couche renommée, etc.)
-        overlay_rgb = (batch[0] * 255.0).clip(0, 255).astype(np.uint8)
+        # Jamais renvoyer une copie de l’IRM : carte d’activation colorée (JET)
+        _, overlay_rgb = activation_map_overlay(model, batch.astype(np.float32))
     return {
         "prediction": pred,
         "probability": prob,

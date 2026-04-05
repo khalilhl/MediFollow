@@ -27,6 +27,7 @@ import { SvgFlagTn, SvgFlagDz } from "../../language-flag-svgs"
 import { useTranslation } from "react-i18next"
 import { LARGE_TEXT_STORAGE_KEY } from "../../../constants/accessibility"
 import { getA11yReadablePageText } from "../../../utils/a11yReadPage"
+import { useHandGesture } from "../../../context/HandGestureContext"
 
 const generatePath = (path) => {
   const base = (import.meta.env.BASE_URL || "/").replace(/\/+$/, "") || "";
@@ -264,6 +265,13 @@ const Header = () => {
    const ttsSupported = typeof window !== "undefined" && !!window.speechSynthesis;
    const ttsUtteranceRef = useRef(null);
    const [isReadingPage, setIsReadingPage] = useState(false);
+   const {
+      isActive: handActive,
+      startHandGesture,
+      stopHandGesture,
+      error: handError,
+      setError: setHandError,
+   } = useHandGesture();
 
    const stopPageReading = useCallback(() => {
       if (typeof window !== "undefined" && window.speechSynthesis) {
@@ -385,6 +393,11 @@ const Header = () => {
          {/* <Navbar> */}
          <Navbar className={`nav navbar-expand-xl navbar-light iq-navbar pt-2 pb-2 px-2 iq-header ${isScrolled ? "fixed-header" : ""} ${pageLayout === 'container-fluid' ? "" : "container-box"}`} id="boxid">
             <Container fluid className="navbar-inner">
+               {isA11ySession && (
+                  <span id="header-hand-nav-help" className="visually-hidden">
+                     {t("nav.handNavHelp")}
+                  </span>
+               )}
                <Row className="flex-grow-1">
                   <Col lg={4} md={6} className="align-items-center d-flex">
                      <Nav.Item as="li" className="nav-item dropdown search-width pt-2 pt-lg-0">
@@ -444,6 +457,32 @@ const Header = () => {
                                  {isReadingPage ? t("signIn.stopReading") : t("signIn.readPage")}
                               </button>
                            )}
+                           <span className="d-inline-flex align-items-center" role="group" aria-label={t("nav.assistHandGroupLabel")}>
+                              {!handActive ? (
+                                 <button
+                                    type="button"
+                                    className="btn btn-sm assist-btn assist-btn-hand"
+                                    onClick={startHandGesture}
+                                    aria-describedby="header-hand-nav-help"
+                                    data-eye-clickable
+                                 >
+                                    <i className="ri-camera-line me-1" aria-hidden="true"></i>
+                                    {t("signIn.startHandNav")}
+                                 </button>
+                              ) : (
+                                 <button
+                                    type="button"
+                                    className="btn btn-sm assist-btn assist-btn-hand is-active"
+                                    onClick={stopHandGesture}
+                                    aria-pressed="true"
+                                    aria-describedby="header-hand-nav-help"
+                                    data-eye-clickable
+                                 >
+                                    <i className="ri-camera-off-line me-1" aria-hidden="true"></i>
+                                    {t("signIn.stopHandNav")}
+                                 </button>
+                              )}
+                           </span>
                         </Nav.Item>
                      )}
                      <Nav.Item as="li" className="nav-item iq-full-screen d-none d-xl-block"
@@ -840,6 +879,21 @@ const Header = () => {
                      </Dropdown>
                   </Col>
                </Row>
+               {isA11ySession && handError && (
+                  <Row className="w-100">
+                     <Col xs={12}>
+                        <div className="alert alert-warning py-1 px-2 small mb-0 mt-1" role="alert">
+                           {handError}
+                           <button
+                              type="button"
+                              className="btn-close btn-sm float-end"
+                              onClick={() => setHandError("")}
+                              aria-label={t("signIn.closeAria")}
+                           />
+                        </div>
+                     </Col>
+                  </Row>
+               )}
 
             </Container>
 
@@ -873,6 +927,32 @@ const Header = () => {
                                  {isReadingPage ? t("signIn.stopReading") : t("signIn.readPage")}
                               </button>
                            )}
+                           <span className="d-inline-flex align-items-center" role="group" aria-label={t("nav.assistHandGroupLabel")}>
+                              {!handActive ? (
+                                 <button
+                                    type="button"
+                                    className="btn btn-sm assist-btn assist-btn-hand"
+                                    onClick={startHandGesture}
+                                    aria-describedby="header-hand-nav-help"
+                                    data-eye-clickable
+                                 >
+                                    <i className="ri-camera-line me-1" aria-hidden="true"></i>
+                                    {t("signIn.startHandNav")}
+                                 </button>
+                              ) : (
+                                 <button
+                                    type="button"
+                                    className="btn btn-sm assist-btn assist-btn-hand is-active"
+                                    onClick={stopHandGesture}
+                                    aria-pressed="true"
+                                    aria-describedby="header-hand-nav-help"
+                                    data-eye-clickable
+                                 >
+                                    <i className="ri-camera-off-line me-1" aria-hidden="true"></i>
+                                    {t("signIn.stopHandNav")}
+                                 </button>
+                              )}
+                           </span>
                         </Nav.Item>
                      )}
                      <li className="nav-item dropdown">

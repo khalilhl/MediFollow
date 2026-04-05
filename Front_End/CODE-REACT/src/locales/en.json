@@ -24,7 +24,9 @@
     "signOut": "Sign out",
     "regionFlagsTitle": "Tunisia–Algeria partnership",
     "languageMenu": "Language",
-    "a11yReadPageEmpty": "No readable text in this area."
+    "a11yReadPageEmpty": "No readable text in this area.",
+    "handNavHelp": "Finger navigation: point with your index finger in front of the camera. The cursor follows your finger. Hold 0.8 s on an element to click. Without this feature, use Tab to move between controls and Enter or Space to activate buttons.",
+    "assistHandGroupLabel": "Hand and camera navigation"
   },
   "emailPage": {
     "loading": "Loading…",

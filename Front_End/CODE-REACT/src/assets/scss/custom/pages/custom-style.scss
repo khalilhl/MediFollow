@@ -368,13 +368,15 @@
     opacity: 0.9;
 }
 
-.sign-in-from .assist-actions .assist-btn.assist-btn-hand {
+.sign-in-from .assist-actions .assist-btn.assist-btn-hand,
+.iq-navbar .assist-btn.assist-btn-hand {
     border: 1px solid rgba(8, 155, 171, 0.45);
     color: #0b6f7f;
     background: rgba(8, 155, 171, 0.08);
 }
 
-.sign-in-from .assist-actions .assist-btn.assist-btn-hand:hover {
+.sign-in-from .assist-actions .assist-btn.assist-btn-hand:hover,
+.iq-navbar .assist-btn.assist-btn-hand:hover {
     border-color: rgba(8, 155, 171, 0.7);
     background: rgba(8, 155, 171, 0.14);
 }
@@ -390,7 +392,8 @@
     background: #f8f9fa;
 }
 
-.sign-in-from .assist-actions .assist-btn.is-active {
+.sign-in-from .assist-actions .assist-btn.is-active,
+.iq-navbar .assist-btn.assist-btn-hand.is-active {
     color: #fff;
     border-color: transparent;
     background: linear-gradient(135deg, #0b93a3 0%, #0a6f89 100%);

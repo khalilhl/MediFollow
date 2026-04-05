@@ -51,6 +51,7 @@ export function resourceTypeFromPath(url: string): string {
   if (u.includes('/health-logs')) return 'vitals';
   if (u.includes('/medications')) return 'medication';
   if (u.includes('/lab-analysis')) return 'lab';
+  if (u.includes('/brain-tumor')) return 'brain_mri';
   if (u.includes('/auth')) return 'auth';
   if (u.includes('/appointments')) return 'appointment';
   if (u.includes('/questionnaires')) return 'questionnaire';

@@ -291,6 +291,15 @@ const VerticalNav = () => {
                     </Link>
                 </Nav.Item>
                 <Nav.Item as="li">
+                    <Link
+                        to="/dashboard-pages/patient-brain-mri"
+                        className={`nav-link ${location.pathname === "/dashboard-pages/patient-brain-mri" ? "active" : ""}`}
+                    >
+                        <i className="ri-brain-line"></i>
+                        <span className="item-name">{t("sidebar.brainMriPatient")}</span>
+                    </Link>
+                </Nav.Item>
+                <Nav.Item as="li">
                     <Link to={`/patient/patient-profile/${patientUser?.id}`} className={`nav-link ${location.pathname === `/patient/patient-profile/${patientUser?.id}` ? "active" : ""}`}>
                         <i className="ri-user-heart-fill"></i>
                         <span className="item-name">{t("sidebar.myProfile")}</span>
@@ -414,6 +423,15 @@ const VerticalNav = () => {
                     >
                         <i className="ri-calendar-2-line"></i>
                         <span className="item-name">{t("sidebar.appointmentCalendar")}</span>
+                    </Link>
+                </Nav.Item>
+                <Nav.Item as="li">
+                    <Link
+                        to="/doctor/brain-mri"
+                        className={`nav-link ${location.pathname === "/doctor/brain-mri" ? "active" : ""}`}
+                    >
+                        <i className="ri-brain-line"></i>
+                        <span className="item-name">{t("sidebar.brainMri")}</span>
                     </Link>
                 </Nav.Item>
                 <Nav.Item as="li">

@@ -35,6 +35,8 @@ import DoctorDepartmentNurses from "../views/doctor/doctor-department-nurses"
 import DoctorDepartmentDoctors from "../views/doctor/doctor-department-doctors"
 import DoctorAvailabilityCalendar from "../views/doctor/doctor-availability-calendar"
 import DoctorNurseEscalations from "../views/doctor/doctor-nurse-escalations"
+import DoctorBrainMri from "../views/doctor/doctor-brain-mri"
+import PatientBrainMri from "../views/patient/patient-brain-mri"
 
 // Patient Page
 import AddPatient from "../views/patient/add-patient"
@@ -198,6 +200,10 @@ export const DefaultRoute = [
         element: <PatientLabAnalysisPage />
       },
       {
+        path: '/dashboard-pages/patient-brain-mri',
+        element: <PatientBrainMri />
+      },
+      {
         path: '/dashboard-pages/nurse-dashboard',
         element: <NurseDashboard />
       },
@@ -268,6 +274,10 @@ export const DefaultRoute = [
       {
         path: '/doctor/availability-calendar',
         element: <DoctorAvailabilityCalendar />
+      },
+      {
+        path: '/doctor/brain-mri',
+        element: <DoctorBrainMri />
       },
       {
         path: '/doctor/my-patients',

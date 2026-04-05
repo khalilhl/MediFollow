@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { Row, Col, Form, Button, Table, Spinner, Modal, Pagination, Badge } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
 import { auditorApi } from "../../services/api";
+import AuditorA11yLayout from "../../components/auditor/auditor-a11y-layout";
+import AuditorA11yToolbar from "../../components/auditor/auditor-a11y-toolbar";
 import "./auditor-logs.scss";
 
 /** Filtres alignés sur la spec (CREATE, UPDATE, DELETE, LOGIN + échecs / lecture) */
@@ -15,6 +17,7 @@ const RESOURCE_TYPES = [
   "vitals",
   "medication",
   "lab",
+  "brain_mri",
   "auth",
   "appointment",
   "questionnaire",
@@ -140,8 +143,11 @@ const AuditorLogsPage = () => {
   };
 
   return (
+    <AuditorA11yLayout variant="logs">
     <div className="auditor-logs">
-      <header className="auditor-logs__header">
+      <AuditorA11yToolbar />
+      <div id="auditor-main-content" tabIndex={-1}>
+      <header className="auditor-logs__header" aria-labelledby="auditor-logs-title">
         <Link to="/auditor/dashboard" className="auditor-logs__back">
           <i className="ri-arrow-left-line" aria-hidden />
           {t("auditorLogs.backDashboard")}
@@ -150,10 +156,10 @@ const AuditorLogsPage = () => {
         <div className="auditor-logs__hero">
           <div className="auditor-logs__hero-text">
             <div className="auditor-logs__hero-icon" aria-hidden>
-              <i className="ri-file-list-3-line" />
+              <i className="ri-file-list-3-line" aria-hidden />
             </div>
             <div>
-              <h1 className="auditor-logs__title">{t("auditorLogs.pageTitle")}</h1>
+              <h1 id="auditor-logs-title" className="auditor-logs__title">{t("auditorLogs.pageTitle")}</h1>
               <p className="auditor-logs__subtitle">{t("auditorLogs.subtitle")}</p>
               <div className="auditor-logs__legend">
                 <span className="auditor-logs__legend-item auditor-logs__legend-item--danger">{t("auditorLogs.legendDelete")}</span>
@@ -172,27 +178,30 @@ const AuditorLogsPage = () => {
         </div>
       </header>
 
-      <div className="auditor-logs__filters">
-        <div className="auditor-logs__filters-head">
+      <div className="auditor-logs__filters" role="region" aria-labelledby="auditor-logs-filters-heading">
+        <div id="auditor-logs-filters-heading" className="auditor-logs__filters-head">
           <i className="ri-filter-3-line" aria-hidden />
           {t("auditorLogs.sectionFilters")}
         </div>
         <div className="auditor-logs__filters-body">
           <Row className="g-3 align-items-end">
             <Col md={6} lg={3}>
-              <Form.Label className="auditor-logs__label">{t("auditorLogs.filterUser")}</Form.Label>
+              <Form.Label htmlFor="auditor-filter-user" className="auditor-logs__label">{t("auditorLogs.filterUser")}</Form.Label>
               <Form.Control
+                id="auditor-filter-user"
                 className="auditor-logs__control"
                 size="sm"
                 type="search"
                 placeholder={t("auditorLogs.filterUserPlaceholder")}
                 value={userSearch}
                 onChange={(e) => setUserSearch(e.target.value)}
+                autoComplete="off"
               />
             </Col>
             <Col md={6} lg={2}>
-              <Form.Label className="auditor-logs__label">{t("auditorLogs.filterRole")}</Form.Label>
+              <Form.Label htmlFor="auditor-filter-role" className="auditor-logs__label">{t("auditorLogs.filterRole")}</Form.Label>
               <Form.Select
+                id="auditor-filter-role"
                 className="auditor-logs__control"
                 size="sm"
                 value={actorRole}
@@ -207,8 +216,9 @@ const AuditorLogsPage = () => {
               </Form.Select>
             </Col>
             <Col md={6} lg={2}>
-              <Form.Label className="auditor-logs__label">{t("auditorLogs.filterActionType")}</Form.Label>
+              <Form.Label htmlFor="auditor-filter-action" className="auditor-logs__label">{t("auditorLogs.filterActionType")}</Form.Label>
               <Form.Select
+                id="auditor-filter-action"
                 className="auditor-logs__control"
                 size="sm"
                 value={actionType}
@@ -223,8 +233,9 @@ const AuditorLogsPage = () => {
               </Form.Select>
             </Col>
             <Col md={6} lg={2}>
-              <Form.Label className="auditor-logs__label">{t("auditorLogs.filterResourceType")}</Form.Label>
+              <Form.Label htmlFor="auditor-filter-resource" className="auditor-logs__label">{t("auditorLogs.filterResourceType")}</Form.Label>
               <Form.Select
+                id="auditor-filter-resource"
                 className="auditor-logs__control"
                 size="sm"
                 value={resourceType}
@@ -239,8 +250,9 @@ const AuditorLogsPage = () => {
               </Form.Select>
             </Col>
             <Col md={6} lg={2}>
-              <Form.Label className="auditor-logs__label">{t("auditorLogs.filterPeriod")}</Form.Label>
+              <Form.Label htmlFor="auditor-filter-period" className="auditor-logs__label">{t("auditorLogs.filterPeriod")}</Form.Label>
               <Form.Select
+                id="auditor-filter-period"
                 className="auditor-logs__control"
                 size="sm"
                 value={datePreset}
@@ -254,7 +266,7 @@ const AuditorLogsPage = () => {
               </Form.Select>
             </Col>
             <Col md={6} lg={1} className="d-grid">
-              <Button size="sm" className="auditor-logs__btn-apply mt-1 mt-lg-0" onClick={applyFilters}>
+              <Button type="button" size="sm" className="auditor-logs__btn-apply mt-1 mt-lg-0" onClick={applyFilters}>
                 {t("auditorLogs.apply")}
               </Button>
             </Col>
@@ -262,12 +274,16 @@ const AuditorLogsPage = () => {
         </div>
       </div>
 
-      {error && <div className="auditor-logs__alert">{error}</div>}
+      {error && (
+        <div className="auditor-logs__alert" role="alert">
+          {error}
+        </div>
+      )}
 
-      <div className="auditor-logs__table-card">
+      <div className="auditor-logs__table-card" role="region" aria-labelledby="auditor-logs-results-heading">
         {!loading && (
           <div className="auditor-logs__toolbar">
-            <h2 className="auditor-logs__toolbar-title">{t("auditorLogs.sectionResults")}</h2>
+            <h2 id="auditor-logs-results-heading" className="auditor-logs__toolbar-title">{t("auditorLogs.sectionResults")}</h2>
             <span className="auditor-logs__toolbar-meta">
               {t("auditorLogs.paginationInfo", { total: data.total, page: data.page, pages: data.totalPages })}
             </span>
@@ -276,13 +292,19 @@ const AuditorLogsPage = () => {
 
         {loading ? (
           <div className="auditor-logs__loader">
-            <Spinner animation="border" className="text-primary" role="status" />
-            <span>{t("auditorLogs.loadingLogs")}</span>
+            <Spinner
+              animation="border"
+              className="text-primary"
+              role="status"
+              aria-label={t("auditorLogs.loadingLogs")}
+            />
+            <span aria-hidden="true">{t("auditorLogs.loadingLogs")}</span>
           </div>
         ) : (
           <>
             <div className="auditor-logs__table-scroll">
               <Table responsive className="auditor-logs__table mb-0">
+                <caption className="visually-hidden">{t("auditorA11y.tableCaptionLogs")}</caption>
                 <thead>
                   <tr>
                     <th>{t("auditorLogs.colWhen")}</th>
@@ -300,8 +322,8 @@ const AuditorLogsPage = () => {
                     <tr>
                       <td colSpan={8}>
                         <div className="auditor-logs__empty">
-                          <div className="auditor-logs__empty-icon">
-                            <i className="ri-inbox-line" />
+                          <div className="auditor-logs__empty-icon" aria-hidden>
+                            <i className="ri-inbox-line" aria-hidden />
                           </div>
                           <p>{t("auditorLogs.empty")}</p>
                         </div>
@@ -337,10 +359,12 @@ const AuditorLogsPage = () => {
                       <td className="small font-monospace auditor-logs__cell-muted">{row.ipAddress || t("auditorLogs.noValue")}</td>
                       <td className="text-end">
                         <Button
+                          type="button"
                           variant="outline-primary"
                           size="sm"
                           className="auditor-logs__btn-detail"
                           onClick={() => openDetail(row.id)}
+                          aria-label={`${t("auditorLogs.detail")} — ${row.actorEmail || row.id}`}
                         >
                           <i className="ri-eye-line" aria-hidden />
                           {t("auditorLogs.detail")}
@@ -357,19 +381,21 @@ const AuditorLogsPage = () => {
                 {t("auditorLogs.paginationInfo", { total: data.total, page: data.page, pages: data.totalPages })}
               </span>
               {data.totalPages > 1 ? (
-                <Pagination className="mb-0">
-                  <Pagination.Prev
-                    aria-label={t("auditorLogs.paginationPrev")}
-                    disabled={data.page <= 1}
-                    onClick={() => handlePage(data.page - 1)}
-                  />
-                  <Pagination.Item active>{data.page}</Pagination.Item>
-                  <Pagination.Next
-                    aria-label={t("auditorLogs.paginationNext")}
-                    disabled={data.page >= data.totalPages}
-                    onClick={() => handlePage(data.page + 1)}
-                  />
-                </Pagination>
+                <nav aria-label={t("auditorLogs.paginationNavAria")}>
+                  <Pagination className="mb-0">
+                    <Pagination.Prev
+                      aria-label={t("auditorLogs.paginationPrev")}
+                      disabled={data.page <= 1}
+                      onClick={() => handlePage(data.page - 1)}
+                    />
+                    <Pagination.Item active>{data.page}</Pagination.Item>
+                    <Pagination.Next
+                      aria-label={t("auditorLogs.paginationNext")}
+                      disabled={data.page >= data.totalPages}
+                      onClick={() => handlePage(data.page + 1)}
+                    />
+                  </Pagination>
+                </nav>
               ) : (
                 <span className="auditor-logs__footer-info" style={{ opacity: 0.75 }}>
                   {t("auditorLogs.noValue")}
@@ -380,6 +406,8 @@ const AuditorLogsPage = () => {
         )}
       </div>
 
+      </div>
+
       <Modal
         show={showModal}
         onHide={closeModal}
@@ -387,16 +415,23 @@ const AuditorLogsPage = () => {
         centered
         dialogClassName="auditor-logs__modal-dialog"
         contentClassName="auditor-logs__modal-content"
+        aria-labelledby="auditor-log-detail-title"
       >
         <Modal.Header closeButton className="auditor-logs__modal-header">
-          <Modal.Title as="h5" className="auditor-logs__modal-title mb-0">
+          <Modal.Title id="auditor-log-detail-title" as="h5" className="auditor-logs__modal-title mb-0">
             {t("auditorLogs.detailTitle")}
           </Modal.Title>
         </Modal.Header>
         <Modal.Body className="auditor-logs__modal-body">
           {detailLoading && (
             <div className="text-center py-4">
-              <Spinner animation="border" size="sm" className="text-primary" role="status" />
+              <Spinner
+                animation="border"
+                size="sm"
+                className="text-primary"
+                role="status"
+                aria-label={t("auditorLogs.loadingLogs")}
+              />
             </div>
           )}
           {!detailLoading && detail?._error && <p className="text-danger mb-0">{detail._error}</p>}
@@ -430,12 +465,13 @@ const AuditorLogsPage = () => {
           )}
         </Modal.Body>
         <Modal.Footer className="auditor-logs__modal-footer">
-          <Button variant="secondary" className="auditor-logs__btn-close-modal" onClick={closeModal}>
+          <Button type="button" variant="secondary" className="auditor-logs__btn-close-modal" onClick={closeModal}>
             {t("auditorLogs.close")}
           </Button>
         </Modal.Footer>
       </Modal>
     </div>
+    </AuditorA11yLayout>
   );
 };
 

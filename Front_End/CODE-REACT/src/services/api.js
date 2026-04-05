@@ -118,6 +118,46 @@ export const api = {
     return res.json();
   },
 
+  /** Multipart réservé au jeton médecin (évite un conflit si patient + médecin en localStorage). */
+  async postMultipartWithDoctorToken(endpoint, formData) {
+    const token = okToken(localStorage.getItem("doctorToken"));
+    const res = await fetch(`${API_BASE}${endpoint}`, {
+      method: "POST",
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      body: formData,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ message: res.statusText }));
+      const error = new Error(messageFromApiErr(err));
+      error.status = res.status;
+      attachApiErrorFields(error, err);
+      throw error;
+    }
+    return res.json();
+  },
+
+  /** Multipart réservé au jeton patient (IRM cérébrale assistée depuis l’espace patient). */
+  async postMultipartWithPatientToken(endpoint, formData) {
+    const token = okToken(localStorage.getItem("patientToken"));
+    const res = await fetch(`${API_BASE}${endpoint}`, {
+      method: "POST",
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      body: formData,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ message: res.statusText }));
+      const error = new Error(messageFromApiErr(err));
+      error.status = res.status;
+      attachApiErrorFields(error, err);
+      throw error;
+    }
+    return res.json();
+  },
+
   async put(endpoint, data) {
     const token = getValidToken();
     const res = await fetch(`${API_BASE}${endpoint}`, {
@@ -1053,6 +1093,39 @@ export const doctorAvailabilityApi = {
     api.getWithDoctorToken(`/doctor-availability/me/${encodeURIComponent(yearMonth)}`),
   saveMyMonth: (yearMonth, slots) =>
     api.putWithDoctorToken(`/doctor-availability/me/${encodeURIComponent(yearMonth)}`, { slots }),
+};
+
+/** JWT médecin / patient — détection assistée tumeur IRM (multipart, champ file). */
+export const brainTumorApi = {
+  /** Si `patientId` est fourni (médecin depuis le dossier), l’analyse est enregistrée pour ce patient. */
+  predictDoctor: (file, patientId) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    const pid = patientId != null ? String(patientId).trim() : "";
+    if (pid) {
+      fd.append("patientId", pid);
+    }
+    const q = pid ? `?patientId=${encodeURIComponent(pid)}` : "";
+    return api.postMultipartWithDoctorToken(`/brain-tumor/predict${q}`, fd);
+  },
+  predictPatient: (file) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return api.postMultipartWithPatientToken("/brain-tumor/predict", fd);
+  },
+  listRecords: (patientId, limit) => {
+    const q = new URLSearchParams();
+    q.set("patientId", String(patientId));
+    if (limit) q.set("limit", String(limit));
+    const path = `/brain-tumor/records?${q.toString()}`;
+    if (typeof localStorage !== "undefined" && localStorage.getItem("doctorUser")) {
+      return api.getWithDoctorToken(path);
+    }
+    if (typeof localStorage !== "undefined" && localStorage.getItem("patientUser")) {
+      return api.getWithPatientToken(path);
+    }
+    return api.get(path);
+  },
 };
 
 export const appointmentApi = {

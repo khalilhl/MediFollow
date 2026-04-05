@@ -38,7 +38,7 @@ async function bootstrap() {
       await authService.createAdmin('25k01a2003c@gmail.com', 'Admin123!', 'Admin MediFollow');
       console.log('Admin prêt: 25k01a2003c@gmail.com / Admin123!');
       await authService.createSuperAdmin('khalilhlila2@gmail.com', 'SuperAdmin123!', 'Super Admin MediFollow');
-      console.log('Super Admin prêt: khalilhlila2@gmail.com / SuperAdmin123!');
+      console.log('Super Admin prêt:codeSuperAdmin123!');
     } catch (e) {
       // Ignorer si erreur
     }

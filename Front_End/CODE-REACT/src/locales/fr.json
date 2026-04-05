@@ -164,6 +164,7 @@
     "departmentDoctors": "Médecins du département",
     "prescriptions": "Ordonnances",
     "appointmentCalendar": "Calendrier RDV",
+    "brainMri": "IRM cérébrale (IA)",
     "sectionDashboard": "Tableau de bord",
     "homeTooltip": "Accueil",
     "adminDashboard": "Tableau de bord admin",
@@ -824,6 +825,27 @@
     "rolePatient": "Patient",
     "roleNurse": "Infirmier"
   },
+  "auditorA11y": {
+    "skipToMain": "Aller au contenu principal",
+    "readDashboardPart1": "Assistant d’accessibilité activé.",
+    "readDashboardPart2": "Bienvenue sur le tableau de bord d’audit MediFollow.",
+    "readDashboardPart3": "Les cartes récapitulent les journaux du jour, les utilisateurs actifs sur vingt-quatre heures, le total d’actions sur trente jours et les actions suspectes.",
+    "readDashboardPart4": "Le graphique en courbes montre l’activité dans le temps. Le graphique en anneau montre la répartition des actions par catégorie.",
+    "readDashboardPart5": "Le tableau des journaux récents indique la date, l’utilisateur, le rôle, l’action, la catégorie, le code de statut et la gravité.",
+    "readDashboardPart6": "Utilisez le lien vers les journaux d’audit complets pour la liste détaillée avec filtres.",
+    "readDashboardPart7": "Utilisez la barre ci-dessus pour le texte agrandi ou la lecture vocale de la page.",
+    "readLogsPart1": "Assistant d’accessibilité activé.",
+    "readLogsPart2": "Bienvenue sur la page des journaux d’audit MediFollow.",
+    "readLogsPart3": "Filtrez par e-mail, rôle, type d’action, type de donnée et période, puis appliquez.",
+    "readLogsPart4": "Le tableau indique quand l’action a eu lieu, qui l’a effectuée, le type d’action, la requête, la ressource cible et l’adresse I P.",
+    "readLogsPart5": "Ouvrez le détail d’une ligne pour voir les instantanés avant et après lorsque c’est disponible.",
+    "readLogsPart6": "Utilisez précédent et suivant dans la zone de pagination lorsqu’il y a plusieurs pages.",
+    "readLogsPart7": "Utilisez la barre ci-dessus pour le texte agrandi ou la lecture vocale de la page.",
+    "tableCaptionDashboard": "Événements d’audit récents",
+    "tableCaptionLogs": "Entrées du journal d’audit filtrées",
+    "chartActivityAria": "Graphique en courbes : activité d’audit dans le temps",
+    "chartDistributionAria": "Graphique : répartition des actions par catégorie"
+  },
   "auditorDashboard": {
     "pageTitle": "Centre d'audit",
     "subtitle": "Vue globale de l'activité du système : journaux, tendances et actions marquantes.",
@@ -895,6 +917,7 @@
       "vitals": "Signes vitaux",
       "medication": "Médicaments",
       "lab": "Laboratoire",
+      "brain_mri": "IRM cérébrale (IA)",
       "auth": "Authentification",
       "appointment": "Rendez-vous",
       "questionnaire": "Questionnaire",
@@ -941,7 +964,8 @@
     "noValue": "—",
     "errorGeneric": "Une erreur s’est produite.",
     "paginationPrev": "Page précédente",
-    "paginationNext": "Page suivante"
+    "paginationNext": "Page suivante",
+    "paginationNavAria": "Pagination des journaux d’audit"
   },
   "addAuditor": {
     "pageTitle": "Ajouter un auditeur",
@@ -2530,6 +2554,23 @@
     "lowVsRef": "en dessous de l’intervalle indicatif",
     "orientationsTitle": "Orientations possibles (exemples : diabète, lipides, rein…)",
     "orientationsDisclaimer": "Ce ne sont pas des diagnostics. Plusieurs maladies ou situations peuvent donner les mêmes chiffres. Un médecin interprète le bilan dans son ensemble."
+  },
+  "doctorBrainMri": {
+    "title": "IRM cérébrale — aide à la lecture",
+    "subtitle": "Téléversez une image IRM. Le modèle renvoie une probabilité de tumeur et une heatmap Grad-CAM. À titre indicatif uniquement — pas un diagnostic.",
+    "disclaimer": "Outil d’aide à la décision / recherche. Ne remplace pas un radiologue. Entraînez le modèle (train_brain_tumor.py) et placez brain_tumor_resnet.keras (ou .h5) là où l’API l’attend.",
+    "chooseFile": "Choisir une image",
+    "previewOriginal": "Aperçu original",
+    "analyze": "Analyser",
+    "analyzing": "Analyse en cours…",
+    "error": "Échec de l’analyse. Vérifiez Python/TensorFlow et le fichier modèle sur le serveur.",
+    "badType": "Format d’image non pris en charge (JPEG, PNG, WebP, etc.).",
+    "tooLarge": "Fichier trop volumineux (max 16 Mo).",
+    "prediction": "Résultat du modèle",
+    "normal": "Pas de tumeur (classe 0)",
+    "tumor": "Tumeur suspectée (classe 1)",
+    "probability": "Probabilité tumeur : {{pct}} %",
+    "heatmapTitle": "Superposition Grad-CAM (zones mises en évidence)"
   },
   "patientAppointmentRequest": {
     "backToDashboard": "Retour au tableau de bord",

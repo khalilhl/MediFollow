@@ -412,6 +412,15 @@ const VerticalNav = () => {
                 </Nav.Item>
                 <Nav.Item as="li">
                     <Link
+                        to="/doctor/brain-mri"
+                        className={`nav-link ${location.pathname === "/doctor/brain-mri" ? "active" : ""}`}
+                    >
+                        <i className="ri-brain-line"></i>
+                        <span className="item-name">{t("sidebar.brainMri")}</span>
+                    </Link>
+                </Nav.Item>
+                <Nav.Item as="li">
+                    <Link
                         to={`/doctor/doctor-profile/${docId}`}
                         className={`nav-link ${location.pathname === `/doctor/doctor-profile/${docId}` ? "active" : ""}`}
                     >

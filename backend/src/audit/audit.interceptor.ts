@@ -128,7 +128,8 @@ export class AuditInterceptor implements NestInterceptor {
       url.includes('/nurses') ||
       url.includes('/health-logs') ||
       url.includes('/medications') ||
-      url.includes('/lab-analysis')
+      url.includes('/lab-analysis') ||
+      url.includes('/brain-tumor')
     )
       return 'data';
     if (url.includes('/users') || url.includes('toggle-active')) return 'admin';

@@ -17,6 +17,7 @@ import { VoiceCallModule } from './voice-call/voice-call.module';
 import { MailModule } from './mail/mail.module';
 import { LabAnalysisModule } from './lab-analysis/lab-analysis.module';
 import { AuditModule } from './audit/audit.module';
+import { BrainTumorModule } from './brain-tumor/brain-tumor.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { AuditModule } from './audit/audit.module';
     MailModule,
     LabAnalysisModule,
     AuditModule,
+    BrainTumorModule,
   ],
 })
 export class AppModule {}

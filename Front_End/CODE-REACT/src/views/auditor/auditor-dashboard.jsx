@@ -16,6 +16,8 @@ import {
 } from "chart.js";
 import { Line, Doughnut } from "react-chartjs-2";
 import { auditorApi } from "../../services/api";
+import AuditorA11yLayout from "../../components/auditor/auditor-a11y-layout";
+import AuditorA11yToolbar from "../../components/auditor/auditor-a11y-toolbar";
 import "./auditor-dashboard.scss";
 
 ChartJS.register(
@@ -207,26 +209,50 @@ const AuditorDashboard = () => {
 
   if (loading) {
     return (
-      <div className="auditor-dash d-flex flex-column justify-content-center align-items-center gap-3 py-5">
-        <Spinner animation="border" className="text-primary" role="status" />
-        <span className="text-muted">{t("auditorDashboard.loading")}</span>
-      </div>
+      <AuditorA11yLayout variant="dashboard">
+        <div className="auditor-dash d-flex flex-column py-5">
+          <AuditorA11yToolbar />
+          <div
+            id="auditor-main-content"
+            tabIndex={-1}
+            className="d-flex flex-column justify-content-center align-items-center gap-3 flex-grow-1"
+          >
+            <Spinner
+              animation="border"
+              className="text-primary"
+              role="status"
+              aria-label={t("auditorDashboard.loading")}
+            />
+            <span className="text-muted" aria-hidden="true">
+              {t("auditorDashboard.loading")}
+            </span>
+          </div>
+        </div>
+      </AuditorA11yLayout>
     );
   }
 
   if (error) {
     return (
-      <div className="auditor-dash">
-        <p className="text-danger mb-0">{error}</p>
-      </div>
+      <AuditorA11yLayout variant="dashboard">
+        <div className="auditor-dash">
+          <AuditorA11yToolbar />
+          <div id="auditor-main-content" tabIndex={-1} role="alert">
+            <p className="text-danger mb-0">{error}</p>
+          </div>
+        </div>
+      </AuditorA11yLayout>
     );
   }
 
   return (
-    <div className="auditor-dash">
-      <header className="auditor-dash__header d-flex flex-wrap align-items-start justify-content-between gap-3">
+    <AuditorA11yLayout variant="dashboard">
+      <div className="auditor-dash">
+      <AuditorA11yToolbar />
+      <div id="auditor-main-content" tabIndex={-1}>
+      <header className="auditor-dash__header d-flex flex-wrap align-items-start justify-content-between gap-3" aria-labelledby="auditor-dash-title">
         <div>
-          <h1 className="auditor-dash__title">{t("auditorDashboard.pageTitle")}</h1>
+          <h1 id="auditor-dash-title" className="auditor-dash__title">{t("auditorDashboard.pageTitle")}</h1>
           <p className="auditor-dash__subtitle mb-0">{t("auditorDashboard.subtitle")}</p>
         </div>
         <Link to="/auditor/logs" className="btn btn-sm btn-outline-primary">
@@ -242,7 +268,7 @@ const AuditorDashboard = () => {
               <div className="auditor-kpi__value">{kpis.logsToday ?? 0}</div>
             </div>
             <div className="auditor-kpi__icon" style={{ background: "rgba(99, 91, 255, 0.12)", color: "#635bff" }}>
-              <i className="ri-file-list-3-line" />
+              <i className="ri-file-list-3-line" aria-hidden />
             </div>
           </div>
         </Col>
@@ -253,7 +279,7 @@ const AuditorDashboard = () => {
               <div className="auditor-kpi__value">{kpis.activeUsers ?? 0}</div>
             </div>
             <div className="auditor-kpi__icon" style={{ background: "rgba(0, 212, 170, 0.12)", color: "#00a884" }}>
-              <i className="ri-user-voice-line" />
+              <i className="ri-user-voice-line" aria-hidden />
             </div>
           </div>
         </Col>
@@ -264,7 +290,7 @@ const AuditorDashboard = () => {
               <div className="auditor-kpi__value">{kpis.totalActions ?? 0}</div>
             </div>
             <div className="auditor-kpi__icon" style={{ background: "rgba(0, 112, 243, 0.1)", color: "#0070f3" }}>
-              <i className="ri-pulse-line" />
+              <i className="ri-pulse-line" aria-hidden />
             </div>
           </div>
         </Col>
@@ -275,7 +301,7 @@ const AuditorDashboard = () => {
               <div className="auditor-kpi__value">{kpis.suspiciousActions ?? 0}</div>
             </div>
             <div className="auditor-kpi__icon" style={{ background: "rgba(255, 92, 92, 0.12)", color: "#e53935" }}>
-              <i className="ri-shield-flash-line" />
+              <i className="ri-shield-flash-line" aria-hidden />
             </div>
           </div>
         </Col>
@@ -283,9 +309,13 @@ const AuditorDashboard = () => {
 
       <Row className="g-3 mb-4">
         <Col lg={7}>
-          <div className="auditor-chart-card">
-            <h2 className="auditor-chart-card__title">{t("auditorDashboard.chartActivityTitle")}</h2>
-            <div style={{ height: 280 }}>
+          <div className="auditor-chart-card" role="region" aria-labelledby="auditor-chart-activity-heading">
+            <h2 id="auditor-chart-activity-heading" className="auditor-chart-card__title">{t("auditorDashboard.chartActivityTitle")}</h2>
+            <div
+              style={{ height: 280 }}
+              role={lineChartData.labels?.length ? "img" : undefined}
+              aria-label={lineChartData.labels?.length ? t("auditorA11y.chartActivityAria") : undefined}
+            >
               {lineChartData.labels?.length ? (
                 <Line data={lineChartData} options={lineOptions} />
               ) : (
@@ -295,9 +325,13 @@ const AuditorDashboard = () => {
           </div>
         </Col>
         <Col lg={5}>
-          <div className="auditor-chart-card">
-            <h2 className="auditor-chart-card__title">{t("auditorDashboard.chartDistributionTitle")}</h2>
-            <div style={{ height: 280 }}>
+          <div className="auditor-chart-card" role="region" aria-labelledby="auditor-chart-dist-heading">
+            <h2 id="auditor-chart-dist-heading" className="auditor-chart-card__title">{t("auditorDashboard.chartDistributionTitle")}</h2>
+            <div
+              style={{ height: 280 }}
+              role={doughnutData.labels?.length ? "img" : undefined}
+              aria-label={doughnutData.labels?.length ? t("auditorA11y.chartDistributionAria") : undefined}
+            >
               {doughnutData.labels?.length ? (
                 <Doughnut data={doughnutData} options={doughnutOptions} />
               ) : (
@@ -308,11 +342,12 @@ const AuditorDashboard = () => {
         </Col>
       </Row>
 
-      <div className="auditor-table-card">
+      <div className="auditor-table-card" role="region" aria-labelledby="auditor-recent-logs-heading">
         <div className="auditor-table-card__head">
-          <h2 className="auditor-table-card__title">{t("auditorDashboard.recentLogsTitle")}</h2>
+          <h2 id="auditor-recent-logs-heading" className="auditor-table-card__title">{t("auditorDashboard.recentLogsTitle")}</h2>
         </div>
         <Table responsive hover className="auditor-table mb-0">
+          <caption className="visually-hidden">{t("auditorA11y.tableCaptionDashboard")}</caption>
           <thead>
             <tr>
               <th>{t("auditorDashboard.colTime")}</th>
@@ -350,7 +385,9 @@ const AuditorDashboard = () => {
           </tbody>
         </Table>
       </div>
+      </div>
     </div>
+    </AuditorA11yLayout>
   );
 };
 

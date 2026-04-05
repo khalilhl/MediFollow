@@ -106,6 +106,26 @@ export const api = {
     return res.json();
   },
 
+  /** Multipart réservé au jeton médecin (évite un conflit si patient + médecin en localStorage). */
+  async postMultipartWithDoctorToken(endpoint, formData) {
+    const token = okToken(localStorage.getItem("doctorToken"));
+    const res = await fetch(`${API_BASE}${endpoint}`, {
+      method: "POST",
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      body: formData,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ message: res.statusText }));
+      const error = new Error(messageFromApiErr(err));
+      error.status = res.status;
+      attachApiErrorFields(error, err);
+      throw error;
+    }
+    return res.json();
+  },
+
   async put(endpoint, data) {
     const token = getValidToken();
     const res = await fetch(`${API_BASE}${endpoint}`, {
@@ -980,6 +1000,15 @@ export const doctorAvailabilityApi = {
     api.getWithDoctorToken(`/doctor-availability/me/${encodeURIComponent(yearMonth)}`),
   saveMyMonth: (yearMonth, slots) =>
     api.putWithDoctorToken(`/doctor-availability/me/${encodeURIComponent(yearMonth)}`, { slots }),
+};
+
+/** JWT médecin — détection assistée tumeur IRM (multipart, champ file). */
+export const brainTumorApi = {
+  predict: (file) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return api.postMultipartWithDoctorToken("/brain-tumor/predict", fd);
+  },
 };
 
 export const appointmentApi = {

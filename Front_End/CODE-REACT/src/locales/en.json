@@ -164,6 +164,7 @@
     "departmentDoctors": "Department doctors",
     "prescriptions": "Prescriptions",
     "appointmentCalendar": "Appointment calendar",
+    "brainMri": "Brain MRI (AI)",
     "sectionDashboard": "Dashboard",
     "homeTooltip": "Home",
     "adminDashboard": "Admin dashboard",
@@ -824,6 +825,27 @@
     "rolePatient": "Patient",
     "roleNurse": "Nurse"
   },
+  "auditorA11y": {
+    "skipToMain": "Skip to main content",
+    "readDashboardPart1": "Accessibility assistant enabled.",
+    "readDashboardPart2": "Welcome to the MediFollow audit dashboard.",
+    "readDashboardPart3": "Summary cards show logs today, active users in the last twenty-four hours, total actions in thirty days, and suspicious actions.",
+    "readDashboardPart4": "The line chart shows activity over time. The doughnut chart shows how actions are spread across categories.",
+    "readDashboardPart5": "The recent logs table lists timestamp, user, role, action, category, status code, and severity.",
+    "readDashboardPart6": "Use the full audit logs link to open the detailed log list with filters.",
+    "readDashboardPart7": "Use the toolbar above for large text or to hear this page read aloud.",
+    "readLogsPart1": "Accessibility assistant enabled.",
+    "readLogsPart2": "Welcome to the MediFollow audit logs page.",
+    "readLogsPart3": "Filter by user email, role, action type, data type, and time period, then apply.",
+    "readLogsPart4": "The table lists when each action occurred, who performed it, the action type, request summary, target resource, and I P address.",
+    "readLogsPart5": "Open detail on a row to see snapshots before and after changes when available.",
+    "readLogsPart6": "Use previous and next in the pagination area when there are several pages.",
+    "readLogsPart7": "Use the toolbar above for large text or to hear this page read aloud.",
+    "tableCaptionDashboard": "Recent audit events",
+    "tableCaptionLogs": "Filtered audit log entries",
+    "chartActivityAria": "Line chart: audit activity over time",
+    "chartDistributionAria": "Chart: distribution of actions by category"
+  },
   "auditorDashboard": {
     "pageTitle": "Audit center",
     "subtitle": "System-wide activity: logs, trends, and notable actions.",
@@ -895,6 +917,7 @@
       "vitals": "Vitals",
       "medication": "Medication",
       "lab": "Lab",
+      "brain_mri": "Brain MRI (AI)",
       "auth": "Authentication",
       "appointment": "Appointment",
       "questionnaire": "Questionnaire",
@@ -941,7 +964,8 @@
     "noValue": "—",
     "errorGeneric": "Something went wrong.",
     "paginationPrev": "Previous page",
-    "paginationNext": "Next page"
+    "paginationNext": "Next page",
+    "paginationNavAria": "Audit log pages"
   },
   "addAuditor": {
     "pageTitle": "Add auditor",
@@ -2530,6 +2554,23 @@
     "lowVsRef": "below the indicative range",
     "orientationsTitle": "Possible orientations (e.g. glucose, lipids, kidney…)",
     "orientationsDisclaimer": "These are not diagnoses. Many conditions can cause similar numbers. A doctor interprets the full picture."
+  },
+  "doctorBrainMri": {
+    "title": "Brain MRI — assisted screening",
+    "subtitle": "Upload a brain MRI image. The model returns a tumor probability and a Grad-CAM heatmap. For orientation only—not a diagnosis.",
+    "disclaimer": "Research and decision support only. Does not replace a radiologist. Train the model (brain-tumor-detection/train_brain_tumor.py) and place brain_tumor_resnet.keras (or .h5) where the API expects it.",
+    "chooseFile": "Choose image",
+    "previewOriginal": "Original preview",
+    "analyze": "Analyze",
+    "analyzing": "Analyzing…",
+    "error": "Analysis failed. Check that Python/TensorFlow and the model file are available on the server.",
+    "badType": "Use a supported image type (JPEG, PNG, WebP, etc.).",
+    "tooLarge": "File too large (max 16 MB).",
+    "prediction": "Model output",
+    "normal": "No tumor (class 0)",
+    "tumor": "Tumor suspected (class 1)",
+    "probability": "Tumor probability: {{pct}}%",
+    "heatmapTitle": "Grad-CAM overlay (highlighted regions)"
   },
   "patientAppointmentRequest": {
     "backToDashboard": "Back to dashboard",

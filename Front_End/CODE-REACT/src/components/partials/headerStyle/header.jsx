@@ -202,11 +202,11 @@ const Header = () => {
       }
    });
 
-   const isPatientOrDoctor = isPatient || isDoctor;
+   const isPatientDoctorOrNurse = isPatient || isDoctor || isNurse;
 
    useEffect(() => {
-      if (!isPatientOrDoctor) {
-         document.body.classList.remove("patient-a11y-large-text", "doctor-a11y-large-text");
+      if (!isPatientDoctorOrNurse) {
+         document.body.classList.remove("patient-a11y-large-text", "doctor-a11y-large-text", "nurse-a11y-large-text");
          return;
       }
       try {
@@ -214,25 +214,26 @@ const Header = () => {
       } catch {
          setSessionLargeText(false);
       }
-   }, [isPatientOrDoctor]);
+   }, [isPatientDoctorOrNurse]);
 
    useEffect(() => {
-      if (!isPatientOrDoctor) {
-         document.body.classList.remove("patient-a11y-large-text", "doctor-a11y-large-text");
+      if (!isPatientDoctorOrNurse) {
+         document.body.classList.remove("patient-a11y-large-text", "doctor-a11y-large-text", "nurse-a11y-large-text");
          return;
       }
-      document.body.classList.remove("patient-a11y-large-text", "doctor-a11y-large-text");
+      document.body.classList.remove("patient-a11y-large-text", "doctor-a11y-large-text", "nurse-a11y-large-text");
       if (sessionLargeText) {
          if (isPatient) document.body.classList.add("patient-a11y-large-text");
          if (isDoctor) document.body.classList.add("doctor-a11y-large-text");
+         if (isNurse) document.body.classList.add("nurse-a11y-large-text");
       }
       try {
          localStorage.setItem(LARGE_TEXT_STORAGE_KEY, sessionLargeText ? "1" : "0");
       } catch { /* ignore */ }
-   }, [isPatient, isDoctor, isPatientOrDoctor, sessionLargeText]);
+   }, [isPatient, isDoctor, isNurse, isPatientDoctorOrNurse, sessionLargeText]);
 
    useEffect(() => {
-      if (!isPatientOrDoctor) return;
+      if (!isPatientDoctorOrNurse) return;
       const onStorage = (e) => {
          if (e.key === LARGE_TEXT_STORAGE_KEY && e.newValue != null) {
             setSessionLargeText(e.newValue === "1");
@@ -240,7 +241,7 @@ const Header = () => {
       };
       window.addEventListener("storage", onStorage);
       return () => window.removeEventListener("storage", onStorage);
-   }, [isPatientOrDoctor]);
+   }, [isPatientDoctorOrNurse]);
 
    useEffect(() => {
       const handleScrolld = () => {
@@ -355,7 +356,7 @@ const Header = () => {
                         <SvgFlagDz width={26} />
                      </span>
                      <LanguageSwitcher toggleClassName="nav-link d-none d-xl-block" />
-                     {isPatientOrDoctor && (
+                     {isPatientDoctorOrNurse && (
                         <Nav.Item as="li" className="nav-item d-none d-xl-flex align-items-center ms-1">
                            <button
                               type="button"
@@ -772,7 +773,7 @@ const Header = () => {
 
                   <Col md={12} className="d-flex justify-content-end align-items-center flex-wrap gap-2">
                      <LanguageSwitcher toggleClassName="nav-link d-block d-xl-none" />{" "}
-                     {isPatientOrDoctor && (
+                     {isPatientDoctorOrNurse && (
                         <Nav.Item as="li" className="nav-item d-flex d-xl-none align-items-center">
                            <button
                               type="button"

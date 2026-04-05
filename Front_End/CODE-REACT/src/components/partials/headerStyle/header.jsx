@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { doctorApi, patientApi, nurseApi } from '../../../services/api'
 
 // Import From React Bootstrap
@@ -26,6 +26,8 @@ import LanguageSwitcher from "../../LanguageSwitcher"
 import { SvgFlagTn, SvgFlagDz } from "../../language-flag-svgs"
 import { useTranslation } from "react-i18next"
 import { LARGE_TEXT_STORAGE_KEY } from "../../../constants/accessibility"
+import { getA11yReadablePageText } from "../../../utils/a11yReadPage"
+import { useHandGesture } from "../../../context/HandGestureContext"
 
 const generatePath = (path) => {
   const base = (import.meta.env.BASE_URL || "/").replace(/\/+$/, "") || "";
@@ -72,8 +74,9 @@ const getNursePhoto = (nurseUser) => {
 };
 
 const Header = () => {
-   const { t } = useTranslation();
+   const { t, i18n } = useTranslation();
    const navigate = useNavigate();
+   const location = useLocation();
    const pageLayout = useSelector(SettingSelector.page_layout)
    const [adminUser, setAdminUser] = useState(() => {
       try {
@@ -202,11 +205,16 @@ const Header = () => {
       }
    });
 
-   const isPatientDoctorOrNurse = isPatient || isDoctor || isNurse;
+   const isA11ySession = isPatient || isDoctor || isNurse || isAdmin;
 
    useEffect(() => {
-      if (!isPatientDoctorOrNurse) {
-         document.body.classList.remove("patient-a11y-large-text", "doctor-a11y-large-text", "nurse-a11y-large-text");
+      if (!isA11ySession) {
+         document.body.classList.remove(
+            "patient-a11y-large-text",
+            "doctor-a11y-large-text",
+            "nurse-a11y-large-text",
+            "admin-a11y-large-text",
+         );
          return;
       }
       try {
@@ -214,26 +222,37 @@ const Header = () => {
       } catch {
          setSessionLargeText(false);
       }
-   }, [isPatientDoctorOrNurse]);
+   }, [isA11ySession]);
 
    useEffect(() => {
-      if (!isPatientDoctorOrNurse) {
-         document.body.classList.remove("patient-a11y-large-text", "doctor-a11y-large-text", "nurse-a11y-large-text");
+      if (!isA11ySession) {
+         document.body.classList.remove(
+            "patient-a11y-large-text",
+            "doctor-a11y-large-text",
+            "nurse-a11y-large-text",
+            "admin-a11y-large-text",
+         );
          return;
       }
-      document.body.classList.remove("patient-a11y-large-text", "doctor-a11y-large-text", "nurse-a11y-large-text");
+      document.body.classList.remove(
+         "patient-a11y-large-text",
+         "doctor-a11y-large-text",
+         "nurse-a11y-large-text",
+         "admin-a11y-large-text",
+      );
       if (sessionLargeText) {
          if (isPatient) document.body.classList.add("patient-a11y-large-text");
          if (isDoctor) document.body.classList.add("doctor-a11y-large-text");
          if (isNurse) document.body.classList.add("nurse-a11y-large-text");
+         if (isAdmin) document.body.classList.add("admin-a11y-large-text");
       }
       try {
          localStorage.setItem(LARGE_TEXT_STORAGE_KEY, sessionLargeText ? "1" : "0");
       } catch { /* ignore */ }
-   }, [isPatient, isDoctor, isNurse, isPatientDoctorOrNurse, sessionLargeText]);
+   }, [isPatient, isDoctor, isNurse, isAdmin, isA11ySession, sessionLargeText]);
 
    useEffect(() => {
-      if (!isPatientDoctorOrNurse) return;
+      if (!isA11ySession) return;
       const onStorage = (e) => {
          if (e.key === LARGE_TEXT_STORAGE_KEY && e.newValue != null) {
             setSessionLargeText(e.newValue === "1");
@@ -241,7 +260,60 @@ const Header = () => {
       };
       window.addEventListener("storage", onStorage);
       return () => window.removeEventListener("storage", onStorage);
-   }, [isPatientDoctorOrNurse]);
+   }, [isA11ySession]);
+
+   const ttsSupported = typeof window !== "undefined" && !!window.speechSynthesis;
+   const ttsUtteranceRef = useRef(null);
+   const [isReadingPage, setIsReadingPage] = useState(false);
+   const {
+      isActive: handActive,
+      startHandGesture,
+      stopHandGesture,
+      error: handError,
+      setError: setHandError,
+   } = useHandGesture();
+
+   const stopPageReading = useCallback(() => {
+      if (typeof window !== "undefined" && window.speechSynthesis) {
+         window.speechSynthesis.cancel();
+      }
+      ttsUtteranceRef.current = null;
+      setIsReadingPage(false);
+   }, []);
+
+   const readPageContent = useCallback(() => {
+      if (!ttsSupported) return;
+      stopPageReading();
+      const raw = getA11yReadablePageText().trim();
+      const text = raw || t("nav.a11yReadPageEmpty");
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = i18n.language?.startsWith("fr")
+         ? "fr-FR"
+         : i18n.language?.startsWith("ar")
+            ? "ar-SA"
+            : "en-US";
+      utterance.rate = 0.95;
+      utterance.pitch = 1;
+      utterance.onend = () => {
+         ttsUtteranceRef.current = null;
+         setIsReadingPage(false);
+      };
+      utterance.onerror = () => {
+         ttsUtteranceRef.current = null;
+         setIsReadingPage(false);
+      };
+      ttsUtteranceRef.current = utterance;
+      setIsReadingPage(true);
+      window.speechSynthesis.speak(utterance);
+   }, [ttsSupported, stopPageReading, t, i18n.language]);
+
+   useEffect(() => {
+      stopPageReading();
+   }, [location.pathname, stopPageReading]);
+
+   useEffect(() => {
+      return () => stopPageReading();
+   }, [stopPageReading]);
 
    useEffect(() => {
       const handleScrolld = () => {
@@ -321,6 +393,11 @@ const Header = () => {
          {/* <Navbar> */}
          <Navbar className={`nav navbar-expand-xl navbar-light iq-navbar pt-2 pb-2 px-2 iq-header ${isScrolled ? "fixed-header" : ""} ${pageLayout === 'container-fluid' ? "" : "container-box"}`} id="boxid">
             <Container fluid className="navbar-inner">
+               {isA11ySession && (
+                  <span id="header-hand-nav-help" className="visually-hidden">
+                     {t("nav.handNavHelp")}
+                  </span>
+               )}
                <Row className="flex-grow-1">
                   <Col lg={4} md={6} className="align-items-center d-flex">
                      <Nav.Item as="li" className="nav-item dropdown search-width pt-2 pt-lg-0">
@@ -356,8 +433,8 @@ const Header = () => {
                         <SvgFlagDz width={26} />
                      </span>
                      <LanguageSwitcher toggleClassName="nav-link d-none d-xl-block" />
-                     {isPatientDoctorOrNurse && (
-                        <Nav.Item as="li" className="nav-item d-none d-xl-flex align-items-center ms-1">
+                     {isA11ySession && (
+                        <Nav.Item as="li" className="nav-item d-none d-xl-flex align-items-center gap-1 ms-1 flex-wrap">
                            <button
                               type="button"
                               className={`btn btn-sm a11y-btn ${sessionLargeText ? "btn-primary" : "btn-outline-primary"}`}
@@ -368,6 +445,44 @@ const Header = () => {
                               <i className="ri-font-size me-1"></i>
                               {sessionLargeText ? t("signIn.largeTextDisable") : t("signIn.largeTextEnable")}
                            </button>
+                           {ttsSupported && (
+                              <button
+                                 type="button"
+                                 className={`btn btn-sm a11y-btn ${isReadingPage ? "btn-danger" : "btn-outline-secondary"}`}
+                                 data-eye-clickable
+                                 aria-pressed={isReadingPage}
+                                 onClick={isReadingPage ? stopPageReading : readPageContent}
+                              >
+                                 <i className={`me-1 ${isReadingPage ? "ri-volume-mute-line" : "ri-volume-up-line"}`}></i>
+                                 {isReadingPage ? t("signIn.stopReading") : t("signIn.readPage")}
+                              </button>
+                           )}
+                           <span className="d-inline-flex align-items-center" role="group" aria-label={t("nav.assistHandGroupLabel")}>
+                              {!handActive ? (
+                                 <button
+                                    type="button"
+                                    className="btn btn-sm assist-btn assist-btn-hand"
+                                    onClick={startHandGesture}
+                                    aria-describedby="header-hand-nav-help"
+                                    data-eye-clickable
+                                 >
+                                    <i className="ri-camera-line me-1" aria-hidden="true"></i>
+                                    {t("signIn.startHandNav")}
+                                 </button>
+                              ) : (
+                                 <button
+                                    type="button"
+                                    className="btn btn-sm assist-btn assist-btn-hand is-active"
+                                    onClick={stopHandGesture}
+                                    aria-pressed="true"
+                                    aria-describedby="header-hand-nav-help"
+                                    data-eye-clickable
+                                 >
+                                    <i className="ri-camera-off-line me-1" aria-hidden="true"></i>
+                                    {t("signIn.stopHandNav")}
+                                 </button>
+                              )}
+                           </span>
                         </Nav.Item>
                      )}
                      <Nav.Item as="li" className="nav-item iq-full-screen d-none d-xl-block"
@@ -764,6 +879,21 @@ const Header = () => {
                      </Dropdown>
                   </Col>
                </Row>
+               {isA11ySession && handError && (
+                  <Row className="w-100">
+                     <Col xs={12}>
+                        <div className="alert alert-warning py-1 px-2 small mb-0 mt-1" role="alert">
+                           {handError}
+                           <button
+                              type="button"
+                              className="btn-close btn-sm float-end"
+                              onClick={() => setHandError("")}
+                              aria-label={t("signIn.closeAria")}
+                           />
+                        </div>
+                     </Col>
+                  </Row>
+               )}
 
             </Container>
 
@@ -773,8 +903,8 @@ const Header = () => {
 
                   <Col md={12} className="d-flex justify-content-end align-items-center flex-wrap gap-2">
                      <LanguageSwitcher toggleClassName="nav-link d-block d-xl-none" />{" "}
-                     {isPatientDoctorOrNurse && (
-                        <Nav.Item as="li" className="nav-item d-flex d-xl-none align-items-center">
+                     {isA11ySession && (
+                        <Nav.Item as="li" className="nav-item d-flex d-xl-none align-items-center flex-wrap gap-1 justify-content-end">
                            <button
                               type="button"
                               className={`btn btn-sm a11y-btn ${sessionLargeText ? "btn-primary" : "btn-outline-primary"}`}
@@ -785,6 +915,44 @@ const Header = () => {
                               <i className="ri-font-size me-1"></i>
                               {sessionLargeText ? t("signIn.largeTextDisable") : t("signIn.largeTextEnable")}
                            </button>
+                           {ttsSupported && (
+                              <button
+                                 type="button"
+                                 className={`btn btn-sm a11y-btn ${isReadingPage ? "btn-danger" : "btn-outline-secondary"}`}
+                                 data-eye-clickable
+                                 aria-pressed={isReadingPage}
+                                 onClick={isReadingPage ? stopPageReading : readPageContent}
+                              >
+                                 <i className={`me-1 ${isReadingPage ? "ri-volume-mute-line" : "ri-volume-up-line"}`}></i>
+                                 {isReadingPage ? t("signIn.stopReading") : t("signIn.readPage")}
+                              </button>
+                           )}
+                           <span className="d-inline-flex align-items-center" role="group" aria-label={t("nav.assistHandGroupLabel")}>
+                              {!handActive ? (
+                                 <button
+                                    type="button"
+                                    className="btn btn-sm assist-btn assist-btn-hand"
+                                    onClick={startHandGesture}
+                                    aria-describedby="header-hand-nav-help"
+                                    data-eye-clickable
+                                 >
+                                    <i className="ri-camera-line me-1" aria-hidden="true"></i>
+                                    {t("signIn.startHandNav")}
+                                 </button>
+                              ) : (
+                                 <button
+                                    type="button"
+                                    className="btn btn-sm assist-btn assist-btn-hand is-active"
+                                    onClick={stopHandGesture}
+                                    aria-pressed="true"
+                                    aria-describedby="header-hand-nav-help"
+                                    data-eye-clickable
+                                 >
+                                    <i className="ri-camera-off-line me-1" aria-hidden="true"></i>
+                                    {t("signIn.stopHandNav")}
+                                 </button>
+                              )}
+                           </span>
                         </Nav.Item>
                      )}
                      <li className="nav-item dropdown">

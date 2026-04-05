@@ -23,7 +23,10 @@
     "adminProfileDetails": "Voir les détails du profil personnel.",
     "signOut": "Déconnexion",
     "regionFlagsTitle": "Partenariat Tunisie–Algérie",
-    "languageMenu": "Langue"
+    "languageMenu": "Langue",
+    "a11yReadPageEmpty": "Aucun texte lisible dans cette zone.",
+    "handNavHelp": "Navigation par doigts : pointez avec l'index devant la caméra. Le curseur suit votre doigt. Maintenez 0,8 s sur un élément pour cliquer. Sans cette fonction, utilisez la touche Tab pour passer d’un élément au suivant, et Entrée ou Espace pour activer un bouton.",
+    "assistHandGroupLabel": "Navigation assistée par la caméra (main)"
   },
   "emailPage": {
     "loading": "Chargement…",

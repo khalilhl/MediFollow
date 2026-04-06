@@ -4,24 +4,37 @@ import CountUp from "react-countup";
 import Chart from "react-apexcharts";
 import { Link } from "react-router-dom";
 
-const generatePath = (path) => {
-  return window.origin + import.meta.env.BASE_URL + path;
-};
-
 const AdminDashboard = () => {
   const [chartOptions] = useState({
     series: [
       { name: "Utilisateurs", data: [31, 40, 28, 51, 42, 109, 100] },
       { name: "Rendez-vous", data: [11, 32, 45, 32, 34, 52, 41] },
     ],
-    chart: { height: 280, type: "area", toolbar: { show: false } },
+    chart: {
+      height: 280,
+      type: "area",
+      toolbar: { show: false },
+      width: "100%",
+      redrawOnParentResize: true,
+      zoom: { enabled: false },
+    },
     colors: ["#089bab", "#FC9F5B"],
     dataLabels: { enabled: false },
     stroke: { curve: "smooth" },
     xaxis: {
       categories: ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"],
+      labels: { style: { fontSize: "11px" } },
     },
-    legend: { position: "top" },
+    legend: { position: "top", horizontalAlign: "left" },
+    responsive: [
+      {
+        breakpoint: 576,
+        options: {
+          chart: { height: 240 },
+          legend: { position: "bottom", horizontalAlign: "center" },
+        },
+      },
+    ],
   });
 
   const stats = [
@@ -39,27 +52,27 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <>
+    <div className="admin-dashboard-page" style={{ minWidth: 0 }}>
       <Row>
-        <Col sm={12}>
-          <div className="d-flex justify-content-between align-items-center mb-4">
-            <div>
-              <h4 className="mb-1">Tableau de bord Administrateur</h4>
-              <p className="text-muted mb-0">Bienvenue, voici un aperçu de votre plateforme MediFollow.</p>
+        <Col xs={12}>
+          <div className="d-flex flex-column flex-md-row flex-wrap justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+            <div style={{ minWidth: 0 }}>
+              <h4 className="mb-1 text-break">Tableau de bord Administrateur</h4>
+              <p className="text-muted mb-0 text-break">Bienvenue, voici un aperçu de votre plateforme MediFollow.</p>
             </div>
           </div>
         </Col>
       </Row>
 
-      <Row>
+      <Row className="g-3 g-xl-0">
         {stats.map((stat, i) => (
-          <Col key={i} xl={3} md={6} className="mb-4">
-            <Card className="border-0 shadow-sm">
+          <Col key={i} xs={12} sm={6} xl={3} className="mb-4 mb-xl-0">
+            <Card className="border-0 shadow-sm h-100">
               <Card.Body>
-                <div className="d-flex justify-content-between align-items-center">
-                  <div>
+                <div className="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                  <div style={{ minWidth: 0 }}>
                     <p className="text-muted mb-1">{stat.title}</p>
-                    <h3 className="mb-0">
+                    <h3 className="mb-0 text-break">
                       {typeof stat.value === "number" ? (
                         <CountUp end={stat.value} duration={2} />
                       ) : (
@@ -68,7 +81,7 @@ const AdminDashboard = () => {
                       {stat.suffix}
                     </h3>
                   </div>
-                  <div className={`rounded-circle p-3 bg-${stat.color}-subtle`}>
+                  <div className={`rounded-circle p-3 bg-${stat.color}-subtle flex-shrink-0`}>
                     <i className={`ri-2x text-${stat.color} ${stat.icon}`}></i>
                   </div>
                 </div>
@@ -83,18 +96,20 @@ const AdminDashboard = () => {
         ))}
       </Row>
 
-      <Row>
-        <Col lg={8} className="mb-4">
+      <Row className="mt-4">
+        <Col xs={12} lg={8} className="mb-4">
           <Card className="border-0 shadow-sm">
             <Card.Header className="bg-white border-0">
               <h5 className="mb-0">Activité hebdomadaire</h5>
             </Card.Header>
-            <Card.Body>
-              <Chart options={chartOptions} series={chartOptions.series} type="area" height={280} />
+            <Card.Body className="overflow-hidden" style={{ minWidth: 0 }}>
+              <div className="w-100" style={{ minWidth: 0 }}>
+                <Chart options={chartOptions} series={chartOptions.series} type="area" height={280} />
+              </div>
             </Card.Body>
           </Card>
         </Col>
-        <Col lg={4} className="mb-4">
+        <Col xs={12} lg={4} className="mb-4">
           <Card className="border-0 shadow-sm">
             <Card.Header className="bg-white border-0">
               <h5 className="mb-0">Activité récente</h5>
@@ -105,12 +120,12 @@ const AdminDashboard = () => {
                   {recentActivities.map((act, i) => (
                     <tr key={i}>
                       <td className="border-0 py-3">
-                        <div>
+                        <div className="text-break">
                           <strong>{act.user}</strong>
                           <p className="mb-0 small text-muted">{act.action}</p>
                         </div>
                       </td>
-                      <td className="border-0 py-3 text-end">
+                      <td className="border-0 py-3 text-end text-nowrap">
                         <Badge bg={act.type} className="me-1">{act.time}</Badge>
                       </td>
                     </tr>
@@ -123,28 +138,28 @@ const AdminDashboard = () => {
       </Row>
 
       <Row>
-        <Col lg={6} className="mb-4">
+        <Col xs={12} lg={6} className="mb-4">
           <Card className="border-0 shadow-sm">
             <Card.Header className="bg-white border-0">
               <h5 className="mb-0">Taux d'occupation</h5>
             </Card.Header>
             <Card.Body>
               <div className="mb-3">
-                <div className="d-flex justify-content-between mb-1">
+                <div className="d-flex flex-wrap justify-content-between gap-2 mb-1">
                   <span>Consultations</span>
                   <span>78%</span>
                 </div>
                 <ProgressBar variant="primary" now={78} className="mb-2" style={{ height: "8px" }} />
               </div>
               <div className="mb-3">
-                <div className="d-flex justify-content-between mb-1">
+                <div className="d-flex flex-wrap justify-content-between gap-2 mb-1">
                   <span>Urgences</span>
                   <span>45%</span>
                 </div>
                 <ProgressBar variant="warning" now={45} className="mb-2" style={{ height: "8px" }} />
               </div>
               <div>
-                <div className="d-flex justify-content-between mb-1">
+                <div className="d-flex flex-wrap justify-content-between gap-2 mb-1">
                   <span>Chirurgie</span>
                   <span>62%</span>
                 </div>
@@ -153,32 +168,32 @@ const AdminDashboard = () => {
             </Card.Body>
           </Card>
         </Col>
-        <Col lg={6} className="mb-4">
+        <Col xs={12} lg={6} className="mb-4">
           <Card className="border-0 shadow-sm">
             <Card.Header className="bg-white border-0">
               <h5 className="mb-0">Accès rapides</h5>
             </Card.Header>
             <Card.Body>
               <Row className="g-2">
-                <Col xs={6}>
+                <Col xs={12} sm={6}>
                   <Link to="/doctor/doctor-list" className="btn btn-outline-primary w-100 py-3">
                     <i className="ri-user-add-fill d-block mb-1"></i>
                     Gestion médecins
                   </Link>
                 </Col>
-                <Col xs={6}>
+                <Col xs={12} sm={6}>
                   <Link to="/calendar" className="btn btn-outline-success w-100 py-3">
                     <i className="ri-calendar-fill d-block mb-1"></i>
                     Calendrier
                   </Link>
                 </Col>
-                <Col xs={6}>
+                <Col xs={12} sm={6}>
                   <Link to="/dashboard-pages/patient-dashboard" className="btn btn-outline-info w-100 py-3">
                     <i className="ri-team-fill d-block mb-1"></i>
                     Patients
                   </Link>
                 </Col>
-                <Col xs={6}>
+                <Col xs={12} sm={6}>
                   <Link to="/extra-pages/account-setting" className="btn btn-outline-warning w-100 py-3">
                     <i className="ri-settings-3-fill d-block mb-1"></i>
                     Paramètres
@@ -189,7 +204,7 @@ const AdminDashboard = () => {
           </Card>
         </Col>
       </Row>
-    </>
+    </div>
   );
 };
 

@@ -1,8 +1,11 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { Modal, Form, ProgressBar } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
 import { healthLogApi } from "../services/api";
 import { SYMPTOM_IDS, translateSymptom } from "../utils/symptomLabels";
+
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+const isSpeechSupported = !!SpeechRecognition;
 
 // Local date string (avoids UTC midnight timezone bug)
 const localDateString = () => {
@@ -103,6 +106,11 @@ const DailyCheckIn = ({ patientId, onSubmitted, existingLog }) => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [vitalsErrors, setVitalsErrors] = useState({});
+  const [listeningField, setListeningField] = useState(null);
+  const [speechError, setSpeechError] = useState("");
+  const recognitionRef = useRef(null);
+  /** Edge & Chrome (Chromium) send audio to the same cloud speech backend; "network" = that call failed. */
+  const speechNetworkRetriedRef = useRef(false);
 
   const alreadyDone = !!existingLog;
 
@@ -115,6 +123,123 @@ const DailyCheckIn = ({ patientId, onSubmitted, existingLog }) => {
     });
     setForm((f) => ({ ...f, vitals: { ...f.vitals, [key]: val } }));
   };
+
+  const stopVoiceInput = useCallback(() => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
+    setListeningField(null);
+  }, []);
+
+  const startVoiceInput = useCallback((field, langOverride) => {
+    if (!isSpeechSupported) {
+      setSpeechError("Voice input is not supported in this browser. Use Microsoft Edge or Google Chrome.");
+      return;
+    }
+    setSpeechError("");
+    setListeningField(field);
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
+
+    const defaultLang =
+      langOverride ||
+      (i18n.language?.startsWith("ar") ? "ar-SA" : i18n.language?.startsWith("fr") ? "fr-FR" : "en-US");
+
+    const runRecognition = (lang) => {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = lang;
+
+      recognition.onresult = (event) => {
+        let transcript = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            transcript += event.results[i][0].transcript;
+          }
+        }
+        const text = transcript.trim();
+        if (!text) return;
+
+        if (field === "bloodPressureSystolic" || field === "bloodPressureDiastolic") {
+          const bpMatch = text.match(/(\d+(?:[.,]\d+)?)\s*(?:over|sur|\/)\s*(\d+(?:[.,]\d+)?)/i);
+          if (bpMatch) {
+            setVitalsErrors((e) => { const n = { ...e }; delete n.bloodPressureSystolic; delete n.bloodPressureDiastolic; return n; });
+            setForm((f) => ({ ...f, vitals: { ...f.vitals, bloodPressureSystolic: bpMatch[1].replace(",", "."), bloodPressureDiastolic: bpMatch[2].replace(",", ".") } }));
+          } else {
+            const num = text.match(/\d+(?:[.,]\d+)?/);
+            if (num) {
+              setVitalsErrors((e) => { const n = { ...e }; delete n[field]; return n; });
+              setForm((f) => ({ ...f, vitals: { ...f.vitals, [field]: num[0].replace(",", ".") } }));
+            }
+          }
+        } else {
+          const num = text.match(/\d+(?:[.,]\d+)?/);
+          if (num) {
+            setVitalsErrors((e) => { const n = { ...e }; delete n[field]; return n; });
+            setForm((f) => ({ ...f, vitals: { ...f.vitals, [field]: num[0].replace(",", ".") } }));
+          }
+        }
+        recognition.stop();
+      };
+
+      recognition.onerror = (event) => {
+        if (event.error === "network" && lang !== "en-US" && !speechNetworkRetriedRef.current) {
+          speechNetworkRetriedRef.current = true;
+          recognitionRef.current = null;
+          setListeningField(null);
+          setTimeout(() => runRecognition("en-US"), 400);
+          return;
+        }
+        if (event.error !== "aborted") {
+          setSpeechError(
+            event.error === "not-allowed"
+              ? "Microphone access denied. Click the lock icon in the address bar and allow microphone."
+              : event.error === "network"
+                ? "Network error: Microsoft Edge and Chrome use the same online speech service. A VPN, antivirus, firewall, or your operator may block it—even with Wi‑Fi or 4G. Try turning off VPN, allow Edge in Windows Firewall, or type the values manually."
+                : event.error === "no-speech"
+                  ? "No speech detected. Please speak clearly and try again."
+                  : `Voice error: ${event.error}`
+          );
+        }
+        setListeningField(null);
+        recognitionRef.current = null;
+      };
+
+      recognition.onend = () => {
+        setListeningField(null);
+        recognitionRef.current = null;
+      };
+
+      try {
+        recognition.start();
+        recognitionRef.current = recognition;
+      } catch {
+        setSpeechError("Could not start voice recognition. Please try again.");
+        setListeningField(null);
+        recognitionRef.current = null;
+      }
+    };
+
+    runRecognition(defaultLang);
+  }, [i18n.language]);
+
+  const beginVoiceForField = useCallback((field) => {
+    speechNetworkRetriedRef.current = false;
+    startVoiceInput(field);
+  }, [startVoiceInput]);
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+        recognitionRef.current = null;
+      }
+    };
+  }, []);
 
   const goNextStep = () => {
     if (step === 0) {
@@ -283,6 +408,8 @@ const DailyCheckIn = ({ patientId, onSubmitted, existingLog }) => {
           setShow(false);
           setVitalsErrors({});
           setError("");
+          stopVoiceInput();
+          setSpeechError("");
         }}
         centered
         size="lg"
@@ -329,11 +456,33 @@ const DailyCheckIn = ({ patientId, onSubmitted, existingLog }) => {
                   wMax: VITAL_LIMITS.weight.max,
                 })}
               </p>
+              {isSpeechSupported && (
+                <p className="text-muted small mb-3" style={{ fontSize: "0.75rem" }}>
+                  <i className="ri-information-line me-1" aria-hidden />
+                  La saisie vocale (micro) utilise la reconnaissance en ligne du navigateur — Microsoft Edge et Google Chrome s’appuient sur le même service cloud. Si une erreur « réseau » apparaît, ce n’est pas un bug de l’app : un VPN, un antivirus, le pare-feu Windows ou l’opérateur peut bloquer l’accès. Tu peux toujours saisir les valeurs au clavier.
+                </p>
+              )}
+
+              {speechError && (
+                <div className="alert alert-warning py-2 small mb-3">{speechError}</div>
+              )}
+              {isSpeechSupported && listeningField && (
+                <div className="alert alert-info py-2 small d-flex align-items-center justify-content-between mb-3">
+                  <span>
+                    <i className="ri-mic-line me-1 text-danger"></i>
+                    Listening for <strong>{listeningField === "bloodPressureSystolic" || listeningField === "bloodPressureDiastolic" ? "Blood Pressure" : listeningField}</strong>… speak a number
+                  </span>
+                  <button type="button" className="btn btn-sm btn-outline-danger ms-2" onClick={stopVoiceInput}>
+                    Stop
+                  </button>
+                </div>
+              )}
               <div className="row g-3">
                 <div className="col-6">
                   <label className="form-label small fw-bold">
                     <i className="ri-drop-line text-primary me-1"></i>{t("dailyCheckIn.bpSystolic")}
                   </label>
+                  <div className="position-relative">
                   <Form.Control
                     type="number"
                     min={VITAL_LIMITS.bloodPressureSystolic.min}
@@ -341,14 +490,26 @@ const DailyCheckIn = ({ patientId, onSubmitted, existingLog }) => {
                     placeholder={t("dailyCheckIn.phSystolic")}
                     value={form.vitals.bloodPressureSystolic}
                     isInvalid={!!vitalsErrors.bloodPressureSystolic}
+                    style={{ paddingRight: isSpeechSupported ? 38 : undefined }}
                     onChange={(e) => handleVital("bloodPressureSystolic", e.target.value)}
                   />
+                  {isSpeechSupported && (
+                    <button type="button"
+                      className={`btn btn-sm ${listeningField === "bloodPressureSystolic" ? "btn-danger" : "btn-outline-primary"}`}
+                      style={{ position: "absolute", right: 4, top: "50%", transform: "translateY(-50%)", zIndex: 2, padding: "2px 6px" }}
+                      onClick={() => listeningField === "bloodPressureSystolic" ? stopVoiceInput() : beginVoiceForField("bloodPressureSystolic")}
+                      title="Voice input — say e.g. '120 over 80'">
+                      <i className={listeningField === "bloodPressureSystolic" ? "ri-mic-off-line" : "ri-mic-line"}></i>
+                    </button>
+                  )}
+                  </div>
                   <Form.Control.Feedback type="invalid" className="d-block small">
                     {vitalsErrors.bloodPressureSystolic}
                   </Form.Control.Feedback>
                 </div>
                 <div className="col-6">
                   <label className="form-label small fw-bold">{t("dailyCheckIn.bpDiastolic")}</label>
+                  <div className="position-relative">
                   <Form.Control
                     type="number"
                     min={VITAL_LIMITS.bloodPressureDiastolic.min}
@@ -356,8 +517,19 @@ const DailyCheckIn = ({ patientId, onSubmitted, existingLog }) => {
                     placeholder={t("dailyCheckIn.phDiastolic")}
                     value={form.vitals.bloodPressureDiastolic}
                     isInvalid={!!vitalsErrors.bloodPressureDiastolic}
+                    style={{ paddingRight: isSpeechSupported ? 38 : undefined }}
                     onChange={(e) => handleVital("bloodPressureDiastolic", e.target.value)}
                   />
+                  {isSpeechSupported && (
+                    <button type="button"
+                      className={`btn btn-sm ${listeningField === "bloodPressureDiastolic" ? "btn-danger" : "btn-outline-primary"}`}
+                      style={{ position: "absolute", right: 4, top: "50%", transform: "translateY(-50%)", zIndex: 2, padding: "2px 6px" }}
+                      onClick={() => listeningField === "bloodPressureDiastolic" ? stopVoiceInput() : beginVoiceForField("bloodPressureDiastolic")}
+                      title="Voice input — say e.g. '80'">
+                      <i className={listeningField === "bloodPressureDiastolic" ? "ri-mic-off-line" : "ri-mic-line"}></i>
+                    </button>
+                  )}
+                  </div>
                   <Form.Control.Feedback type="invalid" className="d-block small">
                     {vitalsErrors.bloodPressureDiastolic}
                   </Form.Control.Feedback>
@@ -366,6 +538,7 @@ const DailyCheckIn = ({ patientId, onSubmitted, existingLog }) => {
                   <label className="form-label small fw-bold">
                     <i className="ri-heart-line text-danger me-1"></i>{t("dailyCheckIn.labelHeartRate")}
                   </label>
+                  <div className="position-relative">
                   <Form.Control
                     type="number"
                     min={VITAL_LIMITS.heartRate.min}
@@ -373,8 +546,19 @@ const DailyCheckIn = ({ patientId, onSubmitted, existingLog }) => {
                     placeholder={t("dailyCheckIn.phHeartRate")}
                     value={form.vitals.heartRate}
                     isInvalid={!!vitalsErrors.heartRate}
+                    style={{ paddingRight: isSpeechSupported ? 38 : undefined }}
                     onChange={(e) => handleVital("heartRate", e.target.value)}
                   />
+                  {isSpeechSupported && (
+                    <button type="button"
+                      className={`btn btn-sm ${listeningField === "heartRate" ? "btn-danger" : "btn-outline-primary"}`}
+                      style={{ position: "absolute", right: 4, top: "50%", transform: "translateY(-50%)", zIndex: 2, padding: "2px 6px" }}
+                      onClick={() => listeningField === "heartRate" ? stopVoiceInput() : beginVoiceForField("heartRate")}
+                      title="Voice input — say e.g. '75'">
+                      <i className={listeningField === "heartRate" ? "ri-mic-off-line" : "ri-mic-line"}></i>
+                    </button>
+                  )}
+                  </div>
                   <Form.Control.Feedback type="invalid" className="d-block small">
                     {vitalsErrors.heartRate}
                   </Form.Control.Feedback>
@@ -383,6 +567,7 @@ const DailyCheckIn = ({ patientId, onSubmitted, existingLog }) => {
                   <label className="form-label small fw-bold">
                     <i className="ri-temp-hot-line text-warning me-1"></i>{t("dailyCheckIn.labelTemperature")}
                   </label>
+                  <div className="position-relative">
                   <Form.Control
                     type="number"
                     step="0.1"
@@ -391,8 +576,19 @@ const DailyCheckIn = ({ patientId, onSubmitted, existingLog }) => {
                     placeholder={t("dailyCheckIn.phTemp")}
                     value={form.vitals.temperature}
                     isInvalid={!!vitalsErrors.temperature}
+                    style={{ paddingRight: isSpeechSupported ? 38 : undefined }}
                     onChange={(e) => handleVital("temperature", e.target.value)}
                   />
+                  {isSpeechSupported && (
+                    <button type="button"
+                      className={`btn btn-sm ${listeningField === "temperature" ? "btn-danger" : "btn-outline-primary"}`}
+                      style={{ position: "absolute", right: 4, top: "50%", transform: "translateY(-50%)", zIndex: 2, padding: "2px 6px" }}
+                      onClick={() => listeningField === "temperature" ? stopVoiceInput() : startVoiceInput("temperature")}
+                      title="Voice input — say e.g. '37.5'">
+                      <i className={listeningField === "temperature" ? "ri-mic-off-line" : "ri-mic-line"}></i>
+                    </button>
+                  )}
+                  </div>
                   <Form.Control.Feedback type="invalid" className="d-block small">
                     {vitalsErrors.temperature}
                   </Form.Control.Feedback>
@@ -401,6 +597,7 @@ const DailyCheckIn = ({ patientId, onSubmitted, existingLog }) => {
                   <label className="form-label small fw-bold">
                     <i className="ri-lungs-line text-info me-1"></i>{t("dailyCheckIn.labelOxygen")}
                   </label>
+                  <div className="position-relative">
                   <Form.Control
                     type="number"
                     min={VITAL_LIMITS.oxygenSaturation.min}
@@ -408,8 +605,19 @@ const DailyCheckIn = ({ patientId, onSubmitted, existingLog }) => {
                     placeholder={t("dailyCheckIn.phO2")}
                     value={form.vitals.oxygenSaturation}
                     isInvalid={!!vitalsErrors.oxygenSaturation}
+                    style={{ paddingRight: isSpeechSupported ? 38 : undefined }}
                     onChange={(e) => handleVital("oxygenSaturation", e.target.value)}
                   />
+                  {isSpeechSupported && (
+                    <button type="button"
+                      className={`btn btn-sm ${listeningField === "oxygenSaturation" ? "btn-danger" : "btn-outline-primary"}`}
+                      style={{ position: "absolute", right: 4, top: "50%", transform: "translateY(-50%)", zIndex: 2, padding: "2px 6px" }}
+                      onClick={() => listeningField === "oxygenSaturation" ? stopVoiceInput() : beginVoiceForField("oxygenSaturation")}
+                      title="Voice input — say e.g. '98'">
+                      <i className={listeningField === "oxygenSaturation" ? "ri-mic-off-line" : "ri-mic-line"}></i>
+                    </button>
+                  )}
+                  </div>
                   <Form.Control.Feedback type="invalid" className="d-block small">
                     {vitalsErrors.oxygenSaturation}
                   </Form.Control.Feedback>
@@ -418,6 +626,7 @@ const DailyCheckIn = ({ patientId, onSubmitted, existingLog }) => {
                   <label className="form-label small fw-bold">
                     <i className="ri-scales-3-line text-secondary me-1"></i>{t("dailyCheckIn.labelWeight")}
                   </label>
+                  <div className="position-relative">
                   <Form.Control
                     type="number"
                     step="0.1"
@@ -426,8 +635,19 @@ const DailyCheckIn = ({ patientId, onSubmitted, existingLog }) => {
                     placeholder={t("dailyCheckIn.phWeight")}
                     value={form.vitals.weight}
                     isInvalid={!!vitalsErrors.weight}
+                    style={{ paddingRight: isSpeechSupported ? 38 : undefined }}
                     onChange={(e) => handleVital("weight", e.target.value)}
                   />
+                  {isSpeechSupported && (
+                    <button type="button"
+                      className={`btn btn-sm ${listeningField === "weight" ? "btn-danger" : "btn-outline-primary"}`}
+                      style={{ position: "absolute", right: 4, top: "50%", transform: "translateY(-50%)", zIndex: 2, padding: "2px 6px" }}
+                      onClick={() => listeningField === "weight" ? stopVoiceInput() : beginVoiceForField("weight")}
+                      title="Voice input — say e.g. '70'">
+                      <i className={listeningField === "weight" ? "ri-mic-off-line" : "ri-mic-line"}></i>
+                    </button>
+                  )}
+                  </div>
                   <Form.Control.Feedback type="invalid" className="d-block small">
                     {vitalsErrors.weight}
                   </Form.Control.Feedback>

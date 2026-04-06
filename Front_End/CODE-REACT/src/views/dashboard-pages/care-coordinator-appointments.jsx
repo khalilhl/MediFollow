@@ -1,15 +1,11 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Row, Col, Spinner, Alert, Table, Badge, Form, InputGroup, Button } from "react-bootstrap";
+import { Row, Col, Spinner, Alert, Table, Badge } from "react-bootstrap";
 import Card from "../../components/Card";
 import A11yToolbar from "../../components/A11yToolbar";
-import PaginationBar from "../../components/PaginationBar";
-import { usePagination } from "../../hooks/usePagination";
 import { appointmentApi } from "../../services/api";
 import { hospitalDepartmentLabel } from "../../constants/hospitalDepartments";
-
-const STATUS_OPTIONS = ["pending", "confirmed", "scheduled", "completed", "cancelled"];
 
 const APPOINTMENT_TYPE_I18N_KEYS = {
   checkup: "patientAppointmentRequest.typeCheckup",
@@ -41,10 +37,6 @@ const CareCoordinatorAppointments = () => {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [searchPatient, setSearchPatient] = useState("");
-  const [searchDoctor, setSearchDoctor] = useState("");
-  const [searchDate, setSearchDate] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
 
   useEffect(() => {
     const token = localStorage.getItem("adminToken");
@@ -102,22 +94,6 @@ const CareCoordinatorAppointments = () => {
     return null;
   };
 
-  const filtered = useMemo(() => {
-    return list.filter((row) => {
-      const patient = patientLabel(row).toLowerCase();
-      const doctor = (row.doctorName || "").toLowerCase();
-      const date = (row.date || "").toLowerCase();
-      const status = (row.status || "").toLowerCase();
-      if (searchPatient && !patient.includes(searchPatient.toLowerCase())) return false;
-      if (searchDoctor && !doctor.includes(searchDoctor.toLowerCase())) return false;
-      if (searchDate && !date.includes(searchDate)) return false;
-      if (statusFilter && status !== statusFilter.toLowerCase()) return false;
-      return true;
-    });
-  }, [list, searchPatient, searchDoctor, searchDate, statusFilter]);
-
-  const { page, setPage, totalPages, paginated, totalItems } = usePagination(filtered, 5);
-
   if (!user) return null;
 
   return (
@@ -148,110 +124,53 @@ const CareCoordinatorAppointments = () => {
                 </div>
               ) : error ? (
                 <Alert variant="danger">{error}</Alert>
+              ) : list.length === 0 ? (
+                <p className="text-muted mb-0">{t("careCoordinatorAppointments.empty")}</p>
               ) : (
-                <>
-                  {/* Filtres */}
-                  <Row className="g-2 mb-3">
-                    <Col md={3}>
-                      <InputGroup size="sm">
-                        <InputGroup.Text><i className="ri-user-line" /></InputGroup.Text>
-                        <Form.Control
-                          placeholder="Search patient..."
-                          value={searchPatient}
-                          onChange={(e) => setSearchPatient(e.target.value)}
-                        />
-                      </InputGroup>
-                    </Col>
-                    <Col md={3}>
-                      <InputGroup size="sm">
-                        <InputGroup.Text><i className="ri-stethoscope-line" /></InputGroup.Text>
-                        <Form.Control
-                          placeholder="Search doctor..."
-                          value={searchDoctor}
-                          onChange={(e) => setSearchDoctor(e.target.value)}
-                        />
-                      </InputGroup>
-                    </Col>
-                    <Col md={3}>
-                      <Form.Control
-                        type="date"
-                        size="sm"
-                        value={searchDate}
-                        onChange={(e) => setSearchDate(e.target.value)}
-                      />
-                    </Col>
-                    <Col md={2}>
-                      <Form.Select
-                        size="sm"
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                      >
-                        <option value="">All statuses</option>
-                        {STATUS_OPTIONS.map((s) => (
-                          <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-                        ))}
-                      </Form.Select>
-                    </Col>
-                  </Row>
-
-                  {filtered.length === 0 ? (
-                    <p className="text-muted mb-0">No results found.</p>
-                  ) : (
-                    <>
-                      <div className="table-responsive">
-                        <Table hover className="align-middle mb-0 small">
-                          <thead className="table-light">
-                            <tr>
-                              <th>{t("careCoordinatorAppointments.thDate")}</th>
-                              <th>{t("careCoordinatorAppointments.thTime")}</th>
-                              <th>{t("careCoordinatorAppointments.thPatient")}</th>
-                              <th>{t("careCoordinatorAppointments.thDoctor")}</th>
-                              <th>{t("careCoordinatorAppointments.thTitle")}</th>
-                              <th>{t("careCoordinatorAppointments.thType")}</th>
-                              <th>{t("careCoordinatorAppointments.thStatus")}</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {paginated.map((row) => {
-                              const pid = patientIdForLink(row);
-                              return (
-                                <tr key={row._id}>
-                                  <td>{row.date || "—"}</td>
-                                  <td>{row.time || "—"}</td>
-                                  <td>
-                                    {pid ? (
-                                      <Link
-                                        to={`/dashboard-pages/care-coordinator-patient/${encodeURIComponent(pid)}`}
-                                        className="fw-medium text-decoration-none"
-                                      >
-                                        {patientLabel(row)}
-                                      </Link>
-                                    ) : (
-                                      <span className="fw-medium">{patientLabel(row)}</span>
-                                    )}
-                                  </td>
-                                  <td>{row.doctorName || "—"}</td>
-                                  <td>{row.title || "—"}</td>
-                                  <td>{appointmentTypeLabel(row.type, t)}</td>
-                                  <td>
-                                    <Badge bg={statusBadgeVariant(row.status)}>{row.status || "—"}</Badge>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </Table>
-                      </div>
-                      <PaginationBar
-                        page={page}
-                        totalPages={totalPages}
-                        totalItems={totalItems}
-                        pageSize={5}
-                        onPageChange={setPage}
-                      />
-                    </>
-                  )}
-                </>
+                <div className="table-responsive">
+                  <Table hover className="align-middle mb-0 small">
+                    <thead className="table-light">
+                      <tr>
+                        <th>{t("careCoordinatorAppointments.thDate")}</th>
+                        <th>{t("careCoordinatorAppointments.thTime")}</th>
+                        <th>{t("careCoordinatorAppointments.thPatient")}</th>
+                        <th>{t("careCoordinatorAppointments.thDoctor")}</th>
+                        <th>{t("careCoordinatorAppointments.thTitle")}</th>
+                        <th>{t("careCoordinatorAppointments.thType")}</th>
+                        <th>{t("careCoordinatorAppointments.thStatus")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {list.map((row) => {
+                        const pid = patientIdForLink(row);
+                        return (
+                          <tr key={row._id}>
+                            <td>{row.date || "—"}</td>
+                            <td>{row.time || "—"}</td>
+                            <td>
+                              {pid ? (
+                                <Link
+                                  to={`/dashboard-pages/care-coordinator-patient/${encodeURIComponent(pid)}`}
+                                  className="fw-medium text-decoration-none"
+                                >
+                                  {patientLabel(row)}
+                                </Link>
+                              ) : (
+                                <span className="fw-medium">{patientLabel(row)}</span>
+                              )}
+                            </td>
+                            <td>{row.doctorName || "—"}</td>
+                            <td>{row.title || "—"}</td>
+                            <td>{appointmentTypeLabel(row.type, t)}</td>
+                            <td>
+                              <Badge bg={statusBadgeVariant(row.status)}>{row.status || "—"}</Badge>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </Table>
+                </div>
               )}
             </Card.Body>
           </Card>

@@ -258,7 +258,15 @@ const PatientDashboard = () => {
         }
         const opts = {
             series: [{ name: selectedVital.label, data: chartSeriesPoints }],
-            chart: { type: 'area', height: 260, toolbar: { show: false }, animations: { enabled: true }, zoom: { enabled: true } },
+            chart: {
+                type: 'area',
+                height: 260,
+                width: '100%',
+                toolbar: { show: false },
+                animations: { enabled: true },
+                zoom: { enabled: true },
+                redrawOnParentResize: true,
+            },
             colors: [selectedVital.color],
             stroke: { curve: 'smooth', width: 2 },
             fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.35, opacityTo: 0.05 } },
@@ -291,7 +299,21 @@ const PatientDashboard = () => {
         const chart = new ApexCharts(chartRef.current, opts);
         chart.render();
         chartInstanceRef.current = chart;
+        const el = chartRef.current;
+        const ro =
+            typeof ResizeObserver !== "undefined" && el
+                ? new ResizeObserver(() => {
+                      try {
+                          chart.resize();
+                      } catch {
+                          /* ignore */
+                      }
+                  })
+                : null;
+        if (el && ro) ro.observe(el);
         return () => {
+            if (ro && el) ro.unobserve(el);
+            ro?.disconnect();
             chart.destroy();
             chartInstanceRef.current = null;
         };
@@ -368,9 +390,9 @@ const PatientDashboard = () => {
         <>
             {/* Risk alert banner */}
             {todayLogIsToday && todayLog?.flagged && (
-                <div className="alert alert-danger d-flex align-items-center mb-3" role="alert">
-                    <i className="ri-alert-line me-2 fs-5"></i>
-                    <span>
+                <div className="alert alert-danger d-flex flex-wrap align-items-center gap-2 mb-3" role="alert">
+                    <i className="ri-alert-line fs-5 flex-shrink-0" aria-hidden />
+                    <span className="text-break">
                         <b>{t("patientDashboard.alertFlaggedTitle")}</b> {t("patientDashboard.alertFlaggedBody")}
                     </span>
                 </div>
@@ -384,13 +406,13 @@ const PatientDashboard = () => {
 
             <Row className="g-3">
                 {/* LEFT COLUMN */}
-                <Col lg={4}>
+                <Col xs={12} lg={4}>
                     {/* Profile Card */}
                     <Card className="border-0 shadow-sm">
-                        <Card.Body className="text-center pt-4">
-                            <img src={userData.profileImage} alt={t("patientDashboard.profilePhotoAlt")} className="avatar-130 img-fluid rounded-circle mb-3" style={{ border: "3px solid #089bab" }} />
-                            <h5 className="fw-bold mb-0">{userData.name}</h5>
-                            <p className="text-muted small mb-1">
+                        <Card.Body className="text-center pt-4 px-3">
+                            <img src={userData.profileImage} alt={t("patientDashboard.profilePhotoAlt")} className="avatar-130 img-fluid rounded-circle mb-3" style={{ border: "3px solid #089bab", maxWidth: "min(130px, 40vw)" }} />
+                            <h5 className="fw-bold mb-0 text-break px-1">{userData.name}</h5>
+                            <p className="text-muted small mb-1 text-break px-1">
                                 {userData.age != null ? `${userData.age} ${t("patientDashboard.yearsShort")}` : ""}
                                 {userData.age != null && userData.location !== "—" ? " • " : ""}
                                 {userData.location}
@@ -401,16 +423,16 @@ const PatientDashboard = () => {
                                     {userData.gender && <span><i className="ri-user-line text-primary me-1"></i>{displayGender(userData.gender)}</span>}
                                 </p>
                             )}
-                            <div className="d-flex justify-content-around mt-3 pt-3 border-top">
-                                <div className="text-center">
+                            <div className="d-flex flex-wrap justify-content-around gap-3 mt-3 pt-3 border-top">
+                                <div className="text-center flex-grow-1" style={{ minWidth: "4.5rem" }}>
                                     <h6 className="text-primary mb-0">{userData.weight}<small className="text-muted ms-1">kg</small></h6>
                                     <small className="text-muted">{t("patientDashboard.weight")}</small>
                                 </div>
-                                <div className="text-center">
+                                <div className="text-center flex-grow-1" style={{ minWidth: "4.5rem" }}>
                                     <h6 className="text-primary mb-0">{userData.height}<small className="text-muted ms-1">cm</small></h6>
                                     <small className="text-muted">{t("patientDashboard.height")}</small>
                                 </div>
-                                <div className="text-center">
+                                <div className="text-center flex-grow-1" style={{ minWidth: "4.5rem" }}>
                                     <h6 className="text-primary mb-0">{userData.bloodType || "—"}</h6>
                                     <small className="text-muted">{t("patientDashboard.bloodType")}</small>
                                 </div>
@@ -433,9 +455,9 @@ const PatientDashboard = () => {
                             <h6 className="text-primary fw-bold mb-3"><i className="ri-mental-health-line me-2"></i>{t("patientDashboard.todayWellbeing")}</h6>
                             {todayLogIsToday && todayLog ? (
                                 <>
-                                    <div className="d-flex justify-content-between align-items-center mb-3">
+                                    <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                                         <span className="text-muted small">{t("patientDashboard.mood")}</span>
-                                        <span className="fw-bold d-inline-flex align-items-center gap-1" style={{ color: mood.color }}>
+                                        <span className="fw-bold d-inline-flex align-items-center gap-1 text-break text-end" style={{ color: mood.color }}>
                                             {mood.icon ? <i className={mood.icon} aria-hidden /> : null}
                                             {mood.label}
                                         </span>
@@ -471,17 +493,19 @@ const PatientDashboard = () => {
                 </Col>
 
                 {/* RIGHT COLUMN */}
-                <Col lg={8}>
+                <Col xs={12} lg={8}>
                     {/* Vitals History Chart */}
                     <Card className="border-0 shadow-sm mb-3">
-                        <Card.Body>
-                            <div className="d-flex justify-content-between align-items-center mb-3">
-                                <h6 className="text-primary fw-bold mb-0">
-                                    <i className="ri-line-chart-line me-2"></i>{t("patientDashboard.vitalsHistory30")}
+                        <Card.Body style={{ minWidth: 0 }}>
+                            <div className="d-flex flex-column flex-sm-row flex-sm-wrap align-items-stretch align-items-sm-center justify-content-between gap-2 gap-sm-3 mb-3">
+                                <h6 className="text-primary fw-bold mb-0 text-break pe-sm-2">
+                                    <i className="ri-line-chart-line me-2" aria-hidden />
+                                    {t("patientDashboard.vitalsHistory30")}
                                 </h6>
-                                <div className="d-flex gap-1 flex-wrap">
+                                <div className="d-flex gap-1 flex-wrap flex-shrink-0" role="group" aria-label={t("patientDashboard.vitalsHistory30")}>
                                     {VITAL_CHART_KEYS.map((key) => (
                                         <button key={key}
+                                            type="button"
                                             className={`btn btn-sm ${activeVital === key ? "btn-primary" : "btn-outline-secondary"}`}
                                             style={{ fontSize: "0.72rem", padding: "2px 10px", borderRadius: 20 }}
                                             onClick={() => setActiveVital(key)}
@@ -496,7 +520,7 @@ const PatientDashboard = () => {
                                     {t("patientDashboard.chartEmptyHint")}
                                 </p>
                             )}
-                            <div ref={chartRef}></div>
+                            <div ref={chartRef} className="w-100 patient-dashboard-vitals-chart" style={{ minWidth: 0 }} />
                             <div className="mt-2 pt-1">
                                 <Link to="/dashboard-pages/patient-vitals-history" className="small text-decoration-none d-inline-flex align-items-center gap-1">
                                     <i className="ri-history-line"></i>
@@ -508,7 +532,7 @@ const PatientDashboard = () => {
 
                     {/* Bottom row: Risk Score + Symptoms summary */}
                     <Row className="g-3">
-                        <Col md={6}>
+                        <Col xs={12} md={6}>
                             <Card className="border-0 shadow-sm h-100">
                                 <Card.Body>
                                     <h6 className="text-primary fw-bold mb-3">
@@ -552,38 +576,43 @@ const PatientDashboard = () => {
                                 </Card.Body>
                             </Card>
                         </Col>
-                        <Col md={6}>
+                        <Col xs={12} md={6}>
                             <Card className="border-0 shadow-sm h-100">
-                                <Card.Body>
+                                <Card.Body style={{ minWidth: 0 }}>
                                     <h6 className="text-primary fw-bold mb-3">
-                                        <i className="ri-history-line me-2"></i>{t("patientDashboard.recentCheckIns")}
+                                        <i className="ri-history-line me-2" aria-hidden />
+                                        {t("patientDashboard.recentCheckIns")}
                                     </h6>
                                     {history.length > 0 ? (
-                                        <div className="d-flex flex-column gap-2">
+                                        <div className="d-flex flex-column gap-1">
                                             {history.slice(-4).reverse().map((log) => (
-                                                <div key={log._id} className="d-flex justify-content-between align-items-center py-1 border-bottom">
-                                                    <span className="small text-muted">
-                                                        {new Date(log.recordedAt || log.createdAt || log.date).toLocaleString(chartLocale, {
-                                                            timeZone: VITALS_CHART_TIMEZONE,
-                                                            day: "2-digit",
-                                                            month: "short",
-                                                            hour: "2-digit",
-                                                            minute: "2-digit",
-                                                        })}
-                                                    </span>
-                                                    <span className="small d-inline-flex align-items-center gap-1">
-                                                        {log.vitals?.heartRate ? (
-                                                            <>
-                                                                <i className="ri-heart-pulse-line text-danger" aria-hidden />
-                                                                <span>{log.vitals.heartRate} bpm</span>
-                                                            </>
-                                                        ) : (
-                                                            "—"
-                                                        )}
-                                                    </span>
-                                                    <span className="badge" style={{ backgroundColor: log.riskScore >= 50 ? "#dc3545" : log.riskScore >= 25 ? "#fd7e14" : "#28a745", fontSize: "0.68rem" }}>
-                                                        {t("patientDashboard.riskBadge", { score: log.riskScore })}
-                                                    </span>
+                                                <div key={log._id} className="py-2 border-bottom">
+                                                    <div className="d-flex flex-column flex-sm-row flex-wrap align-items-start align-items-sm-center justify-content-between gap-2">
+                                                        <span className="small text-muted text-break" style={{ minWidth: 0 }}>
+                                                            {new Date(log.recordedAt || log.createdAt || log.date).toLocaleString(chartLocale, {
+                                                                timeZone: VITALS_CHART_TIMEZONE,
+                                                                day: "2-digit",
+                                                                month: "short",
+                                                                hour: "2-digit",
+                                                                minute: "2-digit",
+                                                            })}
+                                                        </span>
+                                                        <div className="d-flex flex-wrap align-items-center gap-2 ms-sm-auto">
+                                                            <span className="small d-inline-flex align-items-center gap-1 text-nowrap">
+                                                                {log.vitals?.heartRate ? (
+                                                                    <>
+                                                                        <i className="ri-heart-pulse-line text-danger" aria-hidden />
+                                                                        <span>{log.vitals.heartRate} bpm</span>
+                                                                    </>
+                                                                ) : (
+                                                                    "—"
+                                                                )}
+                                                            </span>
+                                                            <span className="badge flex-shrink-0" style={{ backgroundColor: log.riskScore >= 50 ? "#dc3545" : log.riskScore >= 25 ? "#fd7e14" : "#28a745", fontSize: "0.68rem" }}>
+                                                                {t("patientDashboard.riskBadge", { score: log.riskScore })}
+                                                            </span>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>
@@ -599,7 +628,7 @@ const PatientDashboard = () => {
 
             {/* ─── NEW BOTTOM ROW: Medications | Appointments | Care Team | Discharge ─── */}
             <Row className="g-3 mt-1">
-                <Col lg={3} md={6}>
+                <Col xs={12} md={6} lg={3}>
                     <MedicationsCard
                         patientId={pid}
                         medications={activeMedications}
@@ -607,16 +636,16 @@ const PatientDashboard = () => {
                         allowAdd={false}
                     />
                 </Col>
-                <Col lg={3} md={6}>
+                <Col xs={12} md={6} lg={3}>
                     <AppointmentsCard appointments={appointments} />
                 </Col>
-                <Col lg={3} md={6}>
+                <Col xs={12} md={6} lg={3}>
                     <CareTeamCard
                         doctor={careDoctor}
                         nurse={careNurse}
                     />
                 </Col>
-                <Col lg={3} md={6}>
+                <Col xs={12} md={6} lg={3}>
                     <DischargeSummaryCard patient={patientUser} doctorConsigne={effectiveDoctorConsigne} />
                 </Col>
             </Row>

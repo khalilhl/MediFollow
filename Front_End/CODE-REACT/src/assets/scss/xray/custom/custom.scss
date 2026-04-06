@@ -1,6 +1,8 @@
 .wrapper {
   background: var(--bs-primary);
   transition: all 400ms ease !important;
+  max-width: 100%;
+  overflow-x: clip;
 }
 
 .wrapper:has(> .sidebar-white) {
@@ -11,9 +13,42 @@
   background: #000;
 }
 
+/* Menu latéral responsive : voile + tiroir au-dessus de la navbar fixe (~911) */
+.mf-sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 905;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  display: block;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+@media (max-width: 1199.98px) {
+  .sidebar.mf-sidebar-drawer-open {
+    z-index: 920;
+  }
+}
+
+@media (min-width: 1200px) {
+  .mf-sidebar-backdrop {
+    display: none !important;
+  }
+}
+
 .content-page {
   margin-left: 243px;
-  overflow: hidden;
+  box-sizing: border-box;
+  /* Cap width to viewport minus sidebar (sibling sets --sidebar-width on .main-content when mini/hover). */
+  width: min(100%, calc(100vw - var(--sidebar-width)));
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: visible;
   // padding: 120px 15px 0;
   padding: 97px 2px 0;
   min-height: 100vh;
@@ -24,6 +59,30 @@
   transition: all 0.3s ease-out 0s;
   background: #eff7f8;
   border-radius: 25px 0 0 25px;
+}
+
+/* Inner page shell: allow flex/grid children to shrink instead of forcing overflow past main */
+.content-page .content-inner,
+.content-page #page_layout {
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* Admin / super-admin / staff : cartes et tableaux dans la colonne principale */
+.content-page #page_layout .table-responsive {
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+}
+
+.content-page #page_layout .card-header .d-flex.justify-content-between {
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center !important;
+}
+
+.content-page #page_layout .apexcharts-canvas {
+  max-width: 100%;
 }
 
 @media (max-width:768px) {
@@ -146,6 +205,13 @@
 }
 
 //responsive
+@media (max-width: 1199.98px) {
+  .content-page {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
 @media (max-width:992px) {
   .content-page {
     margin-left: 0;
@@ -435,7 +501,35 @@
 
 // navbar collaps start
 .iq-navbar .navbar-collapse {
-  border-radius: 25px
+  border-radius: 25px;
+}
+
+// Avoid horizontal overflow: Bootstrap .row negative margins + narrow collapse = clipped layout
+.iq-navbar .navbar-collapse.navbar-collapse-inner {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+.iq-navbar .navbar-collapse.navbar-collapse-inner > .row {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  --bs-gutter-x: 0;
+}
+
+@media (max-width: 1199.98px) {
+  .iq-navbar .search-width {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .iq-navbar .search-input {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .iq-navbar .search-input .form-control {
+    min-width: 0;
+  }
 }
 
 // navbar collaps end

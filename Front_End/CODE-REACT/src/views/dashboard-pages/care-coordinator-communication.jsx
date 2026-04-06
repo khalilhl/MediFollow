@@ -1,11 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Row, Col, Card as BsCard, Badge, Button, Spinner, Form, InputGroup } from "react-bootstrap";
+import { Row, Col, Card as BsCard, Badge, Button, Spinner } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import Card from "../../components/Card";
 import A11yToolbar from "../../components/A11yToolbar";
-import PaginationBar from "../../components/PaginationBar";
-import { usePagination } from "../../hooks/usePagination";
 import { chatApi } from "../../services/api";
 
 const TEMPLATE_IDS = ["vitals", "appointment", "missedAppointment", "lab", "general"];
@@ -27,7 +25,6 @@ const CareCoordinatorCommunication = () => {
     const [contacts, setContacts] = useState(null);
     const [loadError, setLoadError] = useState(null);
     const [copiedId, setCopiedId] = useState(null);
-    const [searchContact, setSearchContact] = useState("");
 
     useEffect(() => {
         const token = localStorage.getItem("adminToken");
@@ -97,16 +94,8 @@ const CareCoordinatorCommunication = () => {
                 roleLabel: t("careCoordinatorCommunication.roleNurse"),
             });
         }
-    return out;
-  }, [contacts, t]);
-
-  const filteredContacts = useMemo(() => {
-    if (!searchContact.trim()) return contactRows;
-    const q = searchContact.toLowerCase();
-    return contactRows.filter((r) => r.name.toLowerCase().includes(q));
-  }, [contactRows, searchContact]);
-
-  const { page, setPage, totalPages, paginated: paginatedContacts, totalItems } = usePagination(filteredContacts, 5);
+        return out;
+    }, [contacts, t]);
 
     const copyTemplate = useCallback(
         async (id) => {
@@ -186,73 +175,43 @@ const CareCoordinatorCommunication = () => {
                                 <p className="text-muted small">{t("careCoordinatorCommunication.emptyContacts")}</p>
                             )}
                             {contactRows.length > 0 && (
-                                <>
-                                    {/* Recherche contacts */}
-                                    <Row className="g-2 mb-3">
-                                        <Col md={5}>
-                                            <InputGroup size="sm">
-                                                <InputGroup.Text><i className="ri-search-line" /></InputGroup.Text>
-                                                <Form.Control
-                                                    placeholder="Search by name..."
-                                                    value={searchContact}
-                                                    onChange={(e) => setSearchContact(e.target.value)}
-                                                />
-                                                {searchContact && (
-                                                    <Button variant="outline-secondary" size="sm" onClick={() => setSearchContact("")}>
-                                                        <i className="ri-close-line" />
-                                                    </Button>
-                                                )}
-                                            </InputGroup>
-                                        </Col>
-                                        <Col md={2} className="d-flex align-items-center">
-                                            <small className="text-muted">{filteredContacts.length} / {contactRows.length} contacts</small>
-                                        </Col>
-                                    </Row>
-                                    <div className="table-responsive">
-                                        <table className="table table-sm align-middle mb-0">
-                                            <thead>
-                                                <tr>
-                                                    <th>{t("careCoordinatorCommunication.thName")}</th>
-                                                    <th>{t("careCoordinatorCommunication.thRole")}</th>
-                                                    <th className="text-end">{t("careCoordinatorCommunication.thAction")}</th>
+                                <div className="table-responsive">
+                                    <table className="table table-sm align-middle mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>{t("careCoordinatorCommunication.thName")}</th>
+                                                <th>{t("careCoordinatorCommunication.thRole")}</th>
+                                                <th className="text-end">{t("careCoordinatorCommunication.thAction")}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {contactRows.map((row) => (
+                                                <tr key={row.key}>
+                                                    <td>{row.name}</td>
+                                                    <td>
+                                                        <Badge bg="light" text="dark" className="fw-normal">
+                                                            {row.roleLabel}
+                                                        </Badge>
+                                                    </td>
+                                                    <td className="text-end">
+                                                        <Button
+                                                            as={Link}
+                                                            size="sm"
+                                                            variant="primary"
+                                                            to={
+                                                                row.thread === "patient"
+                                                                    ? chatHrefPatient(row.patientId)
+                                                                    : chatHref(row.peerRole, row.peerId)
+                                                            }
+                                                        >
+                                                            {t("careCoordinatorCommunication.openChat")}
+                                                        </Button>
+                                                    </td>
                                                 </tr>
-                                            </thead>
-                                            <tbody>
-                                                {paginatedContacts.map((row) => (
-                                                    <tr key={row.key}>
-                                                        <td>{row.name}</td>
-                                                        <td>
-                                                            <Badge bg="light" text="dark" className="fw-normal">
-                                                                {row.roleLabel}
-                                                            </Badge>
-                                                        </td>
-                                                        <td className="text-end">
-                                                            <Button
-                                                                as={Link}
-                                                                size="sm"
-                                                                variant="primary"
-                                                                to={
-                                                                    row.thread === "patient"
-                                                                        ? chatHrefPatient(row.patientId)
-                                                                        : chatHref(row.peerRole, row.peerId)
-                                                                }
-                                                            >
-                                                                {t("careCoordinatorCommunication.openChat")}
-                                                            </Button>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                    <PaginationBar
-                                        page={page}
-                                        totalPages={totalPages}
-                                        totalItems={totalItems}
-                                        pageSize={5}
-                                        onPageChange={setPage}
-                                    />
-                                </>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
                             )}
 
                             <div className="mt-4">

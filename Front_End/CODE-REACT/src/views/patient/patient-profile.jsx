@@ -10,6 +10,17 @@ import img11 from "/assets/images/user/11.png";
 
 const generatePath = (path) => window.origin + import.meta.env.BASE_URL + path;
 
+/** Title-case words for readable names (display only). */
+function titleCaseWords(value) {
+  if (value == null || String(value).trim() === "") return "";
+  return String(value)
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(" ");
+}
+
 const PatientProfile = () => {
   const { t } = useTranslation();
   const { id } = useParams();
@@ -105,8 +116,8 @@ const PatientProfile = () => {
           <FaceEnrollmentCard />
         </Col>
       </Row>
-      <Row>
-        <Col lg={4}>
+      <Row className="g-3 g-lg-4">
+        <Col xs={12} lg={4} className="order-1 order-lg-0">
           <Card>
             <Card.Body className="ps-0 pe-0 pt-0">
               <div className="docter-details-block">
@@ -138,41 +149,41 @@ const PatientProfile = () => {
             </Card.Body>
           </Card>
         </Col>
-        <Col lg={8}>
+        <Col xs={12} lg={8} className="order-2 order-lg-1 min-w-0">
           <Card>
-            <Card.Header className="d-flex justify-content-between">
-              <Card.Header.Title>
-                <h4 className="card-title">{t("patientProfile.personalInfo")}</h4>
+            <Card.Header className="d-flex flex-wrap align-items-center justify-content-between gap-2">
+              <Card.Header.Title className="mb-0">
+                <h4 className="card-title mb-0">{t("patientProfile.personalInfo")}</h4>
               </Card.Header.Title>
-              <Link to={`/patient/edit-patient/${id}`} className="btn btn-primary-subtle btn-sm">{t("patientProfile.edit")}</Link>
+              <Link to={`/patient/edit-patient/${id}`} className="btn btn-primary-subtle btn-sm flex-shrink-0">{t("patientProfile.edit")}</Link>
             </Card.Header>
-            <Card.Body>
+            <Card.Body className="px-3 px-sm-4">
               <div className="about-info m-0 p-0">
-                <Row>
-                  <Col xs={4}>{t("patientProfile.fieldFirstName")}</Col>
-                  <Col xs={8}>{displayPatient.firstName || "—"}</Col>
-                  <Col xs={4}>{t("patientProfile.fieldLastName")}</Col>
-                  <Col xs={8}>{displayPatient.lastName || "—"}</Col>
-                  <Col xs={4}>{t("patientProfile.fieldEmail")}</Col>
-                  <Col xs={8}>
-                    <a href={`mailto:${displayPatient.email || ""}`}>{displayPatient.email || "—"}</a>
+                <Row className="gy-2 gx-0">
+                  <Col xs={12} sm={4} className="fw-medium text-secondary pt-1">{t("patientProfile.fieldFirstName")}</Col>
+                  <Col xs={12} sm={8} className="text-dark text-break pb-1 pb-sm-0">{displayPatient.firstName || "—"}</Col>
+                  <Col xs={12} sm={4} className="fw-medium text-secondary pt-1">{t("patientProfile.fieldLastName")}</Col>
+                  <Col xs={12} sm={8} className="text-dark text-break pb-1 pb-sm-0">{displayPatient.lastName || "—"}</Col>
+                  <Col xs={12} sm={4} className="fw-medium text-secondary pt-1">{t("patientProfile.fieldEmail")}</Col>
+                  <Col xs={12} sm={8} className="text-dark text-break pb-1 pb-sm-0">
+                    <a href={`mailto:${displayPatient.email || ""}`} className="text-primary text-decoration-underline">{displayPatient.email || "—"}</a>
                   </Col>
-                  <Col xs={4}>{t("patientProfile.fieldPhone")}</Col>
-                  <Col xs={8}>
-                    <a href={`tel:${displayPatient.phone || ""}`}>{displayPatient.phone || "—"}</a>
+                  <Col xs={12} sm={4} className="fw-medium text-secondary pt-1">{t("patientProfile.fieldPhone")}</Col>
+                  <Col xs={12} sm={8} className="text-dark pb-1 pb-sm-0">
+                    <a href={`tel:${displayPatient.phone || ""}`} className="text-primary text-decoration-underline">{displayPatient.phone || "—"}</a>
                   </Col>
-                  <Col xs={4}>{t("patientProfile.fieldAlternate")}</Col>
-                  <Col xs={8}>{displayPatient.alternateContact || "—"}</Col>
-                  <Col xs={4}>{t("patientProfile.fieldDepartment")}</Col>
-                  <Col xs={8}>{displayPatient.department || displayPatient.service || "—"}</Col>
-                  <Col xs={4}>{t("patientProfile.fieldAddress")}</Col>
-                  <Col xs={8}>{displayPatient.address || "—"}</Col>
-                  <Col xs={4}>{t("patientProfile.fieldCity")}</Col>
-                  <Col xs={8}>{displayPatient.city || "—"}</Col>
-                  <Col xs={4}>{t("patientProfile.fieldCountry")}</Col>
-                  <Col xs={8}>{displayPatient.country || "—"}</Col>
-                  <Col xs={4}>{t("patientProfile.fieldPostal")}</Col>
-                  <Col xs={8}>{displayPatient.pinCode || "—"}</Col>
+                  <Col xs={12} sm={4} className="fw-medium text-secondary pt-1">{t("patientProfile.fieldAlternate")}</Col>
+                  <Col xs={12} sm={8} className="text-dark text-break pb-1 pb-sm-0">{displayPatient.alternateContact || "—"}</Col>
+                  <Col xs={12} sm={4} className="fw-medium text-secondary pt-1">{t("patientProfile.fieldDepartment")}</Col>
+                  <Col xs={12} sm={8} className="text-dark text-break pb-1 pb-sm-0">{displayPatient.department || displayPatient.service || "—"}</Col>
+                  <Col xs={12} sm={4} className="fw-medium text-secondary pt-1">{t("patientProfile.fieldAddress")}</Col>
+                  <Col xs={12} sm={8} className="text-dark text-break pb-1 pb-sm-0">{displayPatient.address || "—"}</Col>
+                  <Col xs={12} sm={4} className="fw-medium text-secondary pt-1">{t("patientProfile.fieldCity")}</Col>
+                  <Col xs={12} sm={8} className="text-dark text-break pb-1 pb-sm-0">{displayPatient.city || "—"}</Col>
+                  <Col xs={12} sm={4} className="fw-medium text-secondary pt-1">{t("patientProfile.fieldCountry")}</Col>
+                  <Col xs={12} sm={8} className="text-dark text-break pb-1 pb-sm-0">{displayPatient.country || "—"}</Col>
+                  <Col xs={12} sm={4} className="fw-medium text-secondary pt-1">{t("patientProfile.fieldPostal")}</Col>
+                  <Col xs={12} sm={8} className="text-dark text-break pb-1 pb-sm-0">{displayPatient.pinCode || "—"}</Col>
                 </Row>
               </div>
             </Card.Body>
@@ -180,52 +191,114 @@ const PatientProfile = () => {
           <Card className="mt-4">
             <Card.Header>
               <Card.Header.Title>
-                <h4 className="card-title mb-0">{t("patientProfile.careTeam")}</h4>
+                <h4 className="card-title mb-0" id="patient-profile-care-team-heading">{t("patientProfile.careTeam")}</h4>
               </Card.Header.Title>
             </Card.Header>
-            <Card.Body>
-              <Row className="g-3">
-                <Col md={6}>
-                  <div className="border rounded-3 p-3 h-100 bg-light-subtle">
-                    <div className="text-muted small text-uppercase mb-1">{t("patientProfile.physician")}</div>
-                    {assignedDoctor ? (
-                      <>
-                        <div className="fw-semibold">
-                          Dr. {assignedDoctor.firstName} {assignedDoctor.lastName}
-                        </div>
-                        {assignedDoctor.specialty && <div className="small text-muted">{assignedDoctor.specialty}</div>}
-                        {assignedDoctor.email && (
-                          <a href={`mailto:${assignedDoctor.email}`} className="small d-inline-block mt-1">
-                            {assignedDoctor.email}
-                          </a>
-                        )}
-                      </>
-                    ) : (
-                      <span className="text-muted">{t("patientProfile.notAssignedPhysician")}</span>
-                    )}
-                  </div>
+            <Card.Body className="pt-3 px-3 px-sm-4">
+              <div className="row g-3 g-md-4" role="list" aria-labelledby="patient-profile-care-team-heading">
+                <Col xs={12} md={6} role="listitem" className="min-w-0">
+                  <article
+                    className="h-100 rounded-3 border bg-white overflow-hidden d-flex flex-column"
+                    style={{
+                      borderColor: "rgba(8, 155, 171, 0.35)",
+                      boxShadow: "0 2px 10px rgba(0, 0, 0, 0.06)",
+                    }}
+                    aria-labelledby="care-team-physician-title"
+                  >
+                    <div
+                      className="px-3 py-2 border-bottom d-flex align-items-center gap-2"
+                      style={{
+                        background: "linear-gradient(105deg, rgba(8, 155, 171, 0.14) 0%, rgba(8, 155, 171, 0.06) 100%)",
+                        borderColor: "rgba(8, 155, 171, 0.2)",
+                      }}
+                    >
+                      <span className="text-primary fs-5 lh-1" aria-hidden="true">
+                        <i className="ri-stethoscope-line" />
+                      </span>
+                      <h5 className="mb-0 fs-6 fw-bold text-dark text-uppercase" style={{ letterSpacing: "0.04em" }} id="care-team-physician-title">
+                        {t("patientProfile.physician")}
+                      </h5>
+                    </div>
+                    <div className="p-3 p-md-4 flex-grow-1 min-w-0">
+                      {assignedDoctor ? (
+                        <>
+                          <p className="mb-2 fs-5 fw-bold text-dark lh-sm text-break">
+                            Dr. {titleCaseWords(assignedDoctor.firstName)} {titleCaseWords(assignedDoctor.lastName)}
+                          </p>
+                          {assignedDoctor.specialty ? (
+                            <p className="mb-3 fw-medium text-dark" style={{ fontSize: "0.9375rem", lineHeight: 1.5 }}>
+                              {titleCaseWords(assignedDoctor.specialty)}
+                            </p>
+                          ) : null}
+                          {assignedDoctor.email ? (
+                            <a
+                              href={`mailto:${assignedDoctor.email}`}
+                              className="d-inline-flex align-items-start gap-2 text-primary fw-medium text-break rounded-1"
+                              style={{ textDecoration: "underline", textUnderlineOffset: "0.2em" }}
+                            >
+                              <i className="ri-mail-line flex-shrink-0 mt-1" aria-hidden="true" />
+                              <span>{assignedDoctor.email}</span>
+                            </a>
+                          ) : null}
+                        </>
+                      ) : (
+                        <p className="mb-0 text-dark" style={{ fontSize: "0.9375rem" }}>{t("patientProfile.notAssignedPhysician")}</p>
+                      )}
+                    </div>
+                  </article>
                 </Col>
-                <Col md={6}>
-                  <div className="border rounded-3 p-3 h-100 bg-light-subtle">
-                    <div className="text-muted small text-uppercase mb-1">{t("patientProfile.nurse")}</div>
-                    {assignedNurse ? (
-                      <>
-                        <div className="fw-semibold">
-                          {assignedNurse.firstName} {assignedNurse.lastName}
-                        </div>
-                        {assignedNurse.department && <div className="small text-muted">{assignedNurse.department}</div>}
-                        {assignedNurse.email && (
-                          <a href={`mailto:${assignedNurse.email}`} className="small d-inline-block mt-1">
-                            {assignedNurse.email}
-                          </a>
-                        )}
-                      </>
-                    ) : (
-                      <span className="text-muted">{t("patientProfile.notAssignedNurse")}</span>
-                    )}
-                  </div>
+                <Col xs={12} md={6} role="listitem" className="min-w-0">
+                  <article
+                    className="h-100 rounded-3 border bg-white overflow-hidden d-flex flex-column"
+                    style={{
+                      borderColor: "rgba(8, 155, 171, 0.35)",
+                      boxShadow: "0 2px 10px rgba(0, 0, 0, 0.06)",
+                    }}
+                    aria-labelledby="care-team-nurse-title"
+                  >
+                    <div
+                      className="px-3 py-2 border-bottom d-flex align-items-center gap-2"
+                      style={{
+                        background: "linear-gradient(105deg, rgba(8, 155, 171, 0.14) 0%, rgba(8, 155, 171, 0.06) 100%)",
+                        borderColor: "rgba(8, 155, 171, 0.2)",
+                      }}
+                    >
+                      <span className="text-primary fs-5 lh-1" aria-hidden="true">
+                        <i className="ri-nurse-line" />
+                      </span>
+                      <h5 className="mb-0 fs-6 fw-bold text-dark text-uppercase" style={{ letterSpacing: "0.04em" }} id="care-team-nurse-title">
+                        {t("patientProfile.nurse")}
+                      </h5>
+                    </div>
+                    <div className="p-3 p-md-4 flex-grow-1 min-w-0">
+                      {assignedNurse ? (
+                        <>
+                          <p className="mb-2 fs-5 fw-bold text-dark lh-sm text-break">
+                            {titleCaseWords(assignedNurse.firstName)} {titleCaseWords(assignedNurse.lastName)}
+                          </p>
+                          {assignedNurse.department ? (
+                            <p className="mb-3 fw-medium text-dark" style={{ fontSize: "0.9375rem", lineHeight: 1.5 }}>
+                              {titleCaseWords(assignedNurse.department)}
+                            </p>
+                          ) : null}
+                          {assignedNurse.email ? (
+                            <a
+                              href={`mailto:${assignedNurse.email}`}
+                              className="d-inline-flex align-items-start gap-2 text-primary fw-medium text-break rounded-1"
+                              style={{ textDecoration: "underline", textUnderlineOffset: "0.2em" }}
+                            >
+                              <i className="ri-mail-line flex-shrink-0 mt-1" aria-hidden="true" />
+                              <span>{assignedNurse.email}</span>
+                            </a>
+                          ) : null}
+                        </>
+                      ) : (
+                        <p className="mb-0 text-dark" style={{ fontSize: "0.9375rem" }}>{t("patientProfile.notAssignedNurse")}</p>
+                      )}
+                    </div>
+                  </article>
                 </Col>
-              </Row>
+              </div>
             </Card.Body>
           </Card>
         </Col>

@@ -28,6 +28,8 @@ import { useTranslation } from "react-i18next"
 import { LARGE_TEXT_STORAGE_KEY } from "../../../constants/accessibility"
 import { getA11yReadablePageText } from "../../../utils/a11yReadPage"
 import { useHandGesture } from "../../../context/HandGestureContext"
+import { toggleMainSidebar } from "../../../utils/mainSidebar"
+import { useSidebarLayout } from "../../../context/SidebarLayoutContext"
 
 const generatePath = (path) => {
   const base = (import.meta.env.BASE_URL || "/").replace(/\/+$/, "") || "";
@@ -273,6 +275,8 @@ const Header = () => {
       setError: setHandError,
    } = useHandGesture();
 
+   const { isDesktop, toggleNarrowDrawer } = useSidebarLayout();
+
    const stopPageReading = useCallback(() => {
       if (typeof window !== "undefined" && window.speechSynthesis) {
          window.speechSynthesis.cancel();
@@ -369,23 +373,8 @@ const Header = () => {
 
 
    const handleSidebar = () => {
-      let aside = document.getElementsByTagName("ASIDE")[0];
-      if (aside) {
-         if (!aside.classList.contains('sidebar-mini')) {
-            aside.classList.toggle("sidebar-mini");
-            aside.classList.toggle("sidebar-hover");
-         } else {
-            aside.classList.remove("sidebar-mini")
-            aside.classList.remove("sidebar-hover");
-         }
-
-         if (window.innerWidth < 990) {
-            if (!aside.classList.contains('sidebar-mini')) {
-               aside.classList.remove("sidebar-mini")
-               aside.classList.toggle("sidebar-hover");
-            }
-         }
-      }
+      if (!isDesktop) toggleNarrowDrawer();
+      else toggleMainSidebar();
    }
 
    return (
@@ -398,9 +387,9 @@ const Header = () => {
                      {t("nav.handNavHelp")}
                   </span>
                )}
-               <Row className="flex-grow-1">
-                  <Col lg={4} md={6} className="align-items-center d-flex">
-                     <Nav.Item as="li" className="nav-item dropdown search-width pt-2 pt-lg-0">
+               <Row className="flex-grow-1 mx-0 gx-2 gx-xl-3 gy-2 align-items-center w-100">
+                  <Col xs={12} xl={4} lg={5} md={12} className="align-items-center d-flex min-w-0">
+                     <Nav.Item as="li" className="nav-item dropdown search-width pt-2 pt-xl-0 w-100">
                         <div className="form-group input-group mb-0 search-input">
                            <input type="text" className="form-control"
                               placeholder={t("nav.searchPlaceholder")} />{" "}
@@ -421,10 +410,10 @@ const Header = () => {
                         </div>
                      </Nav.Item>
                   </Col>
-                  <Col lg={8} md={6}
-                     className="d-flex justify-content-end align-items-center">
+                  <Col xs={12} xl={8} lg={7} md={12}
+                     className="d-flex justify-content-end align-items-center flex-wrap gap-1 gap-sm-2 min-w-0">
                      <span
-                        className="d-inline-flex align-items-center gap-1 me-2 flex-shrink-0"
+                        className="d-inline-flex align-items-center gap-1 me-1 me-sm-2 flex-shrink-0"
                         title={t("nav.regionFlagsTitle")}
                         role="img"
                         aria-label={t("nav.regionFlagsTitle")}
@@ -898,10 +887,10 @@ const Header = () => {
             </Container>
 
             {/* -- collapse -- */}
-            <Navbar.Collapse id="navbarSupportedContent">
-               <Row className="flex-grow-1 pt-4 pb-4 px-2">
+            <Navbar.Collapse id="navbarSupportedContent" className="navbar-collapse-inner">
+               <Row className="flex-grow-1 pt-3 pt-xl-0 pb-3 pb-xl-0 px-1 px-sm-2 mx-0 g-0 w-100">
 
-                  <Col md={12} className="d-flex justify-content-end align-items-center flex-wrap gap-2">
+                  <Col xs={12} className="d-flex justify-content-end align-items-center flex-wrap gap-2">
                      <LanguageSwitcher toggleClassName="nav-link d-block d-xl-none" />{" "}
                      {isA11ySession && (
                         <Nav.Item as="li" className="nav-item d-flex d-xl-none align-items-center flex-wrap gap-1 justify-content-end">

@@ -15,14 +15,24 @@ import Header from "../components/partials/headerStyle/header";
 import Footer from "../components/partials/footerStyle/footer";
 import Sidebar from "../components/partials/sidebar/sidebar";
 import SettingOffCanvas from "../components/setting/SettingOffCanvas";
+import { SidebarLayoutProvider, useSidebarLayout } from "../context/SidebarLayoutContext";
 
 
-const DefaultLayout = () => {
+function DefaultLayoutInner() {
   const pageLayout = useSelector(SettingSelector.page_layout)
+  const { isDesktop, narrowDrawerOpen, closeNarrowDrawer } = useSidebarLayout();
 
   return (
     <>
       <div className="wrapper">
+        {!isDesktop && narrowDrawerOpen ? (
+          <button
+            type="button"
+            className="mf-sidebar-backdrop"
+            onClick={closeNarrowDrawer}
+            aria-label="Close menu"
+          />
+        ) : null}
         <Sidebar />
         <main className="main-content content-page ">
           <div className="position-relative">
@@ -40,6 +50,14 @@ const DefaultLayout = () => {
       <SettingOffCanvas />
 
     </>
+  );
+}
+
+const DefaultLayout = () => {
+  return (
+    <SidebarLayoutProvider>
+      <DefaultLayoutInner />
+    </SidebarLayoutProvider>
   );
 };
 

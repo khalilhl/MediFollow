@@ -1,5 +1,5 @@
-import React, { useEffect } from "react"
-import { Link, useLocation } from "react-router-dom"
+import React, { useEffect, useMemo } from "react"
+import { Link } from "react-router-dom"
 
 // Import Component
 import Logo from "../../logo"
@@ -10,72 +10,55 @@ import Scrollbar from "smooth-scrollbar";
 import * as SettingSelector from "../../../store/setting/selectors";
 
 // Redux Selector / Action
-import { useSelector, useDispatch } from "react-redux";
+import { useSelector } from "react-redux";
+import { useSidebarLayout } from "../../../context/SidebarLayoutContext";
+import { toggleMainSidebar } from "../../../utils/mainSidebar";
 
 const Sidebar = () => {
-   const dispatch = useDispatch();
-   const location = useLocation()
+   const { isDesktop, narrowDrawerOpen, toggleNarrowDrawer, openNarrowDrawer } = useSidebarLayout();
 
    const sidebarColor = useSelector(SettingSelector.sidebar_color);
    const sidebarType = useSelector(SettingSelector.sidebar_type);
-   const newsidebarType = sidebarType.filter(Boolean).join(' ');
-
    const sidebarMenuStyle = useSelector(SettingSelector.sidebar_menu_style);
 
-   useEffect(() => {
-      Scrollbar.init(document.querySelector("#my-scrollbar"));
-
-      let aside = document.getElementsByTagName("ASIDE")[0];
-   }, [])
-
-   const handleSidebar = (data) => {
-      let aside = document.getElementsByTagName("ASIDE")[0];
-      if (aside) {
-         if (!aside.classList.contains('sidebar-mini')) {
-            aside.classList.toggle("sidebar-mini");
-            aside.classList.toggle("sidebar-hover");
-         } else if (data === true) {
-            aside.classList.remove("sidebar-mini")
-            aside.classList.remove("sidebar-hover");
-         }
-      }
-   }
-
-   const removeSidbarClass = () => {
-      let aside = document.getElementsByTagName("ASIDE")[0];
-      if (aside) {
-         if (aside.classList.contains('sidebar-mini')) {
-            aside.classList.remove("sidebar-mini")
-            aside.classList.remove("sidebar-hover");
-         }
-      }
-   }
+   /** Sous 1200px : ignorer sidebar-mini/hover du Redux et les piloter via narrowDrawerOpen. */
+   const appliedSidebarTypes = useMemo(() => {
+      const types = sidebarType.filter(Boolean);
+      if (isDesktop) return types.join(" ");
+      const core = types.filter((t) => t !== "sidebar-mini" && t !== "sidebar-hover");
+      if (narrowDrawerOpen) return core.join(" ");
+      return [...core, "sidebar-mini", "sidebar-hover"].join(" ");
+   }, [isDesktop, narrowDrawerOpen, sidebarType]);
 
    useEffect(() => {
-      if (location.pathname === "/dashboard") {
-         handleSidebar()
-      } else if (window.innerWidth < 999) {
-         handleSidebar()
+      const el = document.querySelector("#my-scrollbar");
+      if (el) {
+         try {
+            Scrollbar.init(el);
+         } catch {
+            /* déjà initialisé */
+         }
       }
-      else {
-         removeSidbarClass()
-      }
-   }, [location.pathname])
+   }, []);
 
-   window.addEventListener("resize", () => {
-      if (window.innerWidth < 990) {
-         handleSidebar()
-      } else if (location.pathname === "/dashboard") {
-         handleSidebar()
+   /**
+    * Desktop : toggle mini (thème Xray).
+    * Étroit : ouverture/fermeture du tiroir (React).
+    * forceExpand === true : menu desktop « more » → tout déplier.
+    */
+   const handleSidebar = (forceExpand) => {
+      if (!isDesktop) {
+         if (forceExpand === true) openNarrowDrawer();
+         else toggleNarrowDrawer();
+         return;
       }
-      else {
-         removeSidbarClass()
-      }
-   })
+      toggleMainSidebar(forceExpand === true ? true : undefined);
+   };
+
    return (
       <>
          <aside
-            className={`sidebar sidebar-base sidebar-default ${sidebarColor} ${newsidebarType} ${sidebarMenuStyle}`}
+            className={`sidebar sidebar-base sidebar-default ${sidebarColor} ${appliedSidebarTypes} ${sidebarMenuStyle}${!isDesktop && narrowDrawerOpen ? " mf-sidebar-drawer-open" : ""}`.replace(/\s+/g, " ").trim()}
             id="first-tour" data-toggle="main-sidebar" data-sidebar="responsive">
             <div className="sidebar-header d-flex align-items-center justify-content-center position-relative">
                <Link to="/dashboard" className="navbar-brand pt-3">
@@ -84,15 +67,15 @@ const Sidebar = () => {
                <div className="wrapper-menu d-flex d-none d-xl-block" onClick={() => { handleSidebar(true) }}>
                   <div className="main-circle" role="button"><i className="ri-more-fill"></i></div>
                </div>
-               <li className="nav-item d-block d-xl-none" onClick={handleSidebar}>
-                  <a className="wrapper-menu" data-toggle="sidebar" data-active="true">
+               <li className="nav-item d-block d-xl-none" onClick={() => handleSidebar()}>
+                  <a className="wrapper-menu" data-toggle="sidebar" data-active="true" href="#menu" onClick={(e) => e.preventDefault()}>
                      <div className="main-circle "><i className="ri-more-fill"></i></div>
                   </a>
                </li>
             </div>
             <div id="my-scrollbar" className="sidebar-body pt-0 data-scrollbar">
                <div className="sidebar-list">
-                  <VerticalNav handleSidebar={handleSidebar} />
+                  <VerticalNav />
                </div>
             </div>
             <div className="sidebar-footer"></div>
@@ -102,4 +85,3 @@ const Sidebar = () => {
 }
 
 export default Sidebar
-

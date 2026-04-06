@@ -70,31 +70,31 @@ const SuperAdminDashboard = () => {
   };
 
   return (
-    <>
+    <div className="super-admin-dashboard-page" style={{ minWidth: 0 }}>
       <Row>
-        <Col sm={12}>
-          <div className="d-flex justify-content-between align-items-center mb-4">
-            <div>
-              <h4 className="mb-1">{t("superAdminDashboard.pageTitle")}</h4>
-              <p className="text-muted mb-0">{t("superAdminDashboard.subtitle")}</p>
+        <Col xs={12}>
+          <div className="d-flex flex-column flex-md-row flex-wrap justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+            <div style={{ minWidth: 0 }}>
+              <h4 className="mb-1 text-break">{t("superAdminDashboard.pageTitle")}</h4>
+              <p className="text-muted mb-0 text-break">{t("superAdminDashboard.subtitle")}</p>
             </div>
           </div>
         </Col>
       </Row>
 
-      <Row>
+      <Row className="g-3">
         {STAT_CARD_DEFS.map((stat, i) => (
-          <Col key={i} xl={4} md={6} className="mb-4">
+          <Col key={i} xs={12} sm={6} xl={4} className="mb-4 mb-xl-0">
             <Card className="border-0 shadow-sm h-100">
               <Card.Body>
-                <div className="d-flex justify-content-between align-items-center">
-                  <div>
+                <div className="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                  <div style={{ minWidth: 0 }}>
                     <p className="text-muted mb-1 small">{t(`superAdminDashboard.${stat.titleKey}`)}</p>
                     <h3 className="mb-0 fw-bold">
                       {loading ? "..." : <CountUp end={stats[stat.statKey]} duration={1.5} />}
                     </h3>
                   </div>
-                  <div className={`bg-${stat.color} bg-opacity-10 rounded-circle p-3`}>
+                  <div className={`bg-${stat.color} bg-opacity-10 rounded-circle p-3 flex-shrink-0`}>
                     <i className={`${stat.icon} text-${stat.color}`} style={{ fontSize: "1.8rem" }}></i>
                   </div>
                 </div>
@@ -109,13 +109,13 @@ const SuperAdminDashboard = () => {
         ))}
       </Row>
 
-      <Row className="mt-2">
-        <Col md={8}>
+      <Row className="mt-4 g-3">
+        <Col xs={12} md={8}>
           <Card className="border-0 shadow-sm">
             <Card.Header className="bg-white border-0 pt-4 pb-0">
-              <div className="d-flex justify-content-between align-items-center">
+              <div className="d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <h5 className="mb-0">{t("superAdminDashboard.recentUsers")}</h5>
-                <Link to="/super-admin/users" className="btn btn-sm btn-primary-subtle">{t("superAdminDashboard.seeAll")}</Link>
+                <Link to="/super-admin/users" className="btn btn-sm btn-primary-subtle flex-shrink-0">{t("superAdminDashboard.seeAll")}</Link>
               </div>
             </Card.Header>
             <Card.Body>
@@ -139,8 +139,8 @@ const SuperAdminDashboard = () => {
                     <tbody>
                       {recentUsers.map((u) => (
                         <tr key={u.id}>
-                          <td>{u.name || `${u.firstName || ""} ${u.lastName || ""}`.trim() || t("superAdminDashboard.dash")}</td>
-                          <td className="text-muted small">{u.email}</td>
+                          <td className="text-break">{u.name || `${u.firstName || ""} ${u.lastName || ""}`.trim() || t("superAdminDashboard.dash")}</td>
+                          <td className="text-muted small text-break">{u.email}</td>
                           <td>
                             <span className={`badge bg-${ROLE_COLORS[u.role] || "secondary"} bg-opacity-10 text-${ROLE_COLORS[u.role] || "secondary"}`}>
                               {roleLabel(u.role)}
@@ -161,7 +161,7 @@ const SuperAdminDashboard = () => {
           </Card>
         </Col>
 
-        <Col md={4}>
+        <Col xs={12} md={4}>
           <Card className="border-0 shadow-sm h-100">
             <Card.Header className="bg-white border-0 pt-4 pb-0">
               <h5 className="mb-0">{t("superAdminDashboard.quickActions")}</h5>
@@ -183,7 +183,7 @@ const SuperAdminDashboard = () => {
           </Card>
         </Col>
       </Row>
-    </>
+    </div>
   );
 };
 

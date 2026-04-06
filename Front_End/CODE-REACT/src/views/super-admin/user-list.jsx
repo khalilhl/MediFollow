@@ -155,17 +155,17 @@ const UserList = () => {
   return (
     <>
       <Row>
-        <Col md={12}>
-          <h4 className="fw-bold mb-1" style={{ color: "#009688" }}>
+        <Col xs={12}>
+          <h4 className="fw-bold mb-1 text-break" style={{ color: "#009688" }}>
             {t("superAdminUsers.pageTitle")}
           </h4>
-          <p className="text-muted mb-4">{t("superAdminUsers.subtitle")}</p>
+          <p className="text-muted mb-4 text-break">{t("superAdminUsers.subtitle")}</p>
         </Col>
       </Row>
 
-      <Row className="mb-4">
+      <Row className="mb-4 g-3">
         {STAT_DEFS.map((s) => (
-          <Col md={4} key={s.labelKey}>
+          <Col xs={12} md={4} key={s.labelKey}>
             <Card className="border-0 shadow-sm">
               <Card.Body className="d-flex align-items-center gap-3">
                 <div
@@ -190,7 +190,7 @@ const UserList = () => {
       <Card className="shadow-sm border-0">
         <Card.Body>
           <Row className="mb-3 g-2">
-            <Col md={5}>
+            <Col xs={12} md={5}>
               <InputGroup>
                 <InputGroup.Text><i className="ri-search-line"></i></InputGroup.Text>
                 <Form.Control
@@ -200,7 +200,7 @@ const UserList = () => {
                 />
               </InputGroup>
             </Col>
-            <Col md={3}>
+            <Col xs={12} sm={6} md={3}>
               <Form.Select value={filterRole} onChange={(e) => setFilterRole(e.target.value)}>
                 <option value="all">{t("superAdminUsers.filterAllRoles")}</option>
                 <option value="admin">{t("superAdminDashboard.roleAdmin")}</option>
@@ -211,15 +211,15 @@ const UserList = () => {
                 <option value="carecoordinator">{t("superAdminDashboard.roleCareCoordinator")}</option>
               </Form.Select>
             </Col>
-            <Col md={3}>
+            <Col xs={12} sm={6} md={3}>
               <Form.Select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
                 <option value="all">{t("superAdminUsers.filterAllStatuses")}</option>
                 <option value="active">{t("superAdminDashboard.statusActive")}</option>
                 <option value="inactive">{t("superAdminDashboard.statusInactive")}</option>
               </Form.Select>
             </Col>
-            <Col md={1}>
-              <Button variant="outline-secondary" onClick={loadUsers} title={t("superAdminUsers.refreshTitle")}>
+            <Col xs={12} md={1}>
+              <Button variant="outline-secondary" onClick={loadUsers} title={t("superAdminUsers.refreshTitle")} className="w-100">
                 <i className="ri-refresh-line"></i>
               </Button>
             </Col>

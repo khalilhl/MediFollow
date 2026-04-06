@@ -40,6 +40,10 @@ const UserList = () => {
   const [filterStatus, setFilterStatus] = useState("all");
   const [actionMsg, setActionMsg] = useState("");
   const [confirmModal, setConfirmModal] = useState({ show: false, user: null });
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [addAdminModal, setAddAdminModal] = useState(false);
+  const [addAdminLoading, setAddAdminLoading] = useState(false);
+  const [addAdminForm, setAddAdminForm] = useState({ email: "", password: "", name: "" });
 
   const loadUsers = useCallback(async () => {
     try {
@@ -98,6 +102,50 @@ const UserList = () => {
   useEffect(() => {
     loadUsers();
   }, [loadUsers]);
+
+  useEffect(() => {
+    try {
+      const u = JSON.parse(localStorage.getItem("adminUser") || "null");
+      setIsSuperAdmin(u?.role === "superadmin");
+    } catch {
+      setIsSuperAdmin(false);
+    }
+  }, []);
+
+  const handleCreateAdmin = async (e) => {
+    e.preventDefault();
+    setError("");
+    if (!addAdminForm.email.trim() || !addAdminForm.password) {
+      setError(t("superAdminUsers.addAdminValidation"));
+      return;
+    }
+    if (addAdminForm.password.length < 6) {
+      setError(t("superAdminUsers.addAdminPasswordMin"));
+      return;
+    }
+    setAddAdminLoading(true);
+    try {
+      const created = await superAdminApi.createAdmin({
+        email: addAdminForm.email.trim(),
+        password: addAdminForm.password,
+        name: addAdminForm.name.trim() || undefined,
+      });
+      const emailAddr = addAdminForm.email.trim();
+      setActionMsg(
+        created?.credentialsEmailSent
+          ? t("superAdminUsers.addAdminSuccessEmail", { email: emailAddr })
+          : t("superAdminUsers.addAdminSuccessNoSmtp", { email: emailAddr }),
+      );
+      setTimeout(() => setActionMsg(""), 4000);
+      setAddAdminModal(false);
+      setAddAdminForm({ email: "", password: "", name: "" });
+      loadUsers();
+    } catch (err) {
+      setError(err.message || t("superAdminUsers.addAdminError"));
+    } finally {
+      setAddAdminLoading(false);
+    }
+  };
 
   const handleToggle = async (user) => {
     try {
@@ -161,6 +209,23 @@ const UserList = () => {
           </h4>
           <p className="text-muted mb-4 text-break">{t("superAdminUsers.subtitle")}</p>
         </Col>
+        {isSuperAdmin && (
+          <Col xs="auto" className="mb-4">
+            <Button
+              variant="primary"
+              size="sm"
+              className="text-nowrap"
+              style={{ background: "#009688", borderColor: "#009688" }}
+              onClick={() => {
+                setError("");
+                setAddAdminModal(true);
+              }}
+            >
+              <i className="ri-user-add-line me-1"></i>
+              {t("superAdminUsers.addAdminButton")}
+            </Button>
+          </Col>
+        )}
       </Row>
 
       <Row className="mb-4 g-3">
@@ -314,6 +379,68 @@ const UserList = () => {
             {t("superAdminUsers.confirm")}
           </Button>
         </Modal.Footer>
+      </Modal>
+
+      <Modal
+        show={addAdminModal}
+        onHide={() => !addAdminLoading && setAddAdminModal(false)}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>{t("superAdminUsers.addAdminModalTitle")}</Modal.Title>
+        </Modal.Header>
+        <Form onSubmit={handleCreateAdmin}>
+          <Modal.Body>
+            <Form.Group className="mb-3">
+              <Form.Label>{t("superAdminUsers.addAdminEmail")}</Form.Label>
+              <Form.Control
+                type="email"
+                required
+                autoComplete="email"
+                value={addAdminForm.email}
+                onChange={(e) => setAddAdminForm((f) => ({ ...f, email: e.target.value }))}
+                disabled={addAdminLoading}
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>{t("superAdminUsers.addAdminPassword")}</Form.Label>
+              <Form.Control
+                type="password"
+                required
+                autoComplete="new-password"
+                value={addAdminForm.password}
+                onChange={(e) => setAddAdminForm((f) => ({ ...f, password: e.target.value }))}
+                disabled={addAdminLoading}
+                minLength={6}
+              />
+            </Form.Group>
+            <Form.Group className="mb-0">
+              <Form.Label>{t("superAdminUsers.addAdminNameOptional")}</Form.Label>
+              <Form.Control
+                type="text"
+                autoComplete="name"
+                value={addAdminForm.name}
+                onChange={(e) => setAddAdminForm((f) => ({ ...f, name: e.target.value }))}
+                disabled={addAdminLoading}
+              />
+            </Form.Group>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" type="button" disabled={addAdminLoading} onClick={() => setAddAdminModal(false)}>
+              {t("superAdminUsers.cancel")}
+            </Button>
+            <Button type="submit" style={{ background: "#009688", borderColor: "#009688" }} disabled={addAdminLoading}>
+              {addAdminLoading ? (
+                <>
+                  <Spinner animation="border" size="sm" className="me-2" />
+                  {t("superAdminUsers.addAdminSaving")}
+                </>
+              ) : (
+                t("superAdminUsers.addAdminSubmit")
+              )}
+            </Button>
+          </Modal.Footer>
+        </Form>
       </Modal>
     </>
   );

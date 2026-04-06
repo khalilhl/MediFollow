@@ -26,7 +26,8 @@
     "languageMenu": "Language",
     "a11yReadPageEmpty": "No readable text in this area.",
     "handNavHelp": "Finger navigation: point with your index finger in front of the camera. The cursor follows your finger. Hold 0.8 s on an element to click. Without this feature, use Tab to move between controls and Enter or Space to activate buttons.",
-    "assistHandGroupLabel": "Hand and camera navigation"
+    "assistHandGroupLabel": "Hand and camera navigation",
+    "accessibilityMenuButton": "Accessibility"
   },
   "emailPage": {
     "loading": "Loading…",
@@ -1214,7 +1215,20 @@
     "toggleError": "Error changing account status: {{message}}",
     "toastActivated": "Account of {{name}} was activated successfully.",
     "toastDeactivated": "Account of {{name}} was deactivated successfully.",
-    "dash": "—"
+    "dash": "—",
+    "addAdminButton": "Create administrator",
+    "addAdminModalTitle": "New administrator account",
+    "addAdminEmail": "Email",
+    "addAdminPassword": "Password",
+    "addAdminNameOptional": "Display name (optional)",
+    "addAdminSubmit": "Create account",
+    "addAdminSaving": "Creating…",
+    "addAdminSuccess": "Administrator account {{email}} has been created.",
+    "addAdminSuccessEmail": "Account created. Login credentials have been sent to {{email}}.",
+    "addAdminSuccessNoSmtp": "Account created for {{email}}. Email could not be sent (SMTP not configured on the server): share the credentials manually.",
+    "addAdminError": "Could not create the administrator account.",
+    "addAdminValidation": "Enter an email and password.",
+    "addAdminPasswordMin": "Password must be at least 6 characters."
   },
   "superAdminViewAuditor": {
     "loadError": "Could not load auditor profile.",
@@ -1399,6 +1413,8 @@
     "a11yToolbarTitle": "Quick accessibility",
     "largeTextEnable": "Large text",
     "largeTextDisable": "Normal text",
+    "dyslexiaModeEnable": "Turn on dyslexia-friendly display",
+    "dyslexiaModeDisable": "Standard display",
     "readPage": "Read page",
     "stopReading": "Stop reading",
     "voiceAssistantReading": "Voice assistant is reading.",
@@ -1511,7 +1527,17 @@
     "colPatients": "Patients",
     "colDoctors": "Physicians",
     "colNurses": "Nurses",
-    "openDepartment": "Open department"
+    "openDepartment": "Open department",
+    "createCatalogTitle": "Add a department to the catalog",
+    "createCatalogHint": "Departments you add here appear in the dropdowns when creating patient, doctor, nurse, and care coordinator accounts.",
+    "createCatalogLabel": "Department name",
+    "createCatalogPlaceholder": "e.g. Advanced neurology",
+    "createCatalogSubmit": "Save",
+    "createCatalogSaving": "Saving…",
+    "createCatalogSuccess": "« {{name}} » has been added and is available in account creation forms.",
+    "createCatalogDuplicate": "This name already exists in the catalog.",
+    "createCatalogError": "Could not add the department.",
+    "createCatalogValidation": "Enter a department name."
   },
   "adminDepartmentDetail": {
     "breadcrumbNavLabel": "Breadcrumb",

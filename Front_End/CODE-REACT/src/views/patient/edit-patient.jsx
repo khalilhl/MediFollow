@@ -4,7 +4,8 @@ import Card from "../../components/Card";
 import { Button, Col, Container, Form, InputGroup, Row } from "react-bootstrap";
 import { useNavigate, useParams } from "react-router-dom";
 import { patientApi } from "../../services/api";
-import { HOSPITAL_DEPARTMENTS } from "../../constants/hospitalDepartments";
+import { HOSPITAL_DEPARTMENTS, hospitalDepartmentLabel } from "../../constants/hospitalDepartments";
+import { fetchMergedDepartmentNames, mergeDepartmentOptionsForValue } from "../../utils/mergedDepartmentNames";
 
 const generatePath = (path) => window.origin + import.meta.env.BASE_URL + path;
 
@@ -20,18 +21,6 @@ const COUNTRIES = [
 
 const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 const GENDER_VALUES = ["Homme", "Femme", "Autre"];
-
-/** Stable slug for i18n keys (matches editPatient.departments.*) */
-function departmentSlug(name) {
-  return name
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/-/g, "_")
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, "_")
-    .replace(/[^a-z0-9_]/g, "");
-}
 
 function normalizeGenderForForm(g) {
   if (g == null || String(g).trim() === "") return "";
@@ -53,6 +42,16 @@ const EditPatient = () => {
   const [originalProfileImage, setOriginalProfileImage] = useState("");
   const [formData, setFormData] = useState({});
   const [selectedCountry, setSelectedCountry] = useState(null);
+  const [deptOptions, setDeptOptions] = useState(HOSPITAL_DEPARTMENTS);
+
+  useEffect(() => {
+    fetchMergedDepartmentNames().then(setDeptOptions);
+  }, []);
+
+  const departmentSelectOptions = useMemo(
+    () => mergeDepartmentOptionsForValue(deptOptions, formData.department),
+    [deptOptions, formData.department],
+  );
 
   const genderOptions = useMemo(
     () =>
@@ -294,8 +293,8 @@ const EditPatient = () => {
                   <Form.Label className="mb-0">{t("editPatient.hospitalDepartment")}</Form.Label>
                   <Form.Control as="select" className="my-2" name="department" defaultValue={formData.department}>
                     <option value="">{t("editPatient.selectDepartment")}</option>
-                    {HOSPITAL_DEPARTMENTS.map((d) => (
-                      <option key={d} value={d}>{t(`editPatient.departments.${departmentSlug(d)}`)}</option>
+                    {departmentSelectOptions.map((d) => (
+                      <option key={d} value={d}>{hospitalDepartmentLabel(d, t)}</option>
                     ))}
                   </Form.Control>
                 </Form.Group>

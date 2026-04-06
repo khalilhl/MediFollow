@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Row, Col, Card, Form, Button, Alert, Spinner } from "react-bootstrap";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { superAdminApi } from "../../services/api";
 import { HOSPITAL_DEPARTMENTS, hospitalDepartmentLabel } from "../../constants/hospitalDepartments";
+import { fetchMergedDepartmentNames, mergeDepartmentOptionsForValue } from "../../utils/mergedDepartmentNames";
 
 const EditCareCoordinator = () => {
   const { t } = useTranslation();
@@ -45,6 +46,17 @@ const EditCareCoordinator = () => {
     fetchCoord();
   }, [id, t]);
 
+  const [deptOptions, setDeptOptions] = useState(HOSPITAL_DEPARTMENTS);
+
+  useEffect(() => {
+    fetchMergedDepartmentNames().then(setDeptOptions);
+  }, []);
+
+  const departmentSelectOptions = useMemo(
+    () => mergeDepartmentOptionsForValue(deptOptions, form.department),
+    [deptOptions, form.department],
+  );
+
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
@@ -79,8 +91,6 @@ const EditCareCoordinator = () => {
       setSaving(false);
     }
   };
-
-  const legacyDepartment = form.department && !HOSPITAL_DEPARTMENTS.includes(form.department);
 
   if (loading) {
     return (
@@ -136,10 +146,7 @@ const EditCareCoordinator = () => {
                     <Form.Label>{t("editCareCoordinator.labelDepartment")}</Form.Label>
                     <Form.Select name="department" value={form.department} onChange={handleChange}>
                       <option value="">{t("addPatient.selectDepartment")}</option>
-                      {legacyDepartment && (
-                        <option value={form.department}>{hospitalDepartmentLabel(form.department, t)}</option>
-                      )}
-                      {HOSPITAL_DEPARTMENTS.map((s) => (
+                      {departmentSelectOptions.map((s) => (
                         <option key={s} value={s}>
                           {hospitalDepartmentLabel(s, t)}
                         </option>

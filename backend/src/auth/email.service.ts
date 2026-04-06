@@ -142,6 +142,45 @@ export class EmailService {
     }
   }
 
+  /** Identifiants envoyés au nouvel administrateur créé par le super admin. Retourne true si l’e-mail a été envoyé via SMTP. */
+  async sendAdminCredentials(email: string, password: string, displayName: string): Promise<boolean> {
+    const loginUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const signInUrl = `${loginUrl}/auth/sign-in`;
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #089bab;">MediFollow — Compte administrateur</h2>
+        <p>Bonjour ${displayName || 'Administrateur'},</p>
+        <p>Un super administrateur a créé votre compte administrateur MediFollow. Voici vos identifiants de connexion :</p>
+        <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 20px 0;">
+          <p style="margin: 0 0 8px 0;"><strong>Email :</strong> ${email}</p>
+          <p style="margin: 0;"><strong>Mot de passe :</strong> ${password}</p>
+        </div>
+        <p>Connectez-vous via la page de connexion staff / administrateur :</p>
+        <p style="margin: 25px 0;">
+          <a href="${signInUrl}" style="background: #089bab; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+            Se connecter à MediFollow
+          </a>
+        </p>
+        <p style="color: #666; font-size: 12px;">Après connexion, un lien de confirmation peut vous être envoyé par e-mail selon la configuration de sécurité du compte.</p>
+        <p style="color: #666; font-size: 12px;">Pour des raisons de sécurité, nous vous recommandons de modifier votre mot de passe après la première connexion (Profil).</p>
+        <p style="color: #666; font-size: 12px;">Lien direct : <a href="${signInUrl}">${signInUrl}</a></p>
+      </div>
+    `;
+
+    if (this.transporter) {
+      await this.transporter.sendMail({
+        from: this.getSmtpFrom(),
+        to: email,
+        subject: 'MediFollow — Vos identifiants administrateur',
+        html,
+      });
+      return true;
+    }
+    console.log('[Admin] Email non configuré. Identifiants (à transmettre hors ligne) :', { email, password: '***' });
+    return false;
+  }
+
   async sendNurseCredentials(email: string, password: string, firstName: string, lastName: string) {
     const loginUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     const signInUrl = `${loginUrl}/auth/sign-in`;

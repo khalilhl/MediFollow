@@ -9,6 +9,8 @@ import { Appointment, AppointmentSchema } from '../appointment/schemas/appointme
 import { DepartmentService } from './department.service';
 import { CareCoordinatorFollowupService } from './care-coordinator-followup.service';
 import { DepartmentController } from './department.controller';
+import { User, UserSchema } from '../auth/schemas/user.schema';
+import { DepartmentCatalog, DepartmentCatalogSchema } from './schemas/department-catalog.schema';
 
 @Module({
   imports: [
@@ -19,6 +21,8 @@ import { DepartmentController } from './department.controller';
       { name: HealthLog.name, schema: HealthLogSchema },
       { name: Medication.name, schema: MedicationSchema },
       { name: Appointment.name, schema: AppointmentSchema },
+      { name: User.name, schema: UserSchema },
+      { name: DepartmentCatalog.name, schema: DepartmentCatalogSchema },
     ]),
   ],
   controllers: [DepartmentController],

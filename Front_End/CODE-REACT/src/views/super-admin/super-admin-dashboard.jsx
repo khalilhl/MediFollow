@@ -176,9 +176,6 @@ const SuperAdminDashboard = () => {
               <Link to="/super-admin/users" className="btn btn-outline-primary">
                 <i className="ri-team-line me-2"></i>{t("superAdminDashboard.manageUsers")}
               </Link>
-              <Link to="/doctor/add-doctor" className="btn btn-outline-success">
-                <i className="ri-stethoscope-line me-2"></i>{t("superAdminDashboard.addDoctor")}
-              </Link>
             </Card.Body>
           </Card>
         </Col>

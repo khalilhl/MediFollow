@@ -1,24 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Card from "../../components/Card";
 import { Button, Col, Container, Form, InputGroup, Row } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { doctorApi } from "../../services/api";
-import { HOSPITAL_DEPARTMENTS } from "../../constants/hospitalDepartments";
+import { HOSPITAL_DEPARTMENTS, hospitalDepartmentLabel } from "../../constants/hospitalDepartments";
+import { fetchMergedDepartmentNames } from "../../utils/mergedDepartmentNames";
 
 const generatePath = (path) => window.origin + import.meta.env.BASE_URL + path;
-
-/** Stable slug for editPatient.departments.* (same as edit-patient.jsx). */
-function departmentSlug(name) {
-  return name
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/-/g, "_")
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, "_")
-    .replace(/[^a-z0-9_]/g, "");
-}
 
 const SPECIALTIES = ["Surgery", "Gastroenterologist", "Endocrinologist", "Orthopaedic surgeon", "Cardiologist", "Family Physicians", "Gynaecology", "Eye Special", "Therapy Special", "Orthopedics Special", "Anesthesiologists", "General", "MD"];
 
@@ -55,6 +44,11 @@ const AddDoctor = () => {
   const [error, setError] = useState("");
   const [profilePreview, setProfilePreview] = useState(generatePath("/assets/images/user/11.png"));
   const [selectedCountry, setSelectedCountry] = useState(null);
+  const [deptOptions, setDeptOptions] = useState(HOSPITAL_DEPARTMENTS);
+
+  useEffect(() => {
+    fetchMergedDepartmentNames().then(setDeptOptions);
+  }, []);
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -218,9 +212,9 @@ const AddDoctor = () => {
                       <Form.Label className="mb-0">{t("addDoctor.department")}</Form.Label>
                       <Form.Control as="select" className="my-2" name="cname" required>
                         <option value="">{t("addDoctor.selectDepartment")}</option>
-                        {HOSPITAL_DEPARTMENTS.map((d) => (
+                        {deptOptions.map((d) => (
                           <option key={d} value={d}>
-                            {t(`editPatient.departments.${departmentSlug(d)}`)}
+                            {hospitalDepartmentLabel(d, t)}
                           </option>
                         ))}
                       </Form.Control>

@@ -1,9 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Patient } from '../patient/schemas/patient.schema';
 import { Doctor } from '../doctor/schemas/doctor.schema';
 import { Nurse } from '../nurse/schemas/nurse.schema';
+import { User } from '../auth/schemas/user.schema';
+import { DepartmentCatalog } from './schemas/department-catalog.schema';
 
 @Injectable()
 export class DepartmentService {
@@ -11,6 +13,8 @@ export class DepartmentService {
     @InjectModel(Patient.name) private patientModel: Model<Patient>,
     @InjectModel(Doctor.name) private doctorModel: Model<Doctor>,
     @InjectModel(Nurse.name) private nurseModel: Model<Nurse>,
+    @InjectModel(User.name) private userModel: Model<User>,
+    @InjectModel(DepartmentCatalog.name) private departmentCatalogModel: Model<DepartmentCatalog>,
   ) {}
 
   /** Patients sans department explicite : repli sur le champ service (anciennes données). */
@@ -28,15 +32,51 @@ export class DepartmentService {
     };
   }
 
-  async listSummaries() {
-    const [pDepts, pServices, dDepts, nDepts] = await Promise.all([
+  /** Liste pour les listes déroulantes : catalogue + données existantes. */
+  async listMergedDepartmentNames(): Promise<string[]> {
+    const [catalogNames, pDepts, pServices, dDepts, nDepts, uDepts] = await Promise.all([
+      this.departmentCatalogModel.distinct('name').exec(),
       this.patientModel.distinct('department').exec(),
       this.patientModel.distinct('service').exec(),
       this.doctorModel.distinct('department').exec(),
       this.nurseModel.distinct('department').exec(),
+      this.userModel.distinct('department').exec(),
     ]);
     const names = new Set<string>();
-    [...pDepts, ...pServices, ...dDepts, ...nDepts].forEach((v) => {
+    [...catalogNames, ...pDepts, ...pServices, ...dDepts, ...nDepts, ...uDepts].forEach((v) => {
+      if (v && String(v).trim()) names.add(String(v).trim());
+    });
+    return [...names].sort((a, b) => a.localeCompare(b, 'fr'));
+  }
+
+  async createCatalogDepartment(rawName: string) {
+    const name = (rawName || '').trim();
+    if (!name) {
+      throw new BadRequestException('Le nom du département est requis');
+    }
+    try {
+      const doc = await this.departmentCatalogModel.create({ name });
+      return { id: String(doc._id), name: doc.name };
+    } catch (e: unknown) {
+      const code = (e as { code?: number })?.code;
+      if (code === 11000) {
+        throw new ConflictException('Ce département existe déjà');
+      }
+      throw e;
+    }
+  }
+
+  async listSummaries() {
+    const [pDepts, pServices, dDepts, nDepts, catalogNames, uDepts] = await Promise.all([
+      this.patientModel.distinct('department').exec(),
+      this.patientModel.distinct('service').exec(),
+      this.doctorModel.distinct('department').exec(),
+      this.nurseModel.distinct('department').exec(),
+      this.departmentCatalogModel.distinct('name').exec(),
+      this.userModel.distinct('department').exec(),
+    ]);
+    const names = new Set<string>();
+    [...pDepts, ...pServices, ...dDepts, ...nDepts, ...catalogNames, ...uDepts].forEach((v) => {
       if (v && String(v).trim()) names.add(String(v).trim());
     });
     const sorted = [...names].sort((a, b) => a.localeCompare(b, 'fr'));

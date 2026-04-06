@@ -25,7 +25,7 @@ import PatientMedicationNotificationsBell from "../../PatientMedicationNotificat
 import LanguageSwitcher from "../../LanguageSwitcher"
 import { SvgFlagTn, SvgFlagDz } from "../../language-flag-svgs"
 import { useTranslation } from "react-i18next"
-import { LARGE_TEXT_STORAGE_KEY } from "../../../constants/accessibility"
+import { DYSLEXIA_MODE_STORAGE_KEY, LARGE_TEXT_STORAGE_KEY } from "../../../constants/accessibility"
 import { getA11yReadablePageText } from "../../../utils/a11yReadPage"
 import { useHandGesture } from "../../../context/HandGestureContext"
 
@@ -205,7 +205,33 @@ const Header = () => {
       }
    });
 
+   const [sessionDyslexia, setSessionDyslexia] = useState(() => {
+      try {
+         if (typeof localStorage === "undefined") return false;
+         return localStorage.getItem(DYSLEXIA_MODE_STORAGE_KEY) === "1";
+      } catch {
+         return false;
+      }
+   });
+
    const isA11ySession = isPatient || isDoctor || isNurse || isAdmin;
+
+   useEffect(() => {
+      document.documentElement.classList.toggle("medifollow-dyslexia-mode", sessionDyslexia);
+      try {
+         localStorage.setItem(DYSLEXIA_MODE_STORAGE_KEY, sessionDyslexia ? "1" : "0");
+      } catch { /* ignore */ }
+   }, [sessionDyslexia]);
+
+   useEffect(() => {
+      const onStorage = (e) => {
+         if (e.key === DYSLEXIA_MODE_STORAGE_KEY && e.newValue != null) {
+            setSessionDyslexia(e.newValue === "1");
+         }
+      };
+      window.addEventListener("storage", onStorage);
+      return () => window.removeEventListener("storage", onStorage);
+   }, []);
 
    useEffect(() => {
       if (!isA11ySession) {
@@ -388,6 +414,82 @@ const Header = () => {
       }
    }
 
+   const renderAccessibilityMenu = (wrapperClass, toggleId) => (
+      <div className={wrapperClass}>
+         <Dropdown align="end">
+            <Dropdown.Toggle
+               variant="outline-primary"
+               size="sm"
+               className="a11y-btn d-inline-flex align-items-center gap-1"
+               id={toggleId}
+            >
+               <i className="ri-accessibility-line" aria-hidden="true"></i>
+               <span className="d-none d-sm-inline">{t("nav.accessibilityMenuButton")}</span>
+            </Dropdown.Toggle>
+            <Dropdown.Menu align="end">
+               <Dropdown.Item
+                  as="button"
+                  type="button"
+                  data-eye-clickable
+                  onClick={(e) => {
+                     e.preventDefault();
+                     setSessionDyslexia((v) => !v);
+                  }}
+               >
+                  <i className="ri-book-read-line me-2" aria-hidden="true"></i>
+                  {sessionDyslexia ? t("signIn.dyslexiaModeDisable") : t("signIn.dyslexiaModeEnable")}
+               </Dropdown.Item>
+               {isA11ySession && (
+                  <>
+                     <Dropdown.Divider />
+                     <Dropdown.Item
+                        as="button"
+                        type="button"
+                        data-eye-clickable
+                        onClick={(e) => {
+                           e.preventDefault();
+                           setSessionLargeText((v) => !v);
+                        }}
+                     >
+                        <i className="ri-font-size me-2" aria-hidden="true"></i>
+                        {sessionLargeText ? t("signIn.largeTextDisable") : t("signIn.largeTextEnable")}
+                     </Dropdown.Item>
+                     {ttsSupported && (
+                        <Dropdown.Item
+                           as="button"
+                           type="button"
+                           data-eye-clickable
+                           onClick={(e) => {
+                              e.preventDefault();
+                              if (isReadingPage) stopPageReading();
+                              else readPageContent();
+                           }}
+                        >
+                           <i className={`me-2 ${isReadingPage ? "ri-volume-mute-line" : "ri-volume-up-line"}`} aria-hidden="true"></i>
+                           {isReadingPage ? t("signIn.stopReading") : t("signIn.readPage")}
+                        </Dropdown.Item>
+                     )}
+                     <Dropdown.Item
+                        as="button"
+                        type="button"
+                        data-eye-clickable
+                        aria-describedby="header-hand-nav-help"
+                        onClick={(e) => {
+                           e.preventDefault();
+                           if (handActive) stopHandGesture();
+                           else startHandGesture();
+                        }}
+                     >
+                        <i className={`me-2 ${handActive ? "ri-camera-off-line" : "ri-camera-line"}`} aria-hidden="true"></i>
+                        {handActive ? t("signIn.stopHandNav") : t("signIn.startHandNav")}
+                     </Dropdown.Item>
+                  </>
+               )}
+            </Dropdown.Menu>
+         </Dropdown>
+      </div>
+   );
+
    return (
       <>
          {/* <Navbar> */}
@@ -433,58 +535,7 @@ const Header = () => {
                         <SvgFlagDz width={26} />
                      </span>
                      <LanguageSwitcher toggleClassName="nav-link d-none d-xl-block" />
-                     {isA11ySession && (
-                        <Nav.Item as="li" className="nav-item d-none d-xl-flex align-items-center gap-1 ms-1 flex-wrap">
-                           <button
-                              type="button"
-                              className={`btn btn-sm a11y-btn ${sessionLargeText ? "btn-primary" : "btn-outline-primary"}`}
-                              data-eye-clickable
-                              aria-pressed={sessionLargeText}
-                              onClick={() => setSessionLargeText((v) => !v)}
-                           >
-                              <i className="ri-font-size me-1"></i>
-                              {sessionLargeText ? t("signIn.largeTextDisable") : t("signIn.largeTextEnable")}
-                           </button>
-                           {ttsSupported && (
-                              <button
-                                 type="button"
-                                 className={`btn btn-sm a11y-btn ${isReadingPage ? "btn-danger" : "btn-outline-secondary"}`}
-                                 data-eye-clickable
-                                 aria-pressed={isReadingPage}
-                                 onClick={isReadingPage ? stopPageReading : readPageContent}
-                              >
-                                 <i className={`me-1 ${isReadingPage ? "ri-volume-mute-line" : "ri-volume-up-line"}`}></i>
-                                 {isReadingPage ? t("signIn.stopReading") : t("signIn.readPage")}
-                              </button>
-                           )}
-                           <span className="d-inline-flex align-items-center" role="group" aria-label={t("nav.assistHandGroupLabel")}>
-                              {!handActive ? (
-                                 <button
-                                    type="button"
-                                    className="btn btn-sm assist-btn assist-btn-hand"
-                                    onClick={startHandGesture}
-                                    aria-describedby="header-hand-nav-help"
-                                    data-eye-clickable
-                                 >
-                                    <i className="ri-camera-line me-1" aria-hidden="true"></i>
-                                    {t("signIn.startHandNav")}
-                                 </button>
-                              ) : (
-                                 <button
-                                    type="button"
-                                    className="btn btn-sm assist-btn assist-btn-hand is-active"
-                                    onClick={stopHandGesture}
-                                    aria-pressed="true"
-                                    aria-describedby="header-hand-nav-help"
-                                    data-eye-clickable
-                                 >
-                                    <i className="ri-camera-off-line me-1" aria-hidden="true"></i>
-                                    {t("signIn.stopHandNav")}
-                                 </button>
-                              )}
-                           </span>
-                        </Nav.Item>
-                     )}
+                     {renderAccessibilityMenu("d-none d-xl-flex align-items-center ms-1 flex-wrap", "accessibility-menu-xl")}
                      <Nav.Item as="li" className="nav-item iq-full-screen d-none d-xl-block"
                         id="fullscreen-item">
                         <a href="#" className="nav-link" id="btnFullscreen" onClick={toggleFullScreen}>
@@ -903,58 +954,7 @@ const Header = () => {
 
                   <Col md={12} className="d-flex justify-content-end align-items-center flex-wrap gap-2">
                      <LanguageSwitcher toggleClassName="nav-link d-block d-xl-none" />{" "}
-                     {isA11ySession && (
-                        <Nav.Item as="li" className="nav-item d-flex d-xl-none align-items-center flex-wrap gap-1 justify-content-end">
-                           <button
-                              type="button"
-                              className={`btn btn-sm a11y-btn ${sessionLargeText ? "btn-primary" : "btn-outline-primary"}`}
-                              data-eye-clickable
-                              aria-pressed={sessionLargeText}
-                              onClick={() => setSessionLargeText((v) => !v)}
-                           >
-                              <i className="ri-font-size me-1"></i>
-                              {sessionLargeText ? t("signIn.largeTextDisable") : t("signIn.largeTextEnable")}
-                           </button>
-                           {ttsSupported && (
-                              <button
-                                 type="button"
-                                 className={`btn btn-sm a11y-btn ${isReadingPage ? "btn-danger" : "btn-outline-secondary"}`}
-                                 data-eye-clickable
-                                 aria-pressed={isReadingPage}
-                                 onClick={isReadingPage ? stopPageReading : readPageContent}
-                              >
-                                 <i className={`me-1 ${isReadingPage ? "ri-volume-mute-line" : "ri-volume-up-line"}`}></i>
-                                 {isReadingPage ? t("signIn.stopReading") : t("signIn.readPage")}
-                              </button>
-                           )}
-                           <span className="d-inline-flex align-items-center" role="group" aria-label={t("nav.assistHandGroupLabel")}>
-                              {!handActive ? (
-                                 <button
-                                    type="button"
-                                    className="btn btn-sm assist-btn assist-btn-hand"
-                                    onClick={startHandGesture}
-                                    aria-describedby="header-hand-nav-help"
-                                    data-eye-clickable
-                                 >
-                                    <i className="ri-camera-line me-1" aria-hidden="true"></i>
-                                    {t("signIn.startHandNav")}
-                                 </button>
-                              ) : (
-                                 <button
-                                    type="button"
-                                    className="btn btn-sm assist-btn assist-btn-hand is-active"
-                                    onClick={stopHandGesture}
-                                    aria-pressed="true"
-                                    aria-describedby="header-hand-nav-help"
-                                    data-eye-clickable
-                                 >
-                                    <i className="ri-camera-off-line me-1" aria-hidden="true"></i>
-                                    {t("signIn.stopHandNav")}
-                                 </button>
-                              )}
-                           </span>
-                        </Nav.Item>
-                     )}
+                     {renderAccessibilityMenu("d-flex d-xl-none align-items-center flex-wrap gap-1 justify-content-end", "accessibility-menu-collapsed")}
                      <li className="nav-item dropdown">
                      </li>
                      <Nav.Item className="iq-full-screen iq-full-screen2 d-block d-xl-none"

@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { patientApi, doctorApi, nurseApi } from "../../services/api";
 import { HOSPITAL_DEPARTMENTS, hospitalDepartmentLabel } from "../../constants/hospitalDepartments";
+import { fetchMergedDepartmentNames } from "../../utils/mergedDepartmentNames";
 
 const generatePath = (path) => window.origin + import.meta.env.BASE_URL + path;
 
@@ -36,10 +37,15 @@ const AddPatient = () => {
   const [doctors, setDoctors] = useState([]);
   const [nurses, setNurses] = useState([]);
   const [patientDepartment, setPatientDepartment] = useState("");
+  const [deptOptions, setDeptOptions] = useState(HOSPITAL_DEPARTMENTS);
 
   useEffect(() => {
     doctorApi.getAll().then((d) => setDoctors(Array.isArray(d) ? d : [])).catch(() => setDoctors([]));
     nurseApi.getAll().then((n) => setNurses(Array.isArray(n) ? n : [])).catch(() => setNurses([]));
+  }, []);
+
+  useEffect(() => {
+    fetchMergedDepartmentNames().then(setDeptOptions);
   }, []);
 
   const doctorsForSelect = useMemo(() => {
@@ -193,7 +199,7 @@ const AddPatient = () => {
                     onChange={(e) => setPatientDepartment(e.target.value)}
                   >
                     <option value="">{t("addPatient.selectDepartment")}</option>
-                    {HOSPITAL_DEPARTMENTS.map((s) => (
+                    {deptOptions.map((s) => (
                       <option key={s} value={s}>
                         {hospitalDepartmentLabel(s, t)}
                       </option>

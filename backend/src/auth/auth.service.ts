@@ -696,15 +696,34 @@ export class AuthService {
   }
 
   async createAdmin(email: string, password: string, name?: string) {
+    const existing = await this.userModel.findOne({ email }).exec();
+    if (existing?.role === 'superadmin') {
+      throw new BadRequestException('Cet email est déjà utilisé par un super administrateur');
+    }
     const hashed = await bcrypt.hash(password, 10);
     const data = { email, password: hashed, role: 'admin', name: name || 'Admin', isActive: true };
-    const existing = await this.userModel.findOne({ email }).exec();
     if (existing) {
       await this.userModel.updateOne({ email }, { $set: { password: hashed, role: 'admin', name: data.name, isActive: true } }).exec();
       return { id: existing._id, email: existing.email, name: data.name, role: 'admin' };
     }
     const user = await this.userModel.create(data);
     return { id: user._id, email: user.email, name: user.name, role: user.role };
+  }
+
+  /** Crée un admin et envoie les identifiants par e-mail (SMTP configuré dans .env). */
+  async createAdminWithCredentialsEmail(email: string, password: string, name?: string) {
+    const result = await this.createAdmin(email, password, name);
+    let credentialsEmailSent = false;
+    try {
+      credentialsEmailSent = await this.emailService.sendAdminCredentials(
+        result.email,
+        password,
+        name?.trim() || result.name || 'Administrateur',
+      );
+    } catch (e) {
+      console.error('[Auth] Échec envoi e-mail identifiants admin:', (e as Error)?.message || e);
+    }
+    return { ...result, credentialsEmailSent };
   }
 
   async createSuperAdmin(email: string, password: string, name?: string) {

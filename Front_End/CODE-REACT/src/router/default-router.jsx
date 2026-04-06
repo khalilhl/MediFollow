@@ -626,6 +626,14 @@ export const DefaultRoute = [
         element: <SuperAdminProfile />
       },
       {
+        path: '/super-admin/departments',
+        element: <AdminDepartments />
+      },
+      {
+        path: '/super-admin/departments/:departmentName',
+        element: <AdminDepartmentDetail />
+      },
+      {
         path: '/auditor/dashboard',
         element: (
           <AuditorSessionGuard>

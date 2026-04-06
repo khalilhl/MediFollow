@@ -1,4 +1,16 @@
-import { Controller, Post, Get, Put, Delete, Body, UseGuards, Request, Param } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Put,
+  Delete,
+  Body,
+  UseGuards,
+  Request,
+  Param,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 
@@ -115,6 +127,23 @@ export class AuthController {
     const email = body.email || 'admin@medifollow.com';
     const password = body.password || 'Admin123!';
     return this.authService.createAdmin(email, password);
+  }
+
+  /** Création d’un compte administrateur (JWT super admin uniquement). */
+  @UseGuards(JwtAuthGuard)
+  @Post('admins')
+  async createAdminAccount(
+    @Request() req: any,
+    @Body() body: { email?: string; password?: string; name?: string },
+  ) {
+    if (req.user.role !== 'superadmin') {
+      throw new ForbiddenException('Seul le super administrateur peut créer un compte administrateur');
+    }
+    const email = body.email?.trim();
+    if (!email || !body.password) {
+      throw new BadRequestException('Email et mot de passe requis');
+    }
+    return this.authService.createAdminWithCredentialsEmail(email, body.password, body.name?.trim());
   }
 
   // ─── Super Admin: gestion de tous les utilisateurs ───────────────────────

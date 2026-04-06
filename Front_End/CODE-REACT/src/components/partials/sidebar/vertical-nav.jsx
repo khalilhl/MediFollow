@@ -447,6 +447,72 @@ const VerticalNav = () => {
         )
     }
 
+    /** Session super administrateur : uniquement l’espace super admin (pas de démos / menu hôpital). */
+    if (isSuperAdmin) {
+        return (
+            <>
+                <ul className="navbar-nav iq-main-menu super-admin-sidebar" id="sidebar-menu">
+                    <Nav.Item as="li" className="static-item ms-2">
+                        <Link className="nav-link static-item disabled text-start" tabIndex="-1">
+                            <span className="default-icon">{t("sidebar.superAdminSection")}</span>
+                        </Link>
+                    </Nav.Item>
+                    <Nav.Item as="li">
+                        <Link to="/super-admin/dashboard" className={`nav-link super-admin-nav-link ${location.pathname === "/super-admin/dashboard" ? "active" : ""}`}>
+                            <i className="ri-shield-star-fill"></i>
+                            <span className="item-name">{t("sidebar.superAdminDashboard")}</span>
+                        </Link>
+                    </Nav.Item>
+                    <Nav.Item as="li">
+                        <Link to="/super-admin/users" className={`nav-link super-admin-nav-link ${location.pathname === "/super-admin/users" ? "active" : ""}`}>
+                            <i className="ri-team-fill"></i>
+                            <span className="item-name">{t("sidebar.allUsers")}</span>
+                        </Link>
+                    </Nav.Item>
+                    <Nav.Item as="li">
+                        <Link
+                            to="/super-admin/departments"
+                            className={`nav-link super-admin-nav-link ${location.pathname.startsWith("/super-admin/departments") ? "active" : ""}`}
+                        >
+                            <i className="ri-building-2-fill"></i>
+                            <span className="item-name">{t("sidebar.departments")}</span>
+                        </Link>
+                    </Nav.Item>
+                    <Nav.Item as="li">
+                        <Link to="/auditor/dashboard" className={`nav-link super-admin-nav-link ${location.pathname === "/auditor/dashboard" ? "active" : ""}`}>
+                            <i className="ri-bar-chart-box-fill"></i>
+                            <span className="item-name">{t("sidebar.auditorDashboard")}</span>
+                        </Link>
+                    </Nav.Item>
+                    <Nav.Item as="li">
+                        <Link to="/auditor/logs" className={`nav-link super-admin-nav-link ${location.pathname === "/auditor/logs" ? "active" : ""}`}>
+                            <i className="ri-file-list-3-line"></i>
+                            <span className="item-name">{t("sidebar.auditorLogs")}</span>
+                        </Link>
+                    </Nav.Item>
+                    <Nav.Item as="li">
+                        <Link to="/super-admin/auditors" className={`nav-link super-admin-nav-link ${location.pathname.startsWith("/super-admin/auditors") ? "active" : ""}`}>
+                            <i className="ri-shield-check-fill"></i>
+                            <span className="item-name">{t("sidebar.auditors")}</span>
+                        </Link>
+                    </Nav.Item>
+                    <Nav.Item as="li">
+                        <Link to="/super-admin/care-coordinators" className={`nav-link super-admin-nav-link ${location.pathname.startsWith("/super-admin/care-coordinators") ? "active" : ""}`}>
+                            <i className="ri-heart-pulse-fill"></i>
+                            <span className="item-name">{t("sidebar.careCoordinators")}</span>
+                        </Link>
+                    </Nav.Item>
+                    <Nav.Item as="li">
+                        <Link to="/super-admin/profile" className={`nav-link super-admin-nav-link ${location.pathname === "/super-admin/profile" ? "active" : ""}`}>
+                            <i className="ri-user-settings-fill"></i>
+                            <span className="item-name">{t("sidebar.myProfile")}</span>
+                        </Link>
+                    </Nav.Item>
+                </ul>
+            </>
+        );
+    }
+
     /** Session auditeur uniquement : menu minimal (pas de démos template). */
     if (isAuditor && !isSuperAdmin) {
         return (
@@ -1320,59 +1386,6 @@ const VerticalNav = () => {
                         </div>
                     </Accordion.Item>
                 </Accordion>
-
-                {isSuperAdmin && (
-                    <>
-                        <li><hr className="hr-horizontal" /></li>
-                        <Nav.Item as="li" className="static-item ms-2">
-                            <Link className="nav-link static-item disabled text-start" tabIndex="-1">
-                                <span className="default-icon">{t("sidebar.superAdminSection")}</span>
-                            </Link>
-                        </Nav.Item>
-                        <Nav.Item as="li">
-                            <Link to="/super-admin/dashboard" className={`nav-link ${location.pathname === "/super-admin/dashboard" ? "active" : ""}`}>
-                                <i className="ri-shield-star-fill"></i>
-                                <span className="item-name">{t("sidebar.superAdminDashboard")}</span>
-                            </Link>
-                        </Nav.Item>
-                        <Nav.Item as="li">
-                            <Link to="/super-admin/users" className={`nav-link ${location.pathname === "/super-admin/users" ? "active" : ""}`}>
-                                <i className="ri-team-fill"></i>
-                                <span className="item-name">{t("sidebar.allUsers")}</span>
-                            </Link>
-                        </Nav.Item>
-                        <Nav.Item as="li">
-                            <Link to="/auditor/dashboard" className={`nav-link ${location.pathname === "/auditor/dashboard" ? "active" : ""}`}>
-                                <i className="ri-bar-chart-box-fill"></i>
-                                <span className="item-name">{t("sidebar.auditorDashboard")}</span>
-                            </Link>
-                        </Nav.Item>
-                        <Nav.Item as="li">
-                            <Link to="/auditor/logs" className={`nav-link ${location.pathname === "/auditor/logs" ? "active" : ""}`}>
-                                <i className="ri-file-list-3-line"></i>
-                                <span className="item-name">{t("sidebar.auditorLogs")}</span>
-                            </Link>
-                        </Nav.Item>
-                        <Nav.Item as="li">
-                            <Link to="/super-admin/auditors" className={`nav-link ${location.pathname.startsWith("/super-admin/auditors") ? "active" : ""}`}>
-                                <i className="ri-shield-check-fill"></i>
-                                <span className="item-name">{t("sidebar.auditors")}</span>
-                            </Link>
-                        </Nav.Item>
-                        <Nav.Item as="li">
-                            <Link to="/super-admin/care-coordinators" className={`nav-link ${location.pathname.startsWith("/super-admin/care-coordinators") ? "active" : ""}`}>
-                                <i className="ri-heart-pulse-fill"></i>
-                                <span className="item-name">{t("sidebar.careCoordinators")}</span>
-                            </Link>
-                        </Nav.Item>
-                        <Nav.Item as="li">
-                            <Link to="/super-admin/profile" className={`nav-link ${location.pathname === "/super-admin/profile" ? "active" : ""}`}>
-                                <i className="ri-user-settings-fill"></i>
-                                <span className="item-name">{t("sidebar.myProfile")}</span>
-                            </Link>
-                        </Nav.Item>
-                    </>
-                )}
 
                 <li>
                     <hr className="hr-horizontal" />

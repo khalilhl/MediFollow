@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Button, Col, Container, Form, InputGroup, Row, Spinner } from "react-bootstrap";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Alert, Button, Col, Container, Form, InputGroup, Row, Spinner } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import Card from "../../components/Card";
 import { departmentApi } from "../../services/api";
+import { useDepartmentSectionPaths } from "../../utils/departmentSectionPaths";
 
 const ACCENT_VARIANTS = ["primary", "success", "info", "warning", "danger", "secondary"];
 
@@ -15,28 +16,57 @@ const hashIndex = (str) => {
 
 const AdminDepartments = () => {
   const { t } = useTranslation();
+  const { listPath, isSuperAdminDept } = useDepartmentSectionPaths();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
+  const [newDeptName, setNewDeptName] = useState("");
+  const [createSaving, setCreateSaving] = useState(false);
+  const [createFeedback, setCreateFeedback] = useState({ type: "", message: "" });
+
+  const loadSummary = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const data = await departmentApi.summary();
+      setItems(Array.isArray(data) ? data : []);
+    } catch (e) {
+      setError(e.message || t("adminDepartments.loadError"));
+    } finally {
+      setLoading(false);
+    }
+  }, [t]);
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setError("");
-      try {
-        const data = await departmentApi.summary();
-        if (!cancelled) setItems(Array.isArray(data) ? data : []);
-      } catch (e) {
-        if (!cancelled) setError(e.message || t("adminDepartments.loadError"));
-      } finally {
-        if (!cancelled) setLoading(false);
+    loadSummary();
+  }, [loadSummary]);
+
+  const handleCreateDepartment = async (e) => {
+    e.preventDefault();
+    const name = newDeptName.trim();
+    if (!name) {
+      setCreateFeedback({ type: "danger", message: t("adminDepartments.createCatalogValidation") });
+      return;
+    }
+    setCreateSaving(true);
+    setCreateFeedback({ type: "", message: "" });
+    try {
+      await departmentApi.createCatalog({ name });
+      setNewDeptName("");
+      setCreateFeedback({ type: "success", message: t("adminDepartments.createCatalogSuccess", { name }) });
+      await loadSummary();
+    } catch (err) {
+      const msg = err?.message || "";
+      if (err?.status === 409 || /existe déjà|already/i.test(msg)) {
+        setCreateFeedback({ type: "danger", message: t("adminDepartments.createCatalogDuplicate") });
+      } else {
+        setCreateFeedback({ type: "danger", message: msg || t("adminDepartments.createCatalogError") });
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [t]);
+    } finally {
+      setCreateSaving(false);
+    }
+  };
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -63,6 +93,40 @@ const AdminDepartments = () => {
       `}</style>
 
       <Container fluid className="admin-dept-page pb-5">
+        {isSuperAdminDept && (
+          <Row className="mb-4">
+            <Col>
+              <Card className="border-0 shadow-sm rounded-3" style={{ borderLeft: "4px solid #009688" }}>
+                <Card.Body className="p-4">
+                  <h5 className="fw-bold mb-2">{t("adminDepartments.createCatalogTitle")}</h5>
+                  <p className="text-muted small mb-3">{t("adminDepartments.createCatalogHint")}</p>
+                  {createFeedback.message && (
+                    <Alert variant={createFeedback.type === "success" ? "success" : "danger"} className="py-2 mb-3">
+                      {createFeedback.message}
+                    </Alert>
+                  )}
+                  <Form onSubmit={handleCreateDepartment} className="row g-3 align-items-end">
+                    <Col md={8}>
+                      <Form.Label className="small text-muted mb-1">{t("adminDepartments.createCatalogLabel")}</Form.Label>
+                      <Form.Control
+                        type="text"
+                        value={newDeptName}
+                        onChange={(e) => setNewDeptName(e.target.value)}
+                        placeholder={t("adminDepartments.createCatalogPlaceholder")}
+                        disabled={createSaving}
+                      />
+                    </Col>
+                    <Col md={4}>
+                      <Button type="submit" variant="primary" className="w-100" disabled={createSaving} style={{ background: "#009688", borderColor: "#009688" }}>
+                        {createSaving ? t("adminDepartments.createCatalogSaving") : t("adminDepartments.createCatalogSubmit")}
+                      </Button>
+                    </Col>
+                  </Form>
+                </Card.Body>
+              </Card>
+            </Col>
+          </Row>
+        )}
         <Row className="mb-4">
           <Col>
             <Card className="border-0 shadow-sm overflow-hidden admin-dept-hero rounded-3">
@@ -202,7 +266,7 @@ const AdminDepartments = () => {
                       </ul>
                       <Button
                         as={Link}
-                        to={`/admin/departments/${encodeURIComponent(d.name)}`}
+                        to={`${listPath}/${encodeURIComponent(d.name)}`}
                         variant={`${accent}`}
                         className="rounded-pill w-100 fw-semibold"
                       >

@@ -1,4 +1,14 @@
-import { Controller, ForbiddenException, Get, Param, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  ForbiddenException,
+  Get,
+  Param,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { DepartmentService } from './department.service';
 import { CareCoordinatorFollowupService } from './care-coordinator-followup.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -14,6 +24,27 @@ export class DepartmentController {
   @Get('summary')
   async summary() {
     return this.departmentService.listSummaries();
+  }
+
+  /** Noms fusionnés pour les formulaires (patient, médecin, infirmier, coordinateur). */
+  @UseGuards(JwtAuthGuard)
+  @Get('catalog')
+  async catalog() {
+    const names = await this.departmentService.listMergedDepartmentNames();
+    return { names };
+  }
+
+  /** Ajout au catalogue (super administrateur uniquement). */
+  @UseGuards(JwtAuthGuard)
+  @Post()
+  async createCatalogDepartment(
+    @Req() req: { user?: { role?: string } },
+    @Body() body: { name?: string },
+  ) {
+    if (req.user?.role !== 'superadmin') {
+      throw new ForbiddenException('Seul le super administrateur peut créer un département');
+    }
+    return this.departmentService.createCatalogDepartment(body.name || '');
   }
 
   /** GET /api/departments/doctor/my-nurses */

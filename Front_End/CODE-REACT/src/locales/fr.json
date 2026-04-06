@@ -26,7 +26,8 @@
     "languageMenu": "Langue",
     "a11yReadPageEmpty": "Aucun texte lisible dans cette zone.",
     "handNavHelp": "Navigation par doigts : pointez avec l'index devant la caméra. Le curseur suit votre doigt. Maintenez 0,8 s sur un élément pour cliquer. Sans cette fonction, utilisez la touche Tab pour passer d’un élément au suivant, et Entrée ou Espace pour activer un bouton.",
-    "assistHandGroupLabel": "Navigation assistée par la caméra (main)"
+    "assistHandGroupLabel": "Navigation assistée par la caméra (main)",
+    "accessibilityMenuButton": "Accessibilité"
   },
   "emailPage": {
     "loading": "Chargement…",
@@ -1214,7 +1215,20 @@
     "toggleError": "Erreur lors du changement de statut : {{message}}",
     "toastActivated": "Le compte de {{name}} a été activé avec succès.",
     "toastDeactivated": "Le compte de {{name}} a été désactivé avec succès.",
-    "dash": "—"
+    "dash": "—",
+    "addAdminButton": "Créer un administrateur",
+    "addAdminModalTitle": "Nouveau compte administrateur",
+    "addAdminEmail": "Email",
+    "addAdminPassword": "Mot de passe",
+    "addAdminNameOptional": "Nom affiché (facultatif)",
+    "addAdminSubmit": "Créer le compte",
+    "addAdminSaving": "Création…",
+    "addAdminSuccess": "Le compte administrateur {{email}} a été créé.",
+    "addAdminSuccessEmail": "Compte créé. Les identifiants de connexion ont été envoyés à {{email}}.",
+    "addAdminSuccessNoSmtp": "Compte créé pour {{email}}. L’e-mail n’a pas pu être envoyé (SMTP non configuré sur le serveur) : transmettez les identifiants manuellement.",
+    "addAdminError": "Impossible de créer le compte administrateur.",
+    "addAdminValidation": "Indiquez un email et un mot de passe.",
+    "addAdminPasswordMin": "Le mot de passe doit contenir au moins 6 caractères."
   },
   "superAdminViewAuditor": {
     "loadError": "Impossible de charger le profil de l’auditeur.",
@@ -1399,6 +1413,8 @@
     "a11yToolbarTitle": "Accessibilité rapide",
     "largeTextEnable": "Grand texte",
     "largeTextDisable": "Texte normal",
+    "dyslexiaModeEnable": "Activer le mode dyslexie",
+    "dyslexiaModeDisable": "Affichage standard",
     "readPage": "Lire la page",
     "stopReading": "Arrêter la lecture",
     "voiceAssistantReading": "Assistant vocal en cours de lecture.",
@@ -1511,7 +1527,17 @@
     "colPatients": "Patients",
     "colDoctors": "Médecins",
     "colNurses": "Infirmier(e)s",
-    "openDepartment": "Ouvrir le département"
+    "openDepartment": "Ouvrir le département",
+    "createCatalogTitle": "Ajouter un département au catalogue",
+    "createCatalogHint": "Les départements créés ici apparaissent dans les listes déroulantes lors de la création de comptes patient, médecin, infirmier et coordinateur.",
+    "createCatalogLabel": "Nom du département",
+    "createCatalogPlaceholder": "Ex. Neurologie avancée",
+    "createCatalogSubmit": "Enregistrer",
+    "createCatalogSaving": "Enregistrement…",
+    "createCatalogSuccess": "« {{name}} » a été ajouté. Il est disponible dans les formulaires de création de comptes.",
+    "createCatalogDuplicate": "Ce nom existe déjà dans le catalogue.",
+    "createCatalogError": "Impossible d’ajouter le département.",
+    "createCatalogValidation": "Indiquez un nom de département."
   },
   "adminDepartmentDetail": {
     "breadcrumbNavLabel": "Fil d'Ariane",

@@ -26,7 +26,8 @@
     "languageMenu": "اللغة",
     "a11yReadPageEmpty": "لا يوجد نص قابل للقراءة في هذه المنطقة.",
     "handNavHelp": "التنقل بالإصبع: وجّه السبابة نحو الكاميرا. يتبع المؤشر إصبعك. أبقِ المؤشر 0,8 ث على عنصر للنقر. بدون هذه الوظيفة استخدم Tab للانتقال بين العناصر وEnter أو المسافة لتفعيل الأزرار.",
-    "assistHandGroupLabel": "التنقل باليد والكاميرا"
+    "assistHandGroupLabel": "التنقل باليد والكاميرا",
+    "accessibilityMenuButton": "إمكانية الوصول"
   },
   "emailPage": {
     "loading": "جاري التحميل…",
@@ -1214,7 +1215,20 @@
     "toggleError": "خطأ عند تغيير حالة الحساب: {{message}}",
     "toastActivated": "تم تفعيل حساب {{name}} بنجاح.",
     "toastDeactivated": "تم تعطيل حساب {{name}} بنجاح.",
-    "dash": "—"
+    "dash": "—",
+    "addAdminButton": "إنشاء مسؤول",
+    "addAdminModalTitle": "حساب مسؤول جديد",
+    "addAdminEmail": "البريد الإلكتروني",
+    "addAdminPassword": "كلمة المرور",
+    "addAdminNameOptional": "الاسم المعروض (اختياري)",
+    "addAdminSubmit": "إنشاء الحساب",
+    "addAdminSaving": "جاري الإنشاء…",
+    "addAdminSuccess": "تم إنشاء حساب المسؤول {{email}}.",
+    "addAdminSuccessEmail": "تم إنشاء الحساب. أُرسلت بيانات الاعتماد إلى {{email}}.",
+    "addAdminSuccessNoSmtp": "تم إنشاء الحساب لـ {{email}}. تعذّر إرسال البريد (SMTP غير مُعدّ على الخادم): أرسل بيانات الاعتماد يدويًا.",
+    "addAdminError": "تعذّر إنشاء حساب المسؤول.",
+    "addAdminValidation": "أدخل البريد الإلكتروني وكلمة المرور.",
+    "addAdminPasswordMin": "يجب أن تتكوّن كلمة المرور من 6 أحرف على الأقل."
   },
   "superAdminViewAuditor": {
     "loadError": "تعذّر تحميل ملف المدقّق.",
@@ -1407,6 +1421,8 @@
     "a11yToolbarTitle": "إمكانية وصول سريعة",
     "largeTextEnable": "نص كبير",
     "largeTextDisable": "نص عادي",
+    "dyslexiaModeEnable": "تفعيل عرض مناسب لصعوبات القراءة",
+    "dyslexiaModeDisable": "عرض عادي",
     "readPage": "قراءة الصفحة",
     "stopReading": "إيقاف القراءة",
     "voiceAssistantReading": "المساعد الصوتي يقرأ.",
@@ -1527,7 +1543,17 @@
     "colPatients": "المرضى",
     "colDoctors": "الأطباء",
     "colNurses": "الممرضون",
-    "openDepartment": "فتح القسم"
+    "openDepartment": "فتح القسم",
+    "createCatalogTitle": "إضافة قسم إلى الكتالوج",
+    "createCatalogHint": "تظهر الأقسام المضافة هنا في القوائم عند إنشاء حسابات المرضى والأطباء والممرضين ومنسقي الرعاية.",
+    "createCatalogLabel": "اسم القسم",
+    "createCatalogPlaceholder": "مثال: أعصاب متقدّمة",
+    "createCatalogSubmit": "حفظ",
+    "createCatalogSaving": "جاري الحفظ…",
+    "createCatalogSuccess": "تمت إضافة « {{name}} » وهو متاح في نماذج إنشاء الحسابات.",
+    "createCatalogDuplicate": "هذا الاسم موجود مسبقًا في الكتالوج.",
+    "createCatalogError": "تعذّر إضافة القسم.",
+    "createCatalogValidation": "أدخل اسم القسم."
   },
   "adminDepartmentDetail": {
     "breadcrumbNavLabel": "مسار التنقل",

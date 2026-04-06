@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Card from "../../components/Card";
 import { Button, Col, Container, Form, Row } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { superAdminApi } from "../../services/api";
 import { HOSPITAL_DEPARTMENTS, hospitalDepartmentLabel } from "../../constants/hospitalDepartments";
+import { fetchMergedDepartmentNames } from "../../utils/mergedDepartmentNames";
 
 const generatePath = (path) => window.origin + import.meta.env.BASE_URL + path;
 
@@ -14,6 +15,11 @@ const AddCareCoordinator = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [profilePreview, setProfilePreview] = useState(generatePath("/assets/images/user/11.png"));
+  const [deptOptions, setDeptOptions] = useState(HOSPITAL_DEPARTMENTS);
+
+  useEffect(() => {
+    fetchMergedDepartmentNames().then(setDeptOptions);
+  }, []);
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -124,7 +130,7 @@ const AddCareCoordinator = () => {
                       <Form.Label>{t("addCareCoordinator.labelDepartment")}</Form.Label>
                       <Form.Select name="department">
                         <option value="">{t("addPatient.selectDepartment")}</option>
-                        {HOSPITAL_DEPARTMENTS.map((s) => (
+                        {deptOptions.map((s) => (
                           <option key={s} value={s}>
                             {hospitalDepartmentLabel(s, t)}
                           </option>

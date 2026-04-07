@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import Card from "../../components/Card";
 import { Button, Col, Container, Form, InputGroup, Row } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { patientApi, doctorApi, nurseApi } from "../../services/api";
+import { patientApi } from "../../services/api";
 import { HOSPITAL_DEPARTMENTS, hospitalDepartmentLabel } from "../../constants/hospitalDepartments";
 import { fetchMergedDepartmentNames } from "../../utils/mergedDepartmentNames";
 
@@ -34,8 +34,6 @@ const AddPatient = () => {
   const [error, setError] = useState("");
   const [profilePreview, setProfilePreview] = useState(generatePath("/assets/images/user/11.png"));
   const [selectedCountry, setSelectedCountry] = useState(null);
-  const [doctors, setDoctors] = useState([]);
-  const [nurses, setNurses] = useState([]);
   const [patientDepartment, setPatientDepartment] = useState("");
   const [deptOptions, setDeptOptions] = useState(HOSPITAL_DEPARTMENTS);
   const [antecedents, setAntecedents] = useState({
@@ -47,30 +45,8 @@ const AddPatient = () => {
   });
 
   useEffect(() => {
-    doctorApi.getAll().then((d) => setDoctors(Array.isArray(d) ? d : [])).catch(() => setDoctors([]));
-    nurseApi.getAll().then((n) => setNurses(Array.isArray(n) ? n : [])).catch(() => setNurses([]));
-  }, []);
-
-  useEffect(() => {
     fetchMergedDepartmentNames().then(setDeptOptions);
   }, []);
-
-  const doctorsForSelect = useMemo(() => {
-    if (!patientDepartment) return doctors;
-    const match = doctors.filter((d) => d.department === patientDepartment);
-    return match.length ? match : doctors;
-  }, [doctors, patientDepartment]);
-
-  const nursesForSelect = useMemo(() => {
-    if (!patientDepartment) return nurses;
-    const match = nurses.filter((n) => n.department === patientDepartment);
-    return match.length ? match : nurses;
-  }, [nurses, patientDepartment]);
-
-  const showDeptHint =
-    patientDepartment &&
-    doctors.length > 0 &&
-    !doctors.some((d) => d.department === patientDepartment);
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -125,8 +101,6 @@ const AddPatient = () => {
         alternateContact: form.altconno?.value,
         department: form.department?.value,
         service: form.department?.value || form.service?.value,
-        doctorId: form.doctorId?.value || undefined,
-        nurseId: form.nurseId?.value || undefined,
         password,
         profileImage,
         antecedentDiabetes: antecedents.diabetes,
@@ -359,45 +333,6 @@ const AddPatient = () => {
                         onChange={(e) => setAntecedents((a) => ({ ...a, cancer: e.target.checked }))}
                         label={t("addPatient.antecedentCancer")}
                       />
-                    </Col>
-                  </Row>
-                  <hr />
-                  <h5 className="mb-3">{t("addPatient.careTeamSection")}</h5>
-                  <p className="text-muted small mb-3">
-                    {t("addPatient.careTeamLead")}
-                  </p>
-                  {showDeptHint && (
-                    <div className="alert alert-info py-2 small mb-3">
-                      {t("addPatient.deptHint", {
-                        dept: hospitalDepartmentLabel(patientDepartment, t),
-                      })}
-                    </div>
-                  )}
-                  <Row className="cust-form-input">
-                    <Col md={6} className="form-group">
-                      <Form.Label className="mb-0">{t("addPatient.labelReferringDoctor")}</Form.Label>
-                      <Form.Control as="select" className="my-2" name="doctorId" key={`doc-${patientDepartment}-${doctorsForSelect.length}`}>
-                        <option value="">{t("addPatient.selectNone")}</option>
-                        {doctorsForSelect.map((d) => (
-                          <option key={d._id || d.id} value={d._id || d.id}>
-                            {t("patientList.doctorPrefix")} {d.firstName} {d.lastName}
-                            {d.specialty ? ` (${d.specialty})` : ""}
-                            {d.department ? ` · ${d.department}` : ""}
-                          </option>
-                        ))}
-                      </Form.Control>
-                    </Col>
-                    <Col md={6} className="form-group">
-                      <Form.Label className="mb-0">{t("addPatient.labelAssignedNurse")}</Form.Label>
-                      <Form.Control as="select" className="my-2" name="nurseId" key={`nur-${patientDepartment}-${nursesForSelect.length}`}>
-                        <option value="">{t("addPatient.selectNone")}</option>
-                        {nursesForSelect.map((n) => (
-                          <option key={n._id || n.id} value={n._id || n.id}>
-                            {n.firstName} {n.lastName}
-                            {n.department ? ` · ${n.department}` : ""}
-                          </option>
-                        ))}
-                      </Form.Control>
                     </Col>
                   </Row>
                   <hr />

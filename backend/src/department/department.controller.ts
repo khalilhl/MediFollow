@@ -36,6 +36,17 @@ export class DepartmentController {
     return { names };
   }
 
+  /** Catalogue : départements sans admin (création admin plateforme). Super admin uniquement. */
+  @UseGuards(JwtAuthGuard)
+  @Get('catalog/eligible-for-admin')
+  async catalogEligibleForAdmin(@Req() req: { user?: { role?: string } }) {
+    if (req.user?.role !== 'superadmin') {
+      throw new ForbiddenException('Seul le super administrateur peut consulter cette liste');
+    }
+    const names = await this.departmentService.listCatalogDepartmentNamesWithoutAssignedAdmin();
+    return { names };
+  }
+
   /** Assure une entrée catalogue pour un nom déjà utilisé ailleurs (super admin, idempotent). */
   @UseGuards(JwtAuthGuard)
   @Post('catalog/ensure')
@@ -64,22 +75,22 @@ export class DepartmentController {
 
   @UseGuards(JwtAuthGuard)
   @Patch('catalog/:catalogId/assign')
-  async assignCatalogSuperAdmin(
+  async assignCatalogAdmin(
     @Req() req: { user?: { role?: string } },
     @Param('catalogId') catalogId: string,
-    @Body() body: { superAdminUserId?: string | null },
+    @Body() body: { adminUserId?: string | null; superAdminUserId?: string | null },
   ) {
     if (req.user?.role !== 'superadmin') {
       throw new ForbiddenException(
-        'Seul le super administrateur peut assigner un super administrateur au département',
+        'Seul le super administrateur peut assigner un administrateur au département',
       );
     }
-    const raw = body.superAdminUserId;
+    const raw = body.adminUserId ?? body.superAdminUserId;
     const id =
       raw === null || raw === undefined || raw === ''
         ? null
         : String(raw);
-    return this.departmentService.assignSuperAdminToCatalogDepartment(catalogId, id);
+    return this.departmentService.assignAdminToCatalogDepartment(catalogId, id);
   }
 
   @UseGuards(JwtAuthGuard)

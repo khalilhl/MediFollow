@@ -54,6 +54,20 @@ export class DepartmentService {
     return [...names].sort((a, b) => a.localeCompare(b, 'fr'));
   }
 
+  /** Catalogue uniquement : départements sans administrateur assigné. */
+  async listCatalogDepartmentNamesWithoutAssignedAdmin(): Promise<string[]> {
+    const docs = await this.departmentCatalogModel
+      .find({})
+      .select('name assignedAdminId')
+      .lean()
+      .exec();
+    const names = docs
+      .filter((d) => !d.assignedAdminId)
+      .map((d) => d.name)
+      .filter((n): n is string => Boolean(n && String(n).trim()));
+    return [...new Set(names)].sort((a, b) => a.localeCompare(b, 'fr'));
+  }
+
   async createCatalogDepartment(rawName: string) {
     const name = (rawName || '').trim();
     if (!name) {
@@ -101,19 +115,19 @@ export class DepartmentService {
 
     const catalogDocs = await this.departmentCatalogModel.find().lean().exec();
     const catalogByName = new Map(catalogDocs.map((c) => [c.name, c]));
-    const superAdminIds = catalogDocs
-      .map((c) => c.assignedSuperAdminId)
+    const adminIds = catalogDocs
+      .map((c) => (c as { assignedAdminId?: unknown }).assignedAdminId)
       .filter(Boolean)
       .map((id) => new Types.ObjectId(String(id)));
-    const superAdmins =
-      superAdminIds.length > 0
+    const admins =
+      adminIds.length > 0
         ? await this.userModel
-            .find({ _id: { $in: superAdminIds } })
+            .find({ _id: { $in: adminIds }, role: 'admin' })
             .select('firstName lastName email name')
             .lean()
             .exec()
         : [];
-    const superAdminById = new Map(superAdmins.map((s) => [String(s._id), s]));
+    const adminById = new Map(admins.map((s) => [String(s._id), s]));
 
     const summaries = await Promise.all(
       sorted.map(async (name) => {
@@ -124,14 +138,13 @@ export class DepartmentService {
         ]);
         const cat = catalogByName.get(name);
         const catalogId = cat?._id ? String(cat._id) : null;
-        const assignedSuperAdminId = cat?.assignedSuperAdminId
-          ? String(cat.assignedSuperAdminId)
-          : null;
-        const sa = assignedSuperAdminId ? superAdminById.get(assignedSuperAdminId) : undefined;
-        const assignedSuperAdminLabel = sa
-          ? [sa.firstName, sa.lastName].filter(Boolean).join(' ').trim() ||
-            (sa as { name?: string }).name ||
-            sa.email
+        const rawCat = cat as { assignedAdminId?: unknown } | undefined;
+        const assignedAdminId = rawCat?.assignedAdminId ? String(rawCat.assignedAdminId) : null;
+        const adm = assignedAdminId ? adminById.get(assignedAdminId) : undefined;
+        const assignedAdminLabel = adm
+          ? [adm.firstName, adm.lastName].filter(Boolean).join(' ').trim() ||
+            (adm as { name?: string }).name ||
+            adm.email
           : null;
         return {
           name,
@@ -140,8 +153,8 @@ export class DepartmentService {
           nurseCount,
           total: patientCount + doctorCount + nurseCount,
           catalogId,
-          assignedSuperAdminId,
-          assignedSuperAdminLabel,
+          assignedAdminId,
+          assignedAdminLabel,
         };
       }),
     );
@@ -210,11 +223,21 @@ export class DepartmentService {
         `Impossible de supprimer : ${total} profil(s) sont encore rattaché(s) à ce département`,
       );
     }
+    const prevAdminId = doc.assignedAdminId;
+    if (prevAdminId) {
+      await this.userModel
+        .updateOne(
+          { _id: prevAdminId, department: name },
+          { $set: { department: '' } },
+        )
+        .exec();
+    }
     await doc.deleteOne();
     return { ok: true };
   }
 
-  async assignSuperAdminToCatalogDepartment(catalogId: string, superAdminUserId: string | null) {
+  /** Un administrateur (role admin) par département catalogue ; synchronise User.department. */
+  async assignAdminToCatalogDepartment(catalogId: string, adminUserId: string | null) {
     if (!Types.ObjectId.isValid(catalogId)) {
       throw new BadRequestException('Identifiant catalogue invalide');
     }
@@ -222,27 +245,55 @@ export class DepartmentService {
     if (!doc) {
       throw new NotFoundException('Département catalogue introuvable');
     }
-    if (superAdminUserId === null || superAdminUserId === '') {
+    const deptName = doc.name;
+
+    if (adminUserId === null || adminUserId === '') {
+      const prev = doc.assignedAdminId;
       await this.departmentCatalogModel
-        .updateOne({ _id: doc._id }, { $unset: { assignedSuperAdminId: '' } })
+        .updateOne({ _id: doc._id }, { $unset: { assignedAdminId: '', assignedSuperAdminId: '' } })
         .exec();
-      return { id: String(doc._id), name: doc.name, assignedSuperAdminId: null };
+      if (prev) {
+        await this.userModel
+          .updateOne({ _id: prev, department: deptName }, { $set: { department: '' } })
+          .exec();
+      }
+      return { id: String(doc._id), name: doc.name, assignedAdminId: null };
     }
-    if (!Types.ObjectId.isValid(superAdminUserId)) {
-      throw new BadRequestException('Identifiant super administrateur invalide');
+    if (!Types.ObjectId.isValid(adminUserId)) {
+      throw new BadRequestException('Identifiant administrateur invalide');
     }
-    const user = await this.userModel.findById(superAdminUserId).select('role').lean().exec();
-    if (!user || user.role !== 'superadmin') {
-      throw new BadRequestException('Utilisateur super administrateur introuvable');
+    const user = await this.userModel.findById(adminUserId).select('role').lean().exec();
+    if (!user || user.role !== 'admin') {
+      throw new BadRequestException('Seuls les comptes administrateur peuvent être assignés au département');
     }
-    const saOid = new Types.ObjectId(superAdminUserId);
+
     await this.departmentCatalogModel
-      .updateOne({ _id: doc._id }, { $set: { assignedSuperAdminId: saOid } })
+      .updateMany(
+        { assignedAdminId: new Types.ObjectId(adminUserId), _id: { $ne: doc._id } },
+        { $unset: { assignedAdminId: '', assignedSuperAdminId: '' } },
+      )
       .exec();
+
+    const prevOnDept = doc.assignedAdminId;
+    if (prevOnDept && String(prevOnDept) !== adminUserId) {
+      await this.userModel
+        .updateOne({ _id: prevOnDept, department: deptName }, { $set: { department: '' } })
+        .exec();
+    }
+
+    const admOid = new Types.ObjectId(adminUserId);
+    await this.userModel.updateOne({ _id: admOid }, { $set: { department: deptName } }).exec();
+    await this.departmentCatalogModel
+      .updateOne(
+        { _id: doc._id },
+        { $set: { assignedAdminId: admOid }, $unset: { assignedSuperAdminId: '' } },
+      )
+      .exec();
+
     return {
       id: String(doc._id),
       name: doc.name,
-      assignedSuperAdminId: String(saOid),
+      assignedAdminId: String(admOid),
     };
   }
 

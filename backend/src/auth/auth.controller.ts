@@ -134,7 +134,16 @@ export class AuthController {
   @Post('admins')
   async createAdminAccount(
     @Request() req: any,
-    @Body() body: { email?: string; password?: string; name?: string },
+    @Body()
+    body: {
+      email?: string;
+      password?: string;
+      name?: string;
+      firstName?: string;
+      lastName?: string;
+      department?: string;
+      phone?: string;
+    },
   ) {
     if (req.user.role !== 'superadmin') {
       throw new ForbiddenException('Seul le super administrateur peut créer un compte administrateur');
@@ -143,7 +152,15 @@ export class AuthController {
     if (!email || !body.password) {
       throw new BadRequestException('Email et mot de passe requis');
     }
-    return this.authService.createAdminWithCredentialsEmail(email, body.password, body.name?.trim());
+    return this.authService.createAdminWithCredentialsEmail(
+      email,
+      body.password,
+      body.name?.trim(),
+      body.department?.trim(),
+      body.firstName?.trim(),
+      body.lastName?.trim(),
+      body.phone?.trim(),
+    );
   }
 
   // ─── Super Admin: gestion de tous les utilisateurs ───────────────────────
@@ -203,7 +220,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Post('care-coordinators')
   async createCareCoordinator(@Body() body: any) {
-    return this.authService.createUserWithRole(body, 'carecoordinator');
+    return this.authService.createUserWithRoleAndCredentialsEmail(body, 'carecoordinator');
   }
 
   @UseGuards(JwtAuthGuard)

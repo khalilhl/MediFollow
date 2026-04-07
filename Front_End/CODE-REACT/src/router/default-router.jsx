@@ -131,6 +131,8 @@ import AddCareCoordinator from "../views/super-admin/add-care-coordinator"
 import EditCareCoordinator from "../views/super-admin/edit-care-coordinator"
 import ViewCareCoordinator from "../views/super-admin/view-care-coordinator"
 import SuperAdminProfile from "../views/super-admin/super-admin-profile"
+import PlatformUsersHub from "../views/super-admin/platform-users-hub"
+import AddPlatformAdmin from "../views/super-admin/add-platform-admin"
 import AuditorDashboard from "../views/auditor/auditor-dashboard"
 import AuditorLogsPage from "../views/auditor/auditor-logs"
 import AuditorSessionGuard from "../components/routing/auditor-session-guard"
@@ -584,6 +586,14 @@ export const DefaultRoute = [
       {
         path: '/super-admin/dashboard',
         element: <SuperAdminDashboard />
+      },
+      {
+        path: '/super-admin/platform-users',
+        element: <PlatformUsersHub />
+      },
+      {
+        path: '/super-admin/platform-users/add-admin',
+        element: <AddPlatformAdmin />
       },
       {
         path: '/super-admin/users',

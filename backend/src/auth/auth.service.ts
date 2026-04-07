@@ -1,6 +1,11 @@
-import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import * as SimpleWebAuthnServer from '@simplewebauthn/server';
@@ -13,6 +18,7 @@ import { EmailService } from './email.service';
 import { PasskeyCredential } from './schemas/passkey-credential.schema';
 import { PasskeyChallenge } from './schemas/passkey-challenge.schema';
 import { FaceLoginProfile } from './schemas/face-login-profile.schema';
+import { DepartmentCatalog } from '../department/schemas/department-catalog.schema';
 
 const {
   generateAuthenticationOptions,
@@ -32,9 +38,24 @@ export class AuthService {
     @InjectModel(PasskeyCredential.name) private passkeyCredentialModel: Model<PasskeyCredential>,
     @InjectModel(PasskeyChallenge.name) private passkeyChallengeModel: Model<PasskeyChallenge>,
     @InjectModel(FaceLoginProfile.name) private faceLoginProfileModel: Model<FaceLoginProfile>,
+    @InjectModel(DepartmentCatalog.name) private departmentCatalogModel: Model<DepartmentCatalog>,
     private jwtService: JwtService,
     private emailService: EmailService,
   ) {}
+
+  /** Après création / mise à jour d’un admin avec département : une entrée catalogue par nom. */
+  private async syncAdminCatalogEntry(adminId: Types.ObjectId | string, deptName: string) {
+    const oid = new Types.ObjectId(String(adminId));
+    await this.departmentCatalogModel
+      .updateMany({ assignedAdminId: oid }, { $unset: { assignedAdminId: 1, assignedSuperAdminId: 1 } })
+      .exec();
+    await this.departmentCatalogModel
+      .updateOne(
+        { name: deptName.trim() },
+        { $set: { assignedAdminId: oid }, $unset: { assignedSuperAdminId: 1 } },
+      )
+      .exec();
+  }
 
   private getWebAuthnConfig() {
     const expectedOrigin = process.env.PASSKEY_ORIGIN || process.env.FRONTEND_ORIGIN || 'http://localhost:5173';
@@ -695,24 +716,81 @@ export class AuthService {
     };
   }
 
-  async createAdmin(email: string, password: string, name?: string) {
+  async createAdmin(
+    email: string,
+    password: string,
+    name?: string,
+    department?: string,
+    firstName?: string,
+    lastName?: string,
+    phone?: string,
+  ) {
+    const dept = department?.trim() || undefined;
+    const displayName =
+      (name?.trim() || `${firstName?.trim() || ''} ${lastName?.trim() || ''}`.trim()) || 'Admin';
+
     const existing = await this.userModel.findOne({ email }).exec();
+
+    if (dept) {
+      const cat = await this.departmentCatalogModel.findOne({ name: dept }).exec();
+      if (
+        cat?.assignedAdminId &&
+        (!existing || String(cat.assignedAdminId) !== String(existing._id))
+      ) {
+        throw new ConflictException(
+          'Un administrateur est déjà assigné à ce département dans le catalogue. Retirez l’assignation ou choisissez un autre département.',
+        );
+      }
+    }
     if (existing?.role === 'superadmin') {
       throw new BadRequestException('Cet email est déjà utilisé par un super administrateur');
     }
     const hashed = await bcrypt.hash(password, 10);
-    const data = { email, password: hashed, role: 'admin', name: name || 'Admin', isActive: true };
+    const data: Record<string, unknown> = {
+      email,
+      password: hashed,
+      role: 'admin',
+      name: displayName,
+      isActive: true,
+      department: dept || '',
+      firstName: firstName?.trim() || undefined,
+      lastName: lastName?.trim() || undefined,
+      phone: phone?.trim() || undefined,
+    };
+    let userId: Types.ObjectId;
     if (existing) {
-      await this.userModel.updateOne({ email }, { $set: { password: hashed, role: 'admin', name: data.name, isActive: true } }).exec();
-      return { id: existing._id, email: existing.email, name: data.name, role: 'admin' };
+      await this.userModel.updateOne({ email }, { $set: data }).exec();
+      const u = await this.userModel.findOne({ email }).exec();
+      if (!u) throw new BadRequestException('Échec mise à jour administrateur');
+      userId = u._id as Types.ObjectId;
+    } else {
+      const user = await this.userModel.create(data);
+      userId = user._id as Types.ObjectId;
     }
-    const user = await this.userModel.create(data);
-    return { id: user._id, email: user.email, name: user.name, role: user.role };
+    if (dept) {
+      await this.syncAdminCatalogEntry(userId, dept);
+    }
+    const final = await this.userModel.findById(userId).exec();
+    return {
+      id: final!._id,
+      email: final!.email,
+      name: final!.name,
+      role: 'admin',
+      department: final!.department || '',
+    };
   }
 
   /** Crée un admin et envoie les identifiants par e-mail (SMTP configuré dans .env). */
-  async createAdminWithCredentialsEmail(email: string, password: string, name?: string) {
-    const result = await this.createAdmin(email, password, name);
+  async createAdminWithCredentialsEmail(
+    email: string,
+    password: string,
+    name?: string,
+    department?: string,
+    firstName?: string,
+    lastName?: string,
+    phone?: string,
+  ) {
+    const result = await this.createAdmin(email, password, name, department, firstName, lastName, phone);
     let credentialsEmailSent = false;
     try {
       credentialsEmailSent = await this.emailService.sendAdminCredentials(
@@ -827,6 +905,31 @@ export class AuthService {
       profileImage: data.profileImage, isActive: true,
     });
     return { id: user._id, email: user.email, name: user.name, role: user.role };
+  }
+
+  async createUserWithRoleAndCredentialsEmail(data: any, role: string) {
+    const plainPassword = data.password as string;
+    const result = await this.createUserWithRole(data, role);
+    const displayName =
+      data.name || `${data.firstName || ''} ${data.lastName || ''}`.trim() || role;
+    const roleTitle =
+      role === 'auditor'
+        ? 'Auditeur'
+        : role === 'carecoordinator'
+          ? 'Coordinateur de soins'
+          : role;
+    let credentialsEmailSent = false;
+    try {
+      credentialsEmailSent = await this.emailService.sendPlatformStaffCredentials(
+        result.email,
+        plainPassword,
+        displayName,
+        roleTitle,
+      );
+    } catch (e) {
+      console.error('[Auth] Échec envoi e-mail compte plateforme:', (e as Error)?.message || e);
+    }
+    return { ...result, credentialsEmailSent };
   }
 
   async updateUser(id: string, data: any) {

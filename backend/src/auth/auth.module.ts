@@ -15,6 +15,7 @@ import { Nurse, NurseSchema } from '../nurse/schemas/nurse.schema';
 import { PasskeyCredential, PasskeyCredentialSchema } from './schemas/passkey-credential.schema';
 import { PasskeyChallenge, PasskeyChallengeSchema } from './schemas/passkey-challenge.schema';
 import { FaceLoginProfile, FaceLoginProfileSchema } from './schemas/face-login-profile.schema';
+import { DepartmentCatalog, DepartmentCatalogSchema } from '../department/schemas/department-catalog.schema';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { FaceLoginProfile, FaceLoginProfileSchema } from './schemas/face-login-p
       { name: PasskeyCredential.name, schema: PasskeyCredentialSchema },
       { name: PasskeyChallenge.name, schema: PasskeyChallengeSchema },
       { name: FaceLoginProfile.name, schema: FaceLoginProfileSchema },
+      { name: DepartmentCatalog.name, schema: DepartmentCatalogSchema },
     ]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({

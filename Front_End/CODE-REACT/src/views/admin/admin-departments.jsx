@@ -46,7 +46,7 @@ const AdminDepartments = () => {
   const [newDeptName, setNewDeptName] = useState("");
   const [createSaving, setCreateSaving] = useState(false);
   const [createFeedback, setCreateFeedback] = useState({ type: "", message: "" });
-  const [superAdmins, setSuperAdmins] = useState([]);
+  const [departmentAdmins, setDepartmentAdmins] = useState([]);
   const [editModal, setEditModal] = useState({ open: false, catalogId: "", name: "" });
   const [editName, setEditName] = useState("");
   const [editSaving, setEditSaving] = useState(false);
@@ -56,7 +56,7 @@ const AdminDepartments = () => {
     open: false,
     catalogId: "",
     departmentName: "",
-    superAdminUserId: "",
+    adminUserId: "",
   });
   const [assignSaving, setAssignSaving] = useState(false);
   const [modalError, setModalError] = useState("");
@@ -88,9 +88,9 @@ const AdminDepartments = () => {
       try {
         const users = await superAdminApi.getAllUsers();
         if (cancelled || !Array.isArray(users)) return;
-        setSuperAdmins(users.filter((u) => u.role === "superadmin" && u.isActive !== false));
+        setDepartmentAdmins(users.filter((u) => u.role === "admin" && u.isActive !== false));
       } catch {
-        if (!cancelled) setSuperAdmins([]);
+        if (!cancelled) setDepartmentAdmins([]);
       }
     })();
     return () => {
@@ -175,7 +175,7 @@ const AdminDepartments = () => {
         open: true,
         catalogId,
         departmentName: d.name,
-        superAdminUserId: d.assignedSuperAdminId || "",
+        adminUserId: d.assignedAdminId || "",
       });
     } catch (err) {
       setActionError(err?.message || t("adminDepartments.assignError"));
@@ -221,9 +221,9 @@ const AdminDepartments = () => {
     setAssignSaving(true);
     setModalError("");
     try {
-      const superAdminUserId = assignModal.superAdminUserId || null;
-      await departmentApi.assignCatalogSuperAdmin(assignModal.catalogId, superAdminUserId);
-      setAssignModal({ open: false, catalogId: "", departmentName: "", superAdminUserId: "" });
+      const adminUserId = assignModal.adminUserId || null;
+      await departmentApi.assignCatalogAdmin(assignModal.catalogId, adminUserId);
+      setAssignModal({ open: false, catalogId: "", departmentName: "", adminUserId: "" });
       await loadSummary();
     } catch (err) {
       setModalError(err?.message || t("adminDepartments.assignError"));
@@ -481,10 +481,10 @@ const AdminDepartments = () => {
                       <h5 className="fw-bold mt-3 mb-0 text-break" title={d.name}>
                         {d.name}
                       </h5>
-                      {canManageDepartments && d.assignedSuperAdminLabel && (
+                      {canManageDepartments && d.assignedAdminLabel && (
                         <p className="text-muted small mb-0 mt-2 text-break">
-                          <i className="ri-shield-user-line me-1" />
-                          {d.assignedSuperAdminLabel}
+                          <i className="ri-user-settings-line me-1" />
+                          {d.assignedAdminLabel}
                         </p>
                       )}
                     </div>
@@ -591,12 +591,12 @@ const AdminDepartments = () => {
             <p className="small text-muted mb-2">{assignModal.departmentName}</p>
             <Form.Label className="small text-muted">{t("adminDepartments.assignLabel")}</Form.Label>
             <Form.Select
-              value={assignModal.superAdminUserId}
-              onChange={(e) => setAssignModal((m) => ({ ...m, superAdminUserId: e.target.value }))}
+              value={assignModal.adminUserId}
+              onChange={(e) => setAssignModal((m) => ({ ...m, adminUserId: e.target.value }))}
               disabled={assignSaving}
             >
               <option value="">{t("adminDepartments.assignNone")}</option>
-              {superAdmins.map((u) => (
+              {departmentAdmins.map((u) => (
                 <option key={String(u.id)} value={String(u.id)}>
                   {superAdminLabel(u)}
                 </option>

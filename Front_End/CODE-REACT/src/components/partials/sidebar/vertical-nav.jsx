@@ -464,6 +464,15 @@ const VerticalNav = () => {
                         </Link>
                     </Nav.Item>
                     <Nav.Item as="li">
+                        <Link
+                            to="/super-admin/platform-users"
+                            className={`nav-link super-admin-nav-link ${location.pathname.startsWith("/super-admin/platform-users") ? "active" : ""}`}
+                        >
+                            <i className="ri-group-2-fill"></i>
+                            <span className="item-name">{t("sidebar.platformAccounts")}</span>
+                        </Link>
+                    </Nav.Item>
+                    <Nav.Item as="li">
                         <Link to="/super-admin/users" className={`nav-link super-admin-nav-link ${location.pathname === "/super-admin/users" ? "active" : ""}`}>
                             <i className="ri-team-fill"></i>
                             <span className="item-name">{t("sidebar.allUsers")}</span>

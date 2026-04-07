@@ -9,9 +9,9 @@ export class DepartmentCatalog {
   @Prop({ required: true, trim: true })
   name: string;
 
-  /** Super administrateur rattaché à ce département (référence User). */
+  /** Administrateur hospitalier rattaché à ce département (User role admin), un par département. */
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User' })
-  assignedSuperAdminId?: MongooseSchema.Types.ObjectId;
+  assignedAdminId?: MongooseSchema.Types.ObjectId;
 }
 
 export const DepartmentCatalogSchema = SchemaFactory.createForClass(DepartmentCatalog);

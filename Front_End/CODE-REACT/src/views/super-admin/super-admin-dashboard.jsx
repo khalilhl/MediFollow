@@ -167,6 +167,10 @@ const SuperAdminDashboard = () => {
               <h5 className="mb-0">{t("superAdminDashboard.quickActions")}</h5>
             </Card.Header>
             <Card.Body className="d-flex flex-column gap-3">
+              <Link to="/super-admin/platform-users/add-admin" className="btn btn-outline-primary">
+                <i className="ri-user-star-line me-2"></i>
+                {t("superAdminDashboard.addHospitalAdmin")}
+              </Link>
               <Link to="/super-admin/auditors/add" className="btn btn-outline-warning">
                 <i className="ri-shield-user-line me-2"></i>{t("superAdminDashboard.addAuditor")}
               </Link>

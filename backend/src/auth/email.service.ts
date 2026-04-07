@@ -181,6 +181,48 @@ export class EmailService {
     return false;
   }
 
+  /** Auditeur ou coordinateur : même principe que l’e-mail administrateur. */
+  async sendPlatformStaffCredentials(
+    email: string,
+    password: string,
+    displayName: string,
+    roleTitle: string,
+  ): Promise<boolean> {
+    const loginUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const signInUrl = `${loginUrl}/auth/sign-in`;
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #089bab;">MediFollow — ${roleTitle}</h2>
+        <p>Bonjour ${displayName || roleTitle},</p>
+        <p>Un super administrateur a créé votre compte MediFollow (${roleTitle}). Voici vos identifiants :</p>
+        <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 20px 0;">
+          <p style="margin: 0 0 8px 0;"><strong>Email :</strong> ${email}</p>
+          <p style="margin: 0;"><strong>Mot de passe :</strong> ${password}</p>
+        </div>
+        <p style="margin: 25px 0;">
+          <a href="${signInUrl}" style="background: #089bab; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+            Se connecter à MediFollow
+          </a>
+        </p>
+        <p style="color: #666; font-size: 12px;">Modifiez votre mot de passe après la première connexion (Profil).</p>
+        <p style="color: #666; font-size: 12px;">Lien : <a href="${signInUrl}">${signInUrl}</a></p>
+      </div>
+    `;
+
+    if (this.transporter) {
+      await this.transporter.sendMail({
+        from: this.getSmtpFrom(),
+        to: email,
+        subject: `MediFollow — Vos identifiants (${roleTitle})`,
+        html,
+      });
+      return true;
+    }
+    console.log(`[${roleTitle}] Email non configuré. Identifiants :`, { email, password: '***' });
+    return false;
+  }
+
   async sendNurseCredentials(email: string, password: string, firstName: string, lastName: string) {
     const loginUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     const signInUrl = `${loginUrl}/auth/sign-in`;

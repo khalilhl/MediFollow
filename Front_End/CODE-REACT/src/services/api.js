@@ -646,14 +646,16 @@ export const nurseApi = {
 export const departmentApi = {
   summary: () => api.get("/departments/summary"),
   catalog: () => api.get("/departments/catalog"),
+  /** Super admin : noms du catalogue sans administrateur assigné. */
+  catalogEligibleForAdmin: () => api.get("/departments/catalog/eligible-for-admin"),
   createCatalog: (data) => api.post("/departments", data),
   ensureCatalog: (data) => api.post("/departments/catalog/ensure", data),
   updateCatalog: (catalogId, data) =>
     api.patch(`/departments/catalog/${encodeURIComponent(catalogId)}`, data),
   deleteCatalog: (catalogId) => api.delete(`/departments/catalog/${encodeURIComponent(catalogId)}`),
-  assignCatalogSuperAdmin: (catalogId, superAdminUserId) =>
+  assignCatalogAdmin: (catalogId, adminUserId) =>
     api.patch(`/departments/catalog/${encodeURIComponent(catalogId)}/assign`, {
-      superAdminUserId,
+      adminUserId,
     }),
   /** Médecin connecté : infirmiers du même département (JWT). */
   getMyNursesAsDoctor: () => api.getWithDoctorToken("/departments/doctor/my-nurses"),

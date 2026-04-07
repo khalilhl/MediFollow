@@ -663,6 +663,22 @@ export const DefaultRoute = [
         element: <AdminDepartmentDetail />
       },
       {
+        path: '/super-admin/audit',
+        element: (
+          <AuditorSessionGuard>
+            <AuditorDashboard />
+          </AuditorSessionGuard>
+        )
+      },
+      {
+        path: '/super-admin/audit-logs',
+        element: (
+          <AuditorSessionGuard>
+            <AuditorLogsPage />
+          </AuditorSessionGuard>
+        )
+      },
+      {
         path: '/auditor/dashboard',
         element: (
           <AuditorSessionGuard>

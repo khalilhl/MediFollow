@@ -389,6 +389,48 @@ export class HealthLogService {
   }
 
   /** Liste des alertes vitales ouvertes pour l’infirmier connecté. */
+  /**
+   * Super admin : nombre d'alertes vitales encore ouvertes (tous services) + derniers relevés.
+   */
+  async getPlatformOpenVitalsSummary() {
+    const match = {
+      flagged: true,
+      escalationStatus: { $in: ['alert_sent', 'escalated_to_doctor'] },
+    };
+    const [openCount, recent] = await Promise.all([
+      this.healthLogModel.countDocuments(match).exec(),
+      this.healthLogModel
+        .find(match)
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .select('patientId recordedAt riskScore escalationStatus')
+        .lean()
+        .exec(),
+    ]);
+    const pids = [...new Set(recent.map((r: { patientId?: unknown }) => String(r.patientId)).filter(Boolean))];
+    const oids = pids.filter((id) => Types.ObjectId.isValid(id)).map((id) => new Types.ObjectId(id));
+    const patients = oids.length
+      ? await this.patientModel.find({ _id: { $in: oids } }).select('firstName lastName').lean().exec()
+      : [];
+    const nameById = new Map(
+      (patients as { _id: unknown; firstName?: string; lastName?: string }[]).map((p) => [
+        String(p._id),
+        `${p.firstName || ''} ${p.lastName || ''}`.trim() || 'Patient',
+      ]),
+    );
+    return {
+      openCount,
+      recent: recent.map((l: Record<string, unknown>) => ({
+        id: String(l._id),
+        patientId: String(l.patientId),
+        patientName: nameById.get(String(l.patientId)) || 'Patient',
+        recordedAt: l.recordedAt,
+        riskScore: l.riskScore,
+        escalationStatus: l.escalationStatus,
+      })),
+    };
+  }
+
   async listOpenAlertsForNurse(user: JwtLike) {
     if (String(user.role) !== 'nurse') throw new ForbiddenException();
     const uid = this.uid(user);

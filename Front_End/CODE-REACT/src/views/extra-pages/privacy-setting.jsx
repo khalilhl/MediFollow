@@ -52,52 +52,6 @@ const PrivacySetting = () => {
                 </div>
                 <hr />
                 <div className="data-privacy">
-                  <h4 className="mb-2">{t("privacySetting.photoTitle")}</h4>
-                  <Form.Check>
-                    <Form.Check.Input type="radio" name="customRadio0" id="automatically" defaultChecked />
-                    <Form.Check.Label htmlFor="automatically" className="ps-2">
-                      {t("privacySetting.addAutomatically")}
-                    </Form.Check.Label>
-                  </Form.Check>
-                  <Form.Check>
-                    <Form.Check.Input type="radio" name="customRadio0" id="manualy" />
-                    <Form.Check.Label htmlFor="manualy" className="ps-2">
-                      {t("privacySetting.addManually")}
-                    </Form.Check.Label>
-                  </Form.Check>
-                  <p>{t("privacySetting.photoDesc")}</p>
-                </div>
-                <hr />
-                <div className="data-privacy">
-                  <h4 className="mb-2">{t("privacySetting.profileTitle")}</h4>
-                  <Form.Check>
-                    <Form.Check.Input type="radio" name="customRadio1" id="public" />
-                    <Form.Check.Label htmlFor="public" className="ps-2">
-                      {t("privacySetting.publicProfile")}
-                    </Form.Check.Label>
-                  </Form.Check>
-                  <Form.Check>
-                    <Form.Check.Input type="radio" name="customRadio1" id="friend" />
-                    <Form.Check.Label htmlFor="friend" className="ps-2">
-                      {t("privacySetting.friendProfile")}
-                    </Form.Check.Label>
-                  </Form.Check>
-                  <Form.Check>
-                    <Form.Check.Input type="radio" name="customRadio1" id="spfriend" />
-                    <Form.Check.Label htmlFor="spfriend" className="ps-2">
-                      {t("privacySetting.specificFriend")}
-                    </Form.Check.Label>
-                  </Form.Check>
-                  <Form.Check>
-                    <Form.Check.Input type="radio" name="customRadio1" id="onlyme" />
-                    <Form.Check.Label htmlFor="onlyme" className="ps-2">
-                      {t("privacySetting.onlyMe")}
-                    </Form.Check.Label>
-                  </Form.Check>
-                  <p>{t("privacySetting.profileDesc")}</p>
-                </div>
-                <hr />
-                <div className="data-privacy">
                   <h4 className="mb-2">{t("privacySetting.loginNotifTitle")}</h4>
                   <Form.Check>
                     <Form.Check.Input type="radio" name="customRadio2" id="enable" />

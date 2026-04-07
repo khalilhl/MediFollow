@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Row, Col, Table, Spinner } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
 import {
@@ -56,8 +56,18 @@ function labelCategory(t, cat) {
   return t(`auditorDashboard.categoryLabels.${cat}`, { defaultValue: cat });
 }
 
+/** Super admin uses /super-admin/audit* ; auditors keep /auditor/*. */
+function useAuditSectionPaths() {
+  const { pathname } = useLocation();
+  const isSuperAdminAudit = /^\/super-admin\/audit($|-)/.test(pathname);
+  return {
+    auditLogsPath: isSuperAdminAudit ? "/super-admin/audit-logs" : "/auditor/logs",
+  };
+}
+
 const AuditorDashboard = () => {
   const { t, i18n } = useTranslation();
+  const { auditLogsPath } = useAuditSectionPaths();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [data, setData] = useState(null);
@@ -255,7 +265,7 @@ const AuditorDashboard = () => {
           <h1 id="auditor-dash-title" className="auditor-dash__title">{t("auditorDashboard.pageTitle")}</h1>
           <p className="auditor-dash__subtitle mb-0">{t("auditorDashboard.subtitle")}</p>
         </div>
-        <Link to="/auditor/logs" className="btn btn-sm btn-outline-primary">
+        <Link to={auditLogsPath} className="btn btn-sm btn-outline-primary">
           {t("auditorDashboard.linkToLogs")}
         </Link>
       </header>

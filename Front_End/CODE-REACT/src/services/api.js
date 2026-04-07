@@ -644,7 +644,8 @@ export const nurseApi = {
 };
 
 export const departmentApi = {
-  summary: () => api.get("/departments/summary"),
+  /** JWT admin / super admin (évite un mauvais jeton si session patient résiduelle). */
+  summary: () => api.getWithAdminToken("/departments/summary"),
   catalog: () => api.get("/departments/catalog"),
   /** Super admin : noms du catalogue sans administrateur assigné. */
   catalogEligibleForAdmin: () => api.get("/departments/catalog/eligible-for-admin"),
@@ -1092,6 +1093,9 @@ export const healthLogApi = {
         : '';
     return api.getWithDoctorToken(`/health-logs/doctor/nurse-escalations${q}`);
   },
+  /** JWT super admin — alertes vitales ouvertes (toute la plateforme). */
+  platformOpenVitalsSummary: () =>
+    api.getWithAdminToken("/health-logs/platform/open-vitals-summary"),
 };
 
 export const medicationApi = {

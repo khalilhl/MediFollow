@@ -497,13 +497,19 @@ const VerticalNav = () => {
                         </Link>
                     </Nav.Item>
                     <Nav.Item as="li">
-                        <Link to="/auditor/dashboard" className={`nav-link super-admin-nav-link ${location.pathname === "/auditor/dashboard" ? "active" : ""}`}>
+                        <Link
+                            to="/super-admin/audit"
+                            className={`nav-link super-admin-nav-link ${location.pathname === "/super-admin/audit" ? "active" : ""}`}
+                        >
                             <i className="ri-bar-chart-box-fill"></i>
                             <span className="item-name">{t("sidebar.auditorDashboard")}</span>
                         </Link>
                     </Nav.Item>
                     <Nav.Item as="li">
-                        <Link to="/auditor/logs" className={`nav-link super-admin-nav-link ${location.pathname === "/auditor/logs" ? "active" : ""}`}>
+                        <Link
+                            to="/super-admin/audit-logs"
+                            className={`nav-link super-admin-nav-link ${location.pathname === "/super-admin/audit-logs" ? "active" : ""}`}
+                        >
                             <i className="ri-file-list-3-line"></i>
                             <span className="item-name">{t("sidebar.auditorLogs")}</span>
                         </Link>

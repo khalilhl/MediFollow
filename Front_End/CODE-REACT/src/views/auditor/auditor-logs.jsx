@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Row, Col, Form, Button, Table, Spinner, Modal, Pagination, Badge } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
 import { auditorApi } from "../../services/api";
@@ -46,6 +46,20 @@ function formatJson(obj, emptyLabel) {
   }
 }
 
+function hasMeaningfulSnapshot(snapshot) {
+  if (snapshot == null) return false;
+  if (typeof snapshot === "object" && !Array.isArray(snapshot) && Object.keys(snapshot).length === 0) return false;
+  return true;
+}
+
+/** READ actions and GET requests typically have no before/after payloads in audit. */
+function isReadOnlyAuditDetail(detail) {
+  if (!detail) return false;
+  const actionType = String(detail.actionType || "").toUpperCase();
+  const method = String(detail.method || "").toUpperCase();
+  return actionType === "READ" || method === "GET";
+}
+
 function labelAction(t, code) {
   if (!code) return t("auditorLogs.noValue");
   if (code === "LOGIN_FAILED") return t("auditorLogs.loginFailed");
@@ -66,8 +80,15 @@ function labelRole(t, role) {
   return t(`auditorLogs.roleLabels.${role}`, { defaultValue: role });
 }
 
+function useAuditDashboardPath() {
+  const { pathname } = useLocation();
+  const isSuperAdminAudit = /^\/super-admin\/audit($|-)/.test(pathname);
+  return isSuperAdminAudit ? "/super-admin/audit" : "/auditor/dashboard";
+}
+
 const AuditorLogsPage = () => {
   const { t, i18n } = useTranslation();
+  const auditDashboardPath = useAuditDashboardPath();
   const dateLocale = (() => {
     const l = (i18n.language || "en").split("-")[0];
     if (l === "fr") return "fr-FR";
@@ -148,7 +169,7 @@ const AuditorLogsPage = () => {
       <AuditorA11yToolbar />
       <div id="auditor-main-content" tabIndex={-1}>
       <header className="auditor-logs__header" aria-labelledby="auditor-logs-title">
-        <Link to="/auditor/dashboard" className="auditor-logs__back">
+        <Link to={auditDashboardPath} className="auditor-logs__back">
           <i className="ri-arrow-left-line" aria-hidden />
           {t("auditorLogs.backDashboard")}
         </Link>
@@ -451,10 +472,23 @@ const AuditorLogsPage = () => {
                   <dd>{detail.action}</dd>
                 </div>
               </dl>
-              <h6 className="auditor-logs__snapshot-title">{t("auditorLogs.before")}</h6>
-              <pre className="auditor-logs__json">{formatJson(detail.beforeSnapshot, t("auditorLogs.noValue"))}</pre>
-              <h6 className="auditor-logs__snapshot-title mt-3">{t("auditorLogs.after")}</h6>
-              <pre className="auditor-logs__json">{formatJson(detail.afterSnapshot, t("auditorLogs.noValue"))}</pre>
+              {isReadOnlyAuditDetail(detail) &&
+              !hasMeaningfulSnapshot(detail.beforeSnapshot) &&
+              !hasMeaningfulSnapshot(detail.afterSnapshot) ? (
+                <div
+                  className="auditor-logs__read-only-hint rounded-2 px-3 py-2 bg-light border text-muted small"
+                  role="note"
+                >
+                  {t("auditorLogs.readOnlyNoSnapshots")}
+                </div>
+              ) : (
+                <>
+                  <h6 className="auditor-logs__snapshot-title">{t("auditorLogs.before")}</h6>
+                  <pre className="auditor-logs__json">{formatJson(detail.beforeSnapshot, t("auditorLogs.noValue"))}</pre>
+                  <h6 className="auditor-logs__snapshot-title mt-3">{t("auditorLogs.after")}</h6>
+                  <pre className="auditor-logs__json">{formatJson(detail.afterSnapshot, t("auditorLogs.noValue"))}</pre>
+                </>
+              )}
               {detail.metadata && (
                 <>
                   <h6 className="auditor-logs__snapshot-title mt-3">{t("auditorLogs.metadata")}</h6>

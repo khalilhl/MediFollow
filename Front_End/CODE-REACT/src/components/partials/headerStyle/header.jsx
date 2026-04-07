@@ -637,88 +637,6 @@ const Header = () => {
                         </Dropdown.Menu>
                      </Dropdown>
                      )}
-                     <Dropdown as="li" className="nav-item">
-                        <Dropdown.Toggle as="a" bsPrefix=' ' to="#" className="nav-link d-none d-xl-block"
-                           id="notification-drop" data-bs-toggle="dropdown">
-                           <i className="ri-mail-open-line"></i>
-                        </Dropdown.Toggle>
-                        <Dropdown.Menu as="div" className="p-0 sub-drop dropdown-menu dropdown-menu-end"
-                           aria-labelledby="notification-drop">
-                           <div className="m-0 -none card">
-                              <div
-                                 className="py-3 card-header d-flex justify-content-between bg-primary mb-0 rounded-top-3">
-                                 <div className="header-title w-100">
-                                    <h5
-                                       className="mb-0 text-white d-flex justify-content-between">All
-                                       Messages <small
-                                          className="badge text-bg-light  pt-1">4</small></h5>
-                                 </div>
-                              </div>
-                              <div className="p-0 card-body">
-                                 <a href="#" className="iq-sub-card">
-                                    <div className="d-flex align-items-center">
-                                       <img className="p-1 avatar-40 "
-                                          src={user01} alt
-                                          loading="lazy" />
-                                       <div className="ms-3 flex-grow-1 text-start">
-                                          <h6 className="mb-0 ">Emma Watson Bni</h6>
-                                          <div className="d-flex justify-content-between">
-                                             <p className="mb-0">Jond Bini</p>
-                                             <small className="float-end font-size-12">Just
-                                                Now</small>
-                                          </div>
-                                       </div>
-                                    </div>
-                                 </a>
-                                 <a href="#" className="iq-sub-card">
-                                    <div className="d-flex align-items-center">
-                                       <img className="p-1 avatar-40 "
-                                          src={user02} alt
-                                          loading="lazy" />
-                                       <div className="ms-3 flex-grow-1 text-start">
-                                          <h6 className="mb-0 ">New customer is join</h6>
-                                          <div className="d-flex justify-content-between">
-                                             <p className="mb-0">Jond Bini</p>
-                                             <small className="float-end font-size-12">5 days
-                                                ago</small>
-                                          </div>
-                                       </div>
-                                    </div>
-                                 </a>
-                                 <a href="#" className="iq-sub-card">
-                                    <div className="d-flex align-items-center">
-                                       <img className="p-1 avatar-40 "
-                                          src={user03} alt
-                                          loading="lazy" />
-                                       <div className="ms-3 flex-grow-1 text-start">
-                                          <h6 className="mb-0 ">Two customer is left</h6>
-                                          <div className="d-flex justify-content-between">
-                                             <p className="mb-0">Jond Bini</p>
-                                             <small className="float-end font-size-12">2 days
-                                                ago</small>
-                                          </div>
-                                       </div>
-                                    </div>
-                                 </a>
-                                 <a href="#" className="iq-sub-card">
-                                    <div className="d-flex align-items-center">
-                                       <img className="p-1 avatar-40 "
-                                          src={user04} alt
-                                          loading="lazy" />
-                                       <div className="ms-3 flex-grow-1 text-start">
-                                          <h6 className="mb-0 ">New Mail from Fenny</h6>
-                                          <div className="d-flex justify-content-between">
-                                             <p className="mb-0">Jond Bini</p>
-                                             <small className="float-end font-size-12">3 days
-                                                ago</small>
-                                          </div>
-                                       </div>
-                                    </div>
-                                 </a>
-                              </div>
-                           </div>
-                        </Dropdown.Menu>
-                     </Dropdown>
                      <Nav.Item as="li" className="nav-item d-block d-xl-none" onClick={handleSidebar}>
                         <a className="wrapper-menu" data-toggle="sidebar" data-active="true">
                            <div className="main-circle "><i className="ri-more-fill"></i></div>
@@ -756,8 +674,8 @@ const Header = () => {
                               <div
                                  className="py-3 card-header d-flex justify-content-between bg-primary mb-0 rounded-top-3">
                                  <div className="header-title">
-                                    <h5 className="mb-0 text-white">{t("nav.allNotifications")}</h5>
-                                    <span className="text-white ">{t("nav.available")}</span>
+                                    <h5 className="mb-0 text-white">{t("nav.userAccountMenu")}</h5>
+                                    <span className="text-white small">{t("nav.userAccountMenuSubtitle")}</span>
                                  </div>
                               </div>
                               <div className="p-0 card-body">
@@ -1050,81 +968,6 @@ const Header = () => {
                         </Dropdown.Menu>
                      </Dropdown>
                      )}{" "}
-                     <Dropdown as="li" className="nav-item">
-                        <Dropdown.Toggle as="a" bsPrefix=' ' to="#" className="nav-link d-block d-xl-none"
-                           id="notification-drop">
-                           <i className="ri-mail-open-line"></i>
-                        </Dropdown.Toggle>
-                        <Dropdown.Menu as="div" className="p-0 sub-drop dropdown-menu-end"
-                           aria-labelledby="notification-drop">
-                           <div className="m-0 -none card">
-                              <div
-                                 className="py-3 card-header d-flex justify-content-between bg-primary mb-0">
-                                 <div className="header-title">
-                                    <h5 className="mb-0 text-white">{t("nav.allNotifications")}</h5>
-                                 </div>
-                              </div>
-                              <div className="p-0 card-body">
-                                 <Link to="#" className="iq-sub-card">
-                                    <div className="d-flex align-items-center">
-                                       <img
-                                          className="p-1 avatar-40 rounded-pill bg-primary-subtle"
-                                          src={user01} alt
-                                          loading="lazy" />
-                                       <div className="ms-3 flex-grow-1 text-start">
-                                          <h6 className="mb-0 ">Emma Watson Bni</h6>
-                                          <p className="mb-0">95 MB</p>
-                                       </div>
-                                       <small className="float-end font-size-12">Just
-                                          Now</small>
-                                    </div>
-                                 </Link>
-                                 <Link to="#" className="iq-sub-card">
-                                    <div className="d-flex align-items-center">
-                                       <img
-                                          className="p-1 avatar-40 rounded-pill bg-primary-subtle"
-                                          src={user02} alt
-                                          loading="lazy" />
-                                       <div className="ms-3 flex-grow-1 text-start">
-                                          <h6 className="mb-0 ">New customer is join</h6>
-                                          <p className="mb-0">Cyst Bni</p>
-                                       </div>
-                                       <small className="float-end font-size-12">5 days
-                                          ago</small>
-                                    </div>
-                                 </Link>
-                                 <Link to="#" className="iq-sub-card">
-                                    <div className="d-flex align-items-center">
-                                       <img
-                                          className="p-1 avatar-40 rounded-pill bg-primary-subtle"
-                                          src={user03} alt
-                                          loading="lazy" />
-                                       <div className="ms-3 flex-grow-1 text-start">
-                                          <h6 className="mb-0 ">Two customer is left</h6>
-                                          <p className="mb-0">Cyst Bni</p>
-                                       </div>
-                                       <small className="float-end font-size-12">2 days
-                                          ago</small>
-                                    </div>
-                                 </Link>
-                                 <Link to="#" className="iq-sub-card">
-                                    <div className="d-flex align-items-center">
-                                       <img
-                                          className="p-1 avatar-40 rounded-pill bg-primary-subtle"
-                                          src={user04} alt
-                                          loading="lazy" />
-                                       <div className="ms-3 flex-grow-1 text-start">
-                                          <h6 className="mb-0 ">New Mail from Fenny</h6>
-                                          <p className="mb-0">Cyst Bni</p>
-                                       </div>
-                                       <small className="float-end font-size-12">3 days
-                                          ago</small>
-                                    </div>
-                                 </Link>
-                              </div>
-                           </div>
-                        </Dropdown.Menu>
-                     </Dropdown>
 
                   </Col>
                </Row>

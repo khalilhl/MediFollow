@@ -44,6 +44,7 @@ import { VideoMeetingModule } from './video-meeting/video-meeting.module';
     LabAnalysisModule,
     AuditModule,
     BrainTumorModule,
+    VideoMeetingModule,
   ],
 })
 export class AppModule {}

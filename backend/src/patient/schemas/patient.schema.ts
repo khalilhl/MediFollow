@@ -84,6 +84,13 @@ export class Patient extends Document {
 
   @Prop()
   height: number;
+
+  // ─── Gamification ────────────────────────────────────────────────────────
+  @Prop({ default: 0 })
+  currentStreak: number;
+
+  @Prop()
+  lastLogDate: string;
 }
 
 export const PatientSchema = SchemaFactory.createForClass(Patient);

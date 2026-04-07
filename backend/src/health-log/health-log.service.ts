@@ -144,6 +144,34 @@ export class HealthLogService {
     const doc = await this.healthLogModel.create(payload);
     const docObj = doc.toObject ? doc.toObject() : doc;
 
+    // --- Streak Game Logic ---
+    try {
+      const patientObj = await this.patientModel.findById(pid).select('currentStreak lastLogDate').exec();
+      if (patientObj) {
+        let streak = (patientObj as any).currentStreak || 0;
+        const last = (patientObj as any).lastLogDate;
+
+        if (!last) {
+          streak = 1;
+        } else if (last !== date) {
+          const lastDateObj = new Date(last);
+          const currentDateObj = new Date(date);
+          const diffMs = currentDateObj.getTime() - lastDateObj.getTime();
+          const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+          
+          if (diffDays === 1) {
+            streak += 1;
+          } else if (diffDays > 1) {
+            streak = 1;
+          }
+        }
+        await this.patientModel.updateOne({ _id: pid }, { $set: { currentStreak: streak, lastLogDate: date } });
+      }
+    } catch (e) {
+      console.error('[HealthLog] Failed to update streak:', e);
+    }
+    // -------------------------
+
     if (flagged) {
       const patient = await this.patientModel
         .findById(pid)

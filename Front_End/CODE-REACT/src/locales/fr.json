@@ -159,6 +159,7 @@
   },
   "sidebar": {
     "myDashboard": "Mon tableau de bord",
+    "globalNews": "Fil d'actualité",
     "secureMessaging": "Messagerie sécurisée",
     "medicationHistory": "Historique médicaments",
     "vitalsHistory": "Historique constantes",

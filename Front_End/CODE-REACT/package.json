@@ -59,6 +59,7 @@
     "react-redux": "^9.1.2",
     "react-responsive-masonry": "^2.1.7",
     "react-router-dom": "^6.26.1",
+    "recharts": "^3.8.1",
     "sass": "^1.77.8",
     "sass-loader": "^16.0.1",
     "smooth-scrollbar": "^8.8.4",

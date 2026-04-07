@@ -99,7 +99,7 @@ const MoodInsightsCard = ({ patientId, compact = false }) => {
       <Card className="border-0 shadow-sm h-100 bg-light">
         <Card.Body className="d-flex flex-column justify-content-center align-items-center text-muted">
           <i className="ri-bar-chart-grouped-line fs-1 mb-2"></i>
-          <p className="mb-0">Aucune donnée d'insight multimodal disponible.</p>
+          <p className="mb-0">{t('moodInsights.noData', 'Aucune donnée d\'insight multimodal disponible.')}</p>
         </Card.Body>
       </Card>
     );
@@ -122,18 +122,18 @@ const MoodInsightsCard = ({ patientId, compact = false }) => {
       <style>{circularChartCSS}</style>
       <Card.Body className="p-4 d-flex flex-column">
         <div className="d-flex justify-content-between align-items-center mb-4">
-          <h5 className="mb-0 text-primary fw-bold" aria-label="Analyse multimodale des humeurs et compliances">
-            <i className="ri-brain-line me-2"></i>Vue Multimodale
+          <h5 className="mb-0 text-primary fw-bold" aria-label={t('moodInsights.multimodalAnalysis', 'Analyse multimodale des humeurs et compliances')}>
+            <i className="ri-brain-line me-2"></i>{t('moodInsights.multimodalView', 'Vue Multimodale')}
           </h5>
           <Badge bg={latestInsight.alertTriggered ? 'danger' : 'secondary'}>
-            {latestInsight.alertTriggered ? 'Alerte Active' : 'Normal'}
+            {latestInsight.alertTriggered ? t('moodInsights.alertActive', 'Alerte Active') : t('moodInsights.normal', 'Normal')}
           </Badge>
         </div>
 
         <div className="row flex-grow-1">
           <div className={`col-12 ${compact ? '' : 'col-md-5'} d-flex flex-column align-items-center justify-content-center mb-4 mb-md-0`}>
             {/* Gauge Simulation SVG (Accessible) */}
-            <div className="position-relative d-flex justify-content-center align-items-center" style={{ width: 140, height: 140 }} aria-label={`Score Global: ${latestInsight.overallMoodScore} sur 100`}>
+            <div className="position-relative d-flex justify-content-center align-items-center" style={{ width: 140, height: 140 }} aria-label={t('moodInsights.globalScoreValue', 'Score Global: {{score}} sur 100', { score: latestInsight.overallMoodScore })}>
                 <svg viewBox="0 0 36 36" className="circular-chart" style={{ width: '100%', height: '100%' }}>
                   <path
                     className="circle-bg"
@@ -160,8 +160,8 @@ const MoodInsightsCard = ({ patientId, compact = false }) => {
             </div>
             
             <div className="text-center mt-3 w-100">
-              <h6 className="fw-bold mb-1">Score Global</h6>
-              <p className="small text-muted mb-0 lh-sm">Agrégation santé, émotions et observance</p>
+              <h6 className="fw-bold mb-1">{t('moodInsights.globalScore', 'Score Global')}</h6>
+              <p className="small text-muted mb-0 lh-sm">{t('moodInsights.aggregationLabel', 'Agrégation santé, émotions et observance')}</p>
             </div>
           </div>
 
@@ -169,28 +169,28 @@ const MoodInsightsCard = ({ patientId, compact = false }) => {
             <div className="col-12 col-md-7 d-flex flex-column justify-content-center">
               <div className="bg-light rounded p-3 mb-3 border-start border-4 border-primary">
                 <i className="ri-information-line text-primary me-2 fw-bold"></i>
-                <span className="fw-medium small" aria-label="Résumé de l'insight">
+                <span className="fw-medium small" aria-label={t('moodInsights.insightSummaryLabel', 'Résumé de l\'insight')}>
                   {latestInsight.insightSummary}
                 </span>
               </div>
               
-              <div className="bg-white border rounded p-3" aria-label="Recommandation clinique">
+              <div className="bg-white border rounded p-3" aria-label={t('moodInsights.clinicalRecommendation', 'Recommandation clinique')}>
                 <p className="mb-0 small text-dark opacity-75">
-                  <strong>Recommandation : </strong>{latestInsight.recommendation}
+                  <strong>{t('moodInsights.recommendationLabel', 'Recommandation : ')}</strong>{latestInsight.recommendation}
                 </p>
               </div>
 
               <div className="d-flex gap-2 mt-3 flex-wrap">
-                <OverlayTrigger overlay={<BootstrapTooltip>Score Émotion (FER)</BootstrapTooltip>}>
+                <OverlayTrigger overlay={<BootstrapTooltip>{t('moodInsights.emotionScore', 'Score Émotion (FER)')}</BootstrapTooltip>}>
                   <Badge bg="light" text="dark" className="border px-2 py-1"><i className="ri-emotion-line me-1 text-primary"></i>{(latestInsight.emotionScore * 100).toFixed(0)}%</Badge>
                 </OverlayTrigger>
-                <OverlayTrigger overlay={<BootstrapTooltip>Tendance Constantes</BootstrapTooltip>}>
+                <OverlayTrigger overlay={<BootstrapTooltip>{t('moodInsights.vitalTrend', 'Tendance Constantes')}</BootstrapTooltip>}>
                   <Badge bg="light" text="dark" className="border px-2 py-1"><i className="ri-heart-pulse-line me-1 text-success"></i>{(latestInsight.vitalTrendScore * 100).toFixed(0)}%</Badge>
                 </OverlayTrigger>
-                <OverlayTrigger overlay={<BootstrapTooltip>Progression Symptômes</BootstrapTooltip>}>
+                <OverlayTrigger overlay={<BootstrapTooltip>{t('moodInsights.symptomProgression', 'Progression Symptômes')}</BootstrapTooltip>}>
                   <Badge bg="light" text="dark" className="border px-2 py-1"><i className="ri-stethoscope-line me-1 text-warning"></i>{(latestInsight.symptomSeverityScore * 100).toFixed(0)}%</Badge>
                 </OverlayTrigger>
-                <OverlayTrigger overlay={<BootstrapTooltip>Assiduité Questionnaires</BootstrapTooltip>}>
+                <OverlayTrigger overlay={<BootstrapTooltip>{t('moodInsights.questionnaireCompliance', 'Assiduité Questionnaires')}</BootstrapTooltip>}>
                   <Badge bg="light" text="dark" className="border px-2 py-1"><i className="ri-calendar-check-line me-1 text-info"></i>{latestInsight.questionnaireCompliance}%</Badge>
                 </OverlayTrigger>
               </div>
@@ -201,7 +201,7 @@ const MoodInsightsCard = ({ patientId, compact = false }) => {
         {/* 7 Day Trend Chart */}
         {!compact && insights.length > 1 && (
           <div className="mt-4 pt-3 border-top" style={{ height: "160px" }}>
-            <p className="small text-muted mb-2 fw-bold"><i className="ri-line-chart-line me-1"></i>Tendance sur 7 Jours</p>
+            <p className="small text-muted mb-2 fw-bold"><i className="ri-line-chart-line me-1"></i>{t('moodInsights.trend7Days', 'Tendance sur 7 Jours')}</p>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
                 <defs>

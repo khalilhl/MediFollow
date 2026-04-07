@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Row, Col, Spinner, Alert, Table, Badge } from "react-bootstrap";
 import Card from "../../components/Card";
 import A11yToolbar from "../../components/A11yToolbar";
+import MoodInsightsCard from "../../components/MoodInsightsCard";
 import { departmentApi } from "../../services/api";
 import {
   getIntakeHistoryByDate,
@@ -136,6 +137,13 @@ const CareCoordinatorPatientDetail = () => {
                 <Alert variant="danger">{error}</Alert>
               ) : (
                 <>
+                  <div className="mb-4">
+                    <Row>
+                      <Col md={6}>
+                        <MoodInsightsCard patientId={patientId} compact={true} />
+                      </Col>
+                    </Row>
+                  </div>
                   <h6 className="mb-3">{t("careCoordinatorPatientDetail.sectionVitals")}</h6>
                   {healthLogs.length === 0 ? (
                     <p className="text-muted small">{t("careCoordinatorPatientDetail.noVitals")}</p>

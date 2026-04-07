@@ -3,6 +3,8 @@ import { useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Alert, Badge, Button, Card, Col, Form, Modal, Row, Spinner, Table } from "react-bootstrap";
 import { healthLogApi, medicationApi, appointmentApi, questionnaireApi } from "../../services/api";
+import MoodInsightsCard from "../../components/MoodInsightsCard";
+import MoodInsightsHistory from "../../components/MoodInsightsHistory";
 import BrainMriAnalysisPage from "../../components/brain-mri-analysis-page";
 import { normalizeMongoId } from "../../utils/mongoId";
 import VitalMetricTile, { hrStatus, bpStatus, o2Status, tempStatus, weightStatus } from "../../components/VitalMetricTile";
@@ -773,6 +775,18 @@ export default function DoctorPatientDossierView({ patient }) {
                 )}
               </>
             )}
+          </SectionCard>
+
+          <div className="mb-4">
+            <MoodInsightsCard patientId={patient?._id || patient?.id} />
+          </div>
+
+          <SectionCard
+            sectionId="dossier-section-insights-history"
+            icon="ri-brain-line"
+            title={t("doctorPatientDossier.sectionInsightsHistory", "Insight History")}
+          >
+            <MoodInsightsHistory patientId={patient?._id || patient?.id} />
           </SectionCard>
 
           <SectionCard

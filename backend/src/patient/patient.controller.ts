@@ -11,11 +11,31 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { PatientService } from './patient.service';
+import { MoodComplianceService } from './services/mood-compliance.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('patients')
 export class PatientController {
-  constructor(private patientService: PatientService) {}
+  constructor(
+    private patientService: PatientService,
+    private moodComplianceService: MoodComplianceService,
+  ) {}
+
+  @Post('register')
+  async registerPublic(@Body() body: any) {
+    // Basic mapping from fullName to firstName/lastName for the public registration form
+    const splitName = (body.fullName || '').trim().split(' ');
+    const firstName = splitName[0] || 'Unknown';
+    const lastName = splitName.slice(1).join(' ') || 'User';
+
+    return this.patientService.create({
+      firstName,
+      lastName,
+      email: body.email,
+      password: body.password,
+      role: 'patient',
+    });
+  }
 
   @UseGuards(JwtAuthGuard)
   @Post()
@@ -43,6 +63,25 @@ export class PatientController {
   async findOne(@Param('id') id: string) {
     return this.patientService.findById(id);
   }
+
+  // ─── Multimodal Mood & Compliance Insights ───────────────────────────────
+  @UseGuards(JwtAuthGuard)
+  @Get(':id/mood-insights')
+  async getMoodInsights(@Param('id') id: string, @Req() req: any) {
+    const userRole = req.user?.role;
+    if (!['doctor', 'nurse', 'carecoordinator', 'superadmin', 'admin'].includes(userRole)) {
+      throw new ForbiddenException('Accès non autorisé aux insights');
+    }
+    const patient = await this.patientService.findById(id);
+    return (patient as any).dailyInsights || [];
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/generate-insight')
+  async generateInsight(@Param('id') id: string) {
+    return this.moodComplianceService.generateDailyInsight(id);
+  }
+  // ─────────────────────────────────────────────────────────────────────────
 
   @UseGuards(JwtAuthGuard)
   @Put(':id')

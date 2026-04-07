@@ -41,8 +41,12 @@ function parseVitalNumber(raw) {
 
 function validateVitals(vitals, t) {
   const errors = {};
-  Object.entries(vitals).forEach(([key, raw]) => {
-    if (raw === "" || raw === null || raw === undefined) return;
+  Object.keys(VITAL_LIMITS).forEach((key) => {
+    const raw = vitals[key];
+    if (raw === "" || raw === null || raw === undefined) {
+      errors[key] = t("dailyCheckIn.errorRequired");
+      return;
+    }
     const n = Number(raw);
     if (Number.isNaN(n)) {
       errors[key] = t("dailyCheckIn.errorInvalidNumber");

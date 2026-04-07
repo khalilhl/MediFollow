@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
+import { MoodComplianceInsight, MoodComplianceInsightSchema } from './mood-compliance-insight.schema';
 
 @Schema({ timestamps: true })
 export class Patient extends Document {
@@ -91,6 +92,10 @@ export class Patient extends Document {
 
   @Prop()
   lastLogDate: string;
+
+  // ─── Multimodal Mood & Compliance Insights ───────────────────────────────
+  @Prop({ type: [MoodComplianceInsightSchema], default: [] })
+  dailyInsights: MoodComplianceInsight[];
 }
 
 export const PatientSchema = SchemaFactory.createForClass(Patient);

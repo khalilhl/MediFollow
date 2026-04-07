@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import LandingShell from "../components/landing/LandingShell";
 import { landingImg } from "./landing/landingPaths";
-import GlobalNewspaper from "../components/landing/GlobalNewspaper";
+import ModernNewsGrid from "../components/landing/ModernNewsGrid";
 
 const GlobalNews = () => {
   const { t } = useTranslation();
@@ -34,13 +34,14 @@ const GlobalNews = () => {
       <div className="container-fluid py-5">
         <Container>
           <div className="text-center mx-auto mb-4" style={{ maxWidth: "720px" }}>
-            <h2 className="display-6 fw-bold text-dark mb-3">The Global Tribune</h2>
-            <p className="lead text-muted mb-0">Stay informed with the latest updates from the World Health Organization, Google News, and leading medical journals.</p>
+            <h5 className="d-inline-block text-primary text-uppercase border-bottom border-5">Current Alerts</h5>
+            <h2 className="display-6 fw-bold text-dark mt-2 mb-3">Today's Medical Updates</h2>
+            <p className="lead text-muted mb-0">Stay informed with the latest updates curated from verified global medical and health news feeds.</p>
           </div>
         </Container>
       </div>
 
-      <GlobalNewspaper />
+      <ModernNewsGrid />
 
       <div className="container-fluid bg-primary my-5 py-5 about-cta-bar">
         <Container className="py-lg-1">

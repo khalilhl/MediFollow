@@ -113,7 +113,7 @@ export default function LandingShell({ navActive = "home", children }) {
                 <Nav.Link as={Link} to="/features" className={navActive === "features" ? "active" : ""}>
                   {t("landing.navFeatures")}
                 </Nav.Link>
-                <Nav.Link href="/#newspaper" className={navActive === "news" ? "active" : ""}>
+                <Nav.Link as={Link} to="/global-news" className={navActive === "news" ? "active" : ""}>
                   Global News
                 </Nav.Link>
                 <Nav.Link as={Link} to="/contact" className={navActive === "contact" ? "active" : ""}>

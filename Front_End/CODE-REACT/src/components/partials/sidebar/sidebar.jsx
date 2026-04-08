@@ -4,7 +4,6 @@ import { Link, useLocation } from "react-router-dom"
 // Import Component
 import Logo from "../../logo"
 import VerticalNav from "./vertical-nav"
-import Scrollbar from "smooth-scrollbar";
 
 // Import selectors & action from setting store
 import * as SettingSelector from "../../../store/setting/selectors";
@@ -22,11 +21,7 @@ const Sidebar = () => {
 
    const sidebarMenuStyle = useSelector(SettingSelector.sidebar_menu_style);
 
-   useEffect(() => {
-      Scrollbar.init(document.querySelector("#my-scrollbar"));
-
-      let aside = document.getElementsByTagName("ASIDE")[0];
-   }, [])
+   /* smooth-scrollbar retiré : Scrollbar.init() réécrit le DOM sous VerticalNav → removeChild React. */
 
    const handleSidebar = (data) => {
       let aside = document.getElementsByTagName("ASIDE")[0];
@@ -62,16 +57,20 @@ const Sidebar = () => {
       }
    }, [location.pathname])
 
-   window.addEventListener("resize", () => {
-      if (window.innerWidth < 990) {
-         handleSidebar()
-      } else if (location.pathname === "/dashboard") {
-         handleSidebar()
+   useEffect(() => {
+      const onResize = () => {
+         if (window.innerWidth < 990) {
+            handleSidebar()
+         } else if (location.pathname === "/dashboard") {
+            handleSidebar()
+         } else {
+            removeSidbarClass()
+         }
       }
-      else {
-         removeSidbarClass()
-      }
-   })
+      window.addEventListener("resize", onResize)
+      return () => window.removeEventListener("resize", onResize)
+   }, [location.pathname])
+
    return (
       <>
          <aside
@@ -90,7 +89,11 @@ const Sidebar = () => {
                   </a>
                </li>
             </div>
-            <div id="my-scrollbar" className="sidebar-body pt-0 data-scrollbar">
+            <div
+               id="my-scrollbar"
+               className="sidebar-body pt-0 data-scrollbar"
+               style={{ maxHeight: "90vh", overflowY: "auto", overflowX: "hidden" }}
+            >
                <div className="sidebar-list">
                   <VerticalNav handleSidebar={handleSidebar} />
                </div>

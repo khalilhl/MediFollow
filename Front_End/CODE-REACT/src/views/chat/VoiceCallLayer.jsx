@@ -8,7 +8,7 @@ import React, {
     useState,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { Modal, Spinner } from "react-bootstrap";
+import { Spinner } from "react-bootstrap";
 import { io } from "socket.io-client";
 import { chatApi } from "../../services/api";
 import {
@@ -375,6 +375,13 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
         },
         [enqueueHangup],
     );
+
+    /** Perte de session (déconnexion) : raccrocher sans démonter le composant (évite erreurs portail Modal). */
+    useEffect(() => {
+        if (!session?.id && phaseRef.current !== "idle") {
+            hangup(false);
+        }
+    }, [session?.id, hangup]);
 
     const toggleMicMute = useCallback(() => {
         const stream = localStreamRef.current;
@@ -775,36 +782,70 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
         [startOutgoing],
     );
 
-    const voiceModalOpen = phase === "outgoing" || phase === "ringing" || phase === "connected";
+    const voiceModalOpen =
+        !!session?.id && (phase === "outgoing" || phase === "ringing" || phase === "connected");
 
-    const handleVoiceModalHide = () => {
+    const handleVoiceModalHide = useCallback(() => {
         if (phase === "ringing") rejectIncoming();
         else hangup(true);
-    };
+    }, [phase, rejectIncoming, hangup]);
+
+    /** Pas de react-bootstrap Modal (portail body) : évite NotFoundError removeChild. */
+    useEffect(() => {
+        if (!voiceModalOpen) return undefined;
+        const onKey = (e) => {
+            if (e.key === "Escape") {
+                e.preventDefault();
+                handleVoiceModalHide();
+            }
+        };
+        window.addEventListener("keydown", onKey);
+        const prevOverflow = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+        return () => {
+            window.removeEventListener("keydown", onKey);
+            document.body.style.overflow = prevOverflow;
+        };
+    }, [voiceModalOpen, handleVoiceModalHide]);
 
     return (
         <>
             <audio ref={remoteAudioRef} autoPlay playsInline className="d-none" />
 
-            {/* Une seule modale pour entrant, sortant et communication */}
-            <Modal
-                show={voiceModalOpen}
-                onHide={handleVoiceModalHide}
-                centered
-                backdrop="static"
-                keyboard
-                className={`voice-call-modal-unified ${mediaMode === "video" ? "voice-call-modal--video" : ""}`}
-                dialogClassName={`voice-call-modal__dialog ${mediaMode === "video" ? "voice-call-modal__dialog--video" : ""}`}
-                contentClassName="voice-call-modal__content"
-                aria-labelledby="voice-call-modal-title"
-            >
-                <Modal.Body
-                    className={`voice-call-modal__body text-center position-relative ${
-                        mediaMode === "video" && (phase === "outgoing" || phase === "connected")
-                            ? "voice-call-modal__body--video p-0"
-                            : ""
-                    }`}
+            {/* Overlay fixe (sans portail) — entrant, sortant, en communication */}
+            {voiceModalOpen ? (
+                <div
+                    className={`voice-call-modal-unified modal fade show d-block ${mediaMode === "video" ? "voice-call-modal--video" : ""}`}
+                    style={{
+                        position: "fixed",
+                        inset: 0,
+                        zIndex: 1055,
+                        overflow: "hidden auto",
+                    }}
+                    tabIndex={-1}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="voice-call-modal-title"
                 >
+                    <div
+                        className="modal-backdrop fade show"
+                        style={{ position: "fixed", inset: 0, zIndex: 0 }}
+                        aria-hidden
+                    />
+                    <div
+                        className={`modal-dialog modal-dialog-centered voice-call-modal__dialog ${
+                            mediaMode === "video" ? "voice-call-modal__dialog--video" : ""
+                        }`}
+                        style={{ position: "relative", zIndex: 1, pointerEvents: "auto" }}
+                    >
+                        <div className="modal-content voice-call-modal__content">
+                            <div
+                                className={`modal-body voice-call-modal__body text-center position-relative ${
+                                    mediaMode === "video" && (phase === "outgoing" || phase === "connected")
+                                        ? "voice-call-modal__body--video p-0"
+                                        : ""
+                                }`}
+                            >
                     {phase === "ringing" && (
                         <>
                             <button
@@ -1101,8 +1142,11 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
                             </button>
                         </>
                     )}
-                </Modal.Body>
-            </Modal>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ) : null}
 
             {errorHint && (
                 <div

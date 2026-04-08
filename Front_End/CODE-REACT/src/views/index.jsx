@@ -7,7 +7,6 @@ import * as am4charts from '@amcharts/amcharts4/charts';
 import am4themes_animated from '@amcharts/amcharts4/themes/animated';
 import Flatpickr from 'react-flatpickr';
 import 'flatpickr/dist/flatpickr.css';
-import Scrollbar from "smooth-scrollbar";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { doctorApi, appointmentApi, patientApi, departmentApi, healthLogApi } from "../services/api";
@@ -594,20 +593,9 @@ const Index = () => {
     // Wave Chart
 
 
-    useEffect(() => {
-        const scrollbarElement = document.querySelector('.my-scrollbar');
-
-        if (scrollbarElement) {
-            Scrollbar.init(scrollbarElement);
-        }
-
-        return () => {
-            // Cleanup the scrollbar instance
-            if (scrollbarElement) {
-                Scrollbar.destroy(scrollbarElement);
-            }
-        };
-    }, []);
+    /* Ne pas utiliser smooth-scrollbar ici : document.querySelector('.my-scrollbar')
+     * cible le premier élément du document (souvent pas cette liste), et Scrollbar.init
+     * réécrit le DOM sous les enfants React → NotFoundError removeChild au re-render. */
 
     useEffect(() => {
         if (doctorUser) return undefined;
@@ -1193,7 +1181,11 @@ const Index = () => {
                             </h4>
                         </Card.Header>
                         <Card.Body>
-                            <ListGroup variant="flush" className="my-scrollbar" style={{ height: '277px', outline: 'none' }}>
+                            <ListGroup
+                                variant="flush"
+                                className="my-scrollbar"
+                                style={{ height: "277px", outline: "none", overflowY: "auto", overflowX: "hidden" }}
+                            >
                                 {doctorUser ? (
                                     colleaguesFiltered.length === 0 ? (
                                         <ListGroup.Item className="border-0 text-muted small">

@@ -62,17 +62,17 @@ export function VoiceCallBridgeProvider({ children }) {
         [peerContext],
     );
 
+    /* Toujours monter VoiceCallLayer : le démontage pendant un Modal (portail body)
+     * provoque souvent NotFoundError removeChild avec react-bootstrap. */
     return (
         <VoiceCallBridgeContext.Provider value={value}>
             {children}
-            {session?.id ? (
-                <VoiceCallLayer
-                    ref={voiceCallRef}
-                    session={session}
-                    peerContext={peerContext}
-                    onAfterCallLogged={() => onAfterCallLoggedRef.current?.()}
-                />
-            ) : null}
+            <VoiceCallLayer
+                ref={voiceCallRef}
+                session={session}
+                peerContext={peerContext}
+                onAfterCallLogged={() => onAfterCallLoggedRef.current?.()}
+            />
         </VoiceCallBridgeContext.Provider>
     );
 }

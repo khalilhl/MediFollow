@@ -61,4 +61,69 @@ export class SmsService {
       console.log('[SMS] Twilio non configuré. SMS simulé pour', to, '| Mot de passe:', password);
     }
   }
+
+  /**
+   * Send an emergency SOS SMS when a patient logs critically dangerous vitals.
+   * Uses TEST_SOS_PHONE_NUMBER from .env for Twilio free-tier testing.
+   */
+  async sendSOSAlert(
+    patientName: string,
+    doctorName: string,
+    vitals: Record<string, any>,
+    location?: { lat: number; lng: number },
+  ) {
+    const from = process.env.TWILIO_PHONE_NUMBER;
+    const to = process.env.TEST_SOS_PHONE_NUMBER;
+
+    if (!to) {
+      console.log('[SMS-SOS] TEST_SOS_PHONE_NUMBER not set in .env — skipping SOS SMS.');
+      return;
+    }
+
+    const mapLink = location
+      ? `https://maps.google.com/?q=${location.lat},${location.lng}`
+      : null;
+
+    const locationLine = mapLink
+      ? `📍 Location: ${mapLink}`
+      : '📍 Location: Not available (GPS off)';
+
+    // Build vital state summary
+    const vitalLines: string[] = [];
+    if (vitals.heartRate != null) vitalLines.push(`❤️ Heart Rate: ${vitals.heartRate} bpm`);
+    if (vitals.bloodPressureSystolic != null)
+      vitalLines.push(`🩸 BP: ${vitals.bloodPressureSystolic}/${vitals.bloodPressureDiastolic || '—'} mmHg`);
+    if (vitals.oxygenSaturation != null) vitalLines.push(`🫁 SpO2: ${vitals.oxygenSaturation}%`);
+    if (vitals.temperature != null) vitalLines.push(`🌡️ Temp: ${vitals.temperature}°C`);
+    if (vitals.respiratoryRate != null) vitalLines.push(`💨 Resp: ${vitals.respiratoryRate}/min`);
+
+    const body = [
+      `🚨 MEDIFOLLOW SOS ALERT 🚨`,
+      ``,
+      `Dr. ${doctorName}, your patient "${patientName}" just logged critically dangerous vitals!`,
+      ``,
+      `--- Vital Signs ---`,
+      ...vitalLines,
+      ``,
+      locationLine,
+      ``,
+      `⚠️ Immediate attention required.`,
+    ].join('\n');
+
+    if (this.client && from) {
+      try {
+        const msg = await this.client.messages.create({
+          body: body.substring(0, 1600),
+          to,
+          from,
+        });
+        console.log('[SMS-SOS] SOS alert sent! SID:', msg.sid);
+      } catch (e) {
+        console.error('[SMS-SOS] Failed to send SOS alert:', e?.message || e);
+      }
+    } else {
+      console.log('[SMS-SOS] Twilio not configured. Simulated SOS SMS for', to);
+      console.log('[SMS-SOS] Body:', body);
+    }
+  }
 }

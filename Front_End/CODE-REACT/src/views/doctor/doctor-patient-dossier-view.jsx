@@ -533,6 +533,23 @@ export default function DoctorPatientDossierView({ patient }) {
               </Alert>
             ) : (
               <>
+                {latestLog.location && (
+                  <Alert variant="danger" className="py-2 mb-3 rounded-3 border-0 d-flex align-items-center justify-content-between shadow-sm">
+                    <div>
+                      <i className="ri-map-pin-2-fill me-2 fs-5 align-middle" />
+                      <strong className="align-middle">{t("doctorPatientDossier.sosLocationLabel", "SOS: Critical Location Recorded")}</strong>
+                    </div>
+                    <a
+                      href={`https://maps.google.com/?q=${latestLog.location.lat},${latestLog.location.lng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-sm btn-danger"
+                    >
+                      <i className="ri-external-link-line me-1" /> {t("doctorPatientDossier.viewOnMap", "View Map")}
+                    </a>
+                  </Alert>
+                )}
+
                 {hasAnyAlert && (
                   <div className="mb-3">
                     {doctorAlerts.map((a, i) => (

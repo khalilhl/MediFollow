@@ -7,6 +7,7 @@ import { Nurse } from '../nurse/schemas/nurse.schema';
 import { NotificationService } from '../notification/notification.service';
 import { ChatService } from '../chat/chat.service';
 import { GamificationService } from '../gamification/gamification.service';
+import { SmsService } from '../auth/sms.service';
 
 function num(v: unknown): number | null {
   if (v === '' || v == null || v === undefined) return null;
@@ -196,6 +197,7 @@ export class HealthLogService {
     private notificationService: NotificationService,
     private chatService: ChatService,
     private gamificationService: GamificationService,
+    private smsService: SmsService,
   ) {}
 
   private toPatientObjectId(patientId: string) {
@@ -242,7 +244,13 @@ export class HealthLogService {
     const mergedForScore = { ...data, symptomStructured: structured, symptoms };
     const { score, flagged } = computeRiskScore(mergedForScore, { previousWeightKg });
 
-    const payload = {
+    const location =
+      data.location && typeof data.location === 'object' &&
+      typeof data.location.lat === 'number' && typeof data.location.lng === 'number'
+        ? { lat: data.location.lat, lng: data.location.lng }
+        : undefined;
+
+    const payload: any = {
       patientId: pid,
       date,
       recordedAt,
@@ -256,9 +264,18 @@ export class HealthLogService {
       flagged,
       escalationStatus: 'none' as const,
     };
+    if (location) payload.location = location;
 
     const doc = await this.healthLogModel.create(payload);
     const docObj = doc.toObject ? doc.toObject() : doc;
+
+    // ── Determine if any single vital is critically dangerous (for SOS SMS) ──
+    const v = data.vitals || {};
+    const sosCritical =
+      (num(v.oxygenSaturation) != null && num(v.oxygenSaturation) < 95) ||
+      (num(v.heartRate) != null && (num(v.heartRate) > 120 || num(v.heartRate) < 50)) ||
+      (num(v.bloodPressureSystolic) != null && (num(v.bloodPressureSystolic) >= 180 || num(v.bloodPressureSystolic) < 90)) ||
+      (num(v.temperature) != null && (num(v.temperature) >= 38.5 || num(v.temperature) < 35));
 
     if (flagged) {
       const patient = await this.patientModel
@@ -293,6 +310,39 @@ export class HealthLogService {
         });
       } catch (e) {
         console.error('[HealthLog] Alerte / messagerie:', e);
+      }
+    }
+
+    // ── SOS SMS dispatch (Twilio) — independent of flagged status ─────
+    if (sosCritical) {
+      const patient = await this.patientModel
+        .findById(pid)
+        .select('firstName lastName doctorId')
+        .lean()
+        .exec();
+      const patientName =
+        `${(patient as any)?.firstName || ''} ${(patient as any)?.lastName || ''}`.trim() || 'Patient';
+
+      // Look up the assigned doctor's name
+      let doctorName = 'Unassigned';
+      const doctorId = (patient as any)?.doctorId ? String((patient as any).doctorId) : '';
+      if (doctorId) {
+        try {
+          const { Model } = require('mongoose');
+          const doctorDoc = await this.patientModel.db
+            .collection('doctors')
+            .findOne({ _id: new Types.ObjectId(doctorId) }, { projection: { firstName: 1, lastName: 1 } });
+          if (doctorDoc) {
+            doctorName = `${doctorDoc.firstName || ''} ${doctorDoc.lastName || ''}`.trim() || 'Doctor';
+          }
+        } catch (_) { /* fallback to Unassigned */ }
+      }
+
+      try {
+        console.log('[HealthLog] Critical vital detected! Sending SOS SMS...');
+        await this.smsService.sendSOSAlert(patientName, doctorName, data.vitals || {}, location);
+      } catch (e) {
+        console.error('[HealthLog] SOS Dispatch error (non-blocking):', e);
       }
     }
 

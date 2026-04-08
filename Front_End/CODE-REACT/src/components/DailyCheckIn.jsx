@@ -218,8 +218,29 @@ const DailyCheckIn = ({ patientId, onSubmitted, existingLog, lastRecordedWeightK
       Object.entries(form.vitals).forEach(([k, v]) => {
         if (v !== "" && v !== null) cleanVitals[k] = Number(v);
       });
+
+      // ── SOS Geolocation: try to grab GPS if any vital is critical ──
+      const isCritical =
+        (cleanVitals.oxygenSaturation != null && cleanVitals.oxygenSaturation < 95) ||
+        (cleanVitals.heartRate != null && (cleanVitals.heartRate > 120 || cleanVitals.heartRate < 50)) ||
+        (cleanVitals.bloodPressureSystolic != null && (cleanVitals.bloodPressureSystolic >= 180 || cleanVitals.bloodPressureSystolic < 90)) ||
+        (cleanVitals.temperature != null && (cleanVitals.temperature >= 38.5 || cleanVitals.temperature < 35));
+
+      let location = undefined;
+      if (isCritical && navigator.geolocation) {
+        try {
+          const pos = await new Promise((resolve, reject) =>
+            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000, enableHighAccuracy: true })
+          );
+          location = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        } catch (geoErr) {
+          console.warn("[DailyCheckIn] GPS unavailable:", geoErr.message);
+          // Continue without location — SMS will say "Location: Not available"
+        }
+      }
+
       const ss = form.symptomStructured || {};
-      await healthLogApi.submit({
+      const submitPayload = {
         patientId: pid,
         localDate: localDateString(),
         recordedAt: new Date().toISOString(),
@@ -237,7 +258,10 @@ const DailyCheckIn = ({ patientId, onSubmitted, existingLog, lastRecordedWeightK
         painLevel: form.painLevel,
         mood: form.mood,
         notes: form.notes,
-      });
+      };
+      if (location) submitPayload.location = location;
+
+      await healthLogApi.submit(submitPayload);
       setSuccess(true);
       setShow(false);
       setStep(0);

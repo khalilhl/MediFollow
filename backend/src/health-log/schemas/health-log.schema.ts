@@ -59,6 +59,10 @@ export class HealthLog extends Document {
   @Prop({ default: false })
   flagged: boolean;
 
+  /** Geographic location attached to the health log for emergency routing */
+  @Prop({ type: Object, required: false })
+  location?: { lat: number; lng: number };
+
   /** Chaîne d’escalade : alerte auto → infirmier → (optionnel) médecin → clôture */
   @Prop({
     enum: ['none', 'alert_sent', 'escalated_to_doctor', 'resolved'],

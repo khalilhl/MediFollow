@@ -270,7 +270,13 @@ The folder `brain-tumor-detection/` is part of the repo, but **model files** (`.
 
 ```powershell
 cd brain-tumor-detection
-.\setup_from_zero.ps1
+.\Install-BrainTumorEnv.ps1
+```
+
+If you see a **Pester** error about `Setup`, run:
+
+```powershell
+powershell -NoProfile -File .\Install-BrainTumorEnv.ps1
 ```
 
 **Linux / macOS:**
@@ -281,6 +287,8 @@ chmod +x setup_from_zero.sh && ./setup_from_zero.sh
 ```
 
 This creates a local virtualenv, installs dependencies, and generates `brain_tumor_resnet.keras`. See `brain-tumor-detection/README.md` for training on a real dataset.
+
+**Windows:** if `pip install tensorflow` fails with a long path / `OSError`, enable **long paths** in Windows (registry `LongPathsEnabled = 1`, then reboot) or clone the repo to a shorter folder (e.g. `C:\dev\MediFollow`). Details: `brain-tumor-detection/README.md` section *Windows — TensorFlow / long paths*.
 
 ### 3. Frontend Setup
 

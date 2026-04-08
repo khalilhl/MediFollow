@@ -5,8 +5,9 @@ export type BrainMriAnalysisRecordDocument = HydratedDocument<BrainMriAnalysisRe
 
 @Schema({ timestamps: true })
 export class BrainMriAnalysisRecord {
-  @Prop({ type: Types.ObjectId, ref: 'Patient', required: true, index: true })
-  patientId: Types.ObjectId;
+  /** Absent si analyse lancée par le médecin sans patient (page /doctor/brain-mri). */
+  @Prop({ type: Types.ObjectId, ref: 'Patient', required: false, default: null })
+  patientId?: Types.ObjectId | null;
 
   @Prop({ type: Number, required: true })
   prediction: number;
@@ -34,3 +35,4 @@ export class BrainMriAnalysisRecord {
 
 export const BrainMriAnalysisRecordSchema = SchemaFactory.createForClass(BrainMriAnalysisRecord);
 BrainMriAnalysisRecordSchema.index({ patientId: 1, createdAt: -1 });
+BrainMriAnalysisRecordSchema.index({ createdByDoctorId: 1, createdAt: -1 });

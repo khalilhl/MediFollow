@@ -301,18 +301,56 @@ export class BrainTumorService {
   }
 
   /**
-   * Enregistre le résultat + image overlay sur disque (dossier patient).
+   * Enregistre le résultat + image overlay sur disque.
+   * Médecin sans patient : `patientId` null, overlay sous `uploads/brain-mri/doctor/<doctorId>/`.
    */
   async persistAnalysis(
-    patientId: string,
+    patientId: string | null,
     result: BrainTumorPredictResult,
     opts: { source: 'doctor' | 'patient'; doctorId?: string; originalname?: string },
   ): Promise<{ id: string }> {
-    if (!Types.ObjectId.isValid(patientId)) {
-      throw new BadRequestException('Identifiant patient invalide.');
+    if (opts.source === 'patient') {
+      if (!patientId || !Types.ObjectId.isValid(patientId)) {
+        throw new BadRequestException('Identifiant patient invalide.');
+      }
+      const pid = String(patientId);
+      const rel = `${pid}/${randomUUID()}.png`;
+      const abs = path.join(this.brainMriUploadDir, rel);
+      await fs.mkdir(path.dirname(abs), { recursive: true });
+      try {
+        await fs.writeFile(abs, Buffer.from(result.overlayPngBase64, 'base64'));
+      } catch (e) {
+        console.warn('[brain-tumor] overlay write failed:', e);
+      }
+      const doc = await this.brainMriRecordModel.create({
+        patientId: new Types.ObjectId(pid),
+        prediction: result.prediction,
+        probability: result.probability,
+        labelText: result.labelText || '',
+        source: 'patient',
+        createdByDoctorId: '',
+        originalFilename: opts.originalname ? String(opts.originalname).slice(0, 500) : '',
+        overlayRelativePath: rel,
+      });
+      return { id: String(doc._id) };
     }
-    const pid = String(patientId);
-    const rel = `${pid}/${randomUUID()}.png`;
+
+    const docId = String(opts.doctorId || '').trim();
+    if (!docId) {
+      throw new BadRequestException('Médecin introuvable pour enregistrer le relevé.');
+    }
+
+    let rel: string;
+    let docPatientId: Types.ObjectId | null = null;
+    if (patientId && Types.ObjectId.isValid(patientId)) {
+      await this.assertDoctorAssignedToPatient(docId, patientId);
+      const pid = String(patientId);
+      docPatientId = new Types.ObjectId(pid);
+      rel = `${pid}/${randomUUID()}.png`;
+    } else {
+      rel = `doctor/${docId}/${randomUUID()}.png`;
+    }
+
     const abs = path.join(this.brainMriUploadDir, rel);
     await fs.mkdir(path.dirname(abs), { recursive: true });
     try {
@@ -320,17 +358,45 @@ export class BrainTumorService {
     } catch (e) {
       console.warn('[brain-tumor] overlay write failed:', e);
     }
+
     const doc = await this.brainMriRecordModel.create({
-      patientId: new Types.ObjectId(pid),
+      patientId: docPatientId,
       prediction: result.prediction,
       probability: result.probability,
       labelText: result.labelText || '',
-      source: opts.source,
-      createdByDoctorId: opts.doctorId ? String(opts.doctorId) : '',
+      source: 'doctor',
+      createdByDoctorId: docId,
       originalFilename: opts.originalname ? String(opts.originalname).slice(0, 500) : '',
       overlayRelativePath: rel,
     });
     return { id: String(doc._id) };
+  }
+
+  /** Analyses lancées par ce médecin (avec ou sans dossier patient). */
+  async listRecordsForDoctor(doctorId: string, limit = 30) {
+    const n = Math.min(50, Math.max(1, limit));
+    const did = String(doctorId).trim();
+    if (!did) {
+      throw new BadRequestException('Identifiant médecin invalide.');
+    }
+    const rows = await this.brainMriRecordModel
+      .find({ createdByDoctorId: did, source: 'doctor' })
+      .sort({ createdAt: -1 })
+      .limit(n)
+      .lean()
+      .exec();
+    return rows.map((r) => ({
+      id: String(r._id),
+      patientId: r.patientId != null ? String(r.patientId) : '',
+      prediction: r.prediction,
+      probability: r.probability,
+      labelText: r.labelText,
+      source: r.source,
+      createdByDoctorId: r.createdByDoctorId || '',
+      originalFilename: r.originalFilename || '',
+      createdAt: (r as { createdAt?: Date }).createdAt,
+      hasOverlay: !!(r as { overlayRelativePath?: string }).overlayRelativePath,
+    }));
   }
 
   async listRecordsForPatient(patientId: string, limit = 30) {
@@ -346,7 +412,7 @@ export class BrainTumorService {
       .exec();
     return rows.map((r) => ({
       id: String(r._id),
-      patientId: String(r.patientId),
+      patientId: r.patientId != null ? String(r.patientId) : '',
       prediction: r.prediction,
       probability: r.probability,
       labelText: r.labelText,

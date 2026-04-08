@@ -30,6 +30,24 @@ export class BrainTumorController {
     private readonly notificationService: NotificationService,
   ) {}
 
+  /** Historique des analyses lancées par le médecin connecté (page /doctor/brain-mri sans patient). */
+  @UseGuards(JwtAuthGuard)
+  @Get('doctor/my-records')
+  async listDoctorMyRecords(
+    @Req() req: { user?: JwtReqUser },
+    @Query('limit') limit?: string,
+  ) {
+    if (String(req.user?.role) !== 'doctor') {
+      throw new ForbiddenException();
+    }
+    const uid = String(req.user?.id || '').trim();
+    if (!uid) {
+      throw new BadRequestException('Session médecin invalide.');
+    }
+    const n = limit ? parseInt(limit, 10) : 30;
+    return this.brainTumorService.listRecordsForDoctor(uid, Number.isFinite(n) ? n : 30);
+  }
+
   /** Historique (query) — préféré pour éviter tout souci de routage avec les segments dynamiques. */
   @UseGuards(JwtAuthGuard)
   @Get('records')
@@ -132,18 +150,25 @@ export class BrainTumorController {
     if (role === 'doctor' && req.user?.id) {
       const raw = req.body?.patientId ?? patientIdFromQuery;
       const savePid = raw != null ? String(raw).trim() : '';
-      if (savePid) {
-        await this.brainTumorService.assertDoctorAssignedToPatient(String(req.user.id), savePid);
-        try {
+      const doctorId = String(req.user.id);
+      try {
+        if (savePid) {
           const saved = await this.brainTumorService.persistAnalysis(savePid, result, {
             source: 'doctor',
-            doctorId: String(req.user.id),
+            doctorId,
             originalname: file.originalname,
           });
           recordId = saved.id;
-        } catch (e) {
-          console.error('[brain-tumor] persistAnalysis doctor:', e);
+        } else {
+          const saved = await this.brainTumorService.persistAnalysis(null, result, {
+            source: 'doctor',
+            doctorId,
+            originalname: file.originalname,
+          });
+          recordId = saved.id;
         }
+      } catch (e) {
+        console.error('[brain-tumor] persistAnalysis doctor:', e);
       }
     }
 

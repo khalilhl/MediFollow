@@ -51,12 +51,13 @@ const BrainMriAnalysisPage = ({ variant = "doctor", patientId: patientIdProp, em
     }
   });
   const userId = sessionUser?.id || sessionUser?._id;
+  const normalizedSelfId = normalizeMongoId(userId) || undefined;
 
   /** Id patient normalisé (prop / query) — requis pour predictDoctor + historique côté médecin. */
   const normalizedPropPid = normalizeMongoId(patientIdProp) || undefined;
 
-  /** Pour l’historique : patient = soi ; médecin = patient du dossier (prop) ou query. */
-  const historyPatientId = isPatient ? userId : normalizedPropPid || patientIdProp;
+  /** Médecin avec dossier patient : historique filtré ; sinon historique « mes analyses ». */
+  const doctorUsesPatientContext = !isPatient && !!normalizedPropPid;
 
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
@@ -69,7 +70,7 @@ const BrainMriAnalysisPage = ({ variant = "doctor", patientId: patientIdProp, em
   const [historyError, setHistoryError] = useState("");
 
   const loadHistory = useCallback(async () => {
-    if (!historyPatientId) {
+    if (!userId) {
       setHistory([]);
       setHistoryError("");
       return;
@@ -77,7 +78,18 @@ const BrainMriAnalysisPage = ({ variant = "doctor", patientId: patientIdProp, em
     setHistoryLoading(true);
     setHistoryError("");
     try {
-      const rows = await brainTumorApi.listRecords(String(historyPatientId), 40);
+      let rows;
+      if (isPatient) {
+        if (!normalizedSelfId) {
+          setHistory([]);
+          return;
+        }
+        rows = await brainTumorApi.listRecords(String(normalizedSelfId), 40);
+      } else if (doctorUsesPatientContext) {
+        rows = await brainTumorApi.listRecords(String(normalizedPropPid), 40);
+      } else {
+        rows = await brainTumorApi.listMyRecordsAsDoctor(40);
+      }
       setHistory(Array.isArray(rows) ? rows : []);
     } catch (e) {
       setHistory([]);
@@ -85,7 +97,7 @@ const BrainMriAnalysisPage = ({ variant = "doctor", patientId: patientIdProp, em
     } finally {
       setHistoryLoading(false);
     }
-  }, [historyPatientId, t]);
+  }, [userId, isPatient, normalizedSelfId, doctorUsesPatientContext, normalizedPropPid, t]);
 
   useEffect(() => {
     void loadHistory();
@@ -155,7 +167,8 @@ const BrainMriAnalysisPage = ({ variant = "doctor", patientId: patientIdProp, em
   const isTumor = result?.prediction === 1;
 
   const heroNs = isPatient ? "patientBrainMri" : "doctorBrainMri";
-  const showHistory = !!historyPatientId;
+  const showHistory = !!userId;
+  const showFileColumn = !isPatient && !doctorUsesPatientContext;
 
   if (!userId) {
     return (
@@ -347,7 +360,16 @@ const BrainMriAnalysisPage = ({ variant = "doctor", patientId: patientIdProp, em
 
             {showHistory && (
               <Card className="dbm-card shadow-sm mt-4">
-                <Card.Header className="small fw-semibold">{t("doctorBrainMri.historyTitle")}</Card.Header>
+                <Card.Header className="small fw-semibold">
+                  {t("doctorBrainMri.historyTitle")}
+                  {!isPatient && (
+                    <span className="d-block text-muted fw-normal mt-1" style={{ fontSize: "0.8rem" }}>
+                      {doctorUsesPatientContext
+                        ? t("doctorBrainMri.historySubtitlePatient")
+                        : t("doctorBrainMri.historySubtitleDoctor")}
+                    </span>
+                  )}
+                </Card.Header>
                 <Card.Body className="p-3 p-md-4">
                   {historyError && (
                     <Alert variant="warning" className="py-2 small mb-3">
@@ -366,8 +388,12 @@ const BrainMriAnalysisPage = ({ variant = "doctor", patientId: patientIdProp, em
                         <thead className="text-secondary small">
                           <tr>
                             <th>{t("doctorBrainMri.historyColDate")}</th>
+                            {showFileColumn && <th>{t("doctorBrainMri.historyColFile")}</th>}
                             <th>{t("doctorBrainMri.historyColResult")}</th>
                             <th>{t("doctorBrainMri.historyColScore")}</th>
+                            {!doctorUsesPatientContext && !isPatient && (
+                              <th>{t("doctorBrainMri.historyColPatient")}</th>
+                            )}
                             <th>{t("doctorBrainMri.historyColSource")}</th>
                           </tr>
                         </thead>
@@ -375,15 +401,27 @@ const BrainMriAnalysisPage = ({ variant = "doctor", patientId: patientIdProp, em
                           {history.map((row) => {
                             const tum = Number(row.prediction) === 1;
                             const pct = Math.min(100, Math.max(0, Math.round(Number(row.probability) * 1000) / 10));
+                            const fname = row.originalFilename ? String(row.originalFilename) : "";
+                            const hasPatient = !!(row.patientId && String(row.patientId).trim());
                             return (
                               <tr key={row.id}>
                                 <td className="small text-nowrap">{formatRecordDate(row.createdAt, dateLocale)}</td>
+                                {showFileColumn && (
+                                  <td className="small text-truncate" style={{ maxWidth: 140 }} title={fname}>
+                                    {fname || "—"}
+                                  </td>
+                                )}
                                 <td>
                                   <Badge pill bg={tum ? "warning" : "success"} text={tum ? "dark" : "white"}>
                                     {tum ? t("doctorBrainMri.tumor") : t("doctorBrainMri.normal")}
                                   </Badge>
                                 </td>
                                 <td className="small tabular-nums">{pct}%</td>
+                                {!doctorUsesPatientContext && !isPatient && (
+                                  <td className="small">
+                                    {hasPatient ? t("doctorBrainMri.historyPatientLinked") : "—"}
+                                  </td>
+                                )}
                                 <td className="small">
                                   {row.source === "patient"
                                     ? t("doctorBrainMri.historySourcePatient")

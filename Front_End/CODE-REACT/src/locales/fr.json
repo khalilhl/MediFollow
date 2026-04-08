@@ -3044,7 +3044,12 @@
     "historySourceDoctor": "Équipe médicale",
     "historySourcePatient": "Patient",
     "historyEmpty": "Aucune analyse enregistrée pour l’instant.",
-    "historyLoadError": "Impossible de charger les analyses enregistrées (session ou rattachement patient)."
+    "historyLoadError": "Impossible de charger les analyses enregistrées (session ou rattachement patient).",
+    "historySubtitleDoctor": "Sessions enregistrées sous votre compte médecin (avec ou sans dossier patient).",
+    "historySubtitlePatient": "Analyses enregistrées pour le patient affiché.",
+    "historyColFile": "Fichier",
+    "historyColPatient": "Dossier",
+    "historyPatientLinked": "Oui"
   },
   "patientBrainMri": {
     "title": "IRM cérébrale — aide à la lecture (espace patient)",

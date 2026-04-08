@@ -3080,7 +3080,12 @@
     "historySourceDoctor": "الفريق الطبي",
     "historySourcePatient": "المريض",
     "historyEmpty": "لا توجد تحليلات مسجّلة بعد.",
-    "historyLoadError": "تعذّر تحميل التحليلات المحفوظة (الجلسة أو ربط المريض)."
+    "historyLoadError": "تعذّر تحميل التحليلات المحفوظة (الجلسة أو ربط المريض).",
+    "historySubtitleDoctor": "جلسات محفوظة تحت حساب الطبيب (مع أو بدون ملف مريض).",
+    "historySubtitlePatient": "تحليلات مسجّلة للمريض المعروض.",
+    "historyColFile": "ملف",
+    "historyColPatient": "ملف مريض",
+    "historyPatientLinked": "نعم"
   },
   "patientBrainMri": {
     "title": "رنين مغناطيسي للدماغ — مراجعة بمساعدة الذكاء (مساحتك)",

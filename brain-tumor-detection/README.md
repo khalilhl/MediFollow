@@ -11,8 +11,40 @@ Les **fichiers modèle** (`.keras` / `.h5`) ne sont **pas** versionnés : chaque
 
 ```powershell
 cd brain-tumor-detection
-.\setup_from_zero.ps1
+.\Install-BrainTumorEnv.ps1
 ```
+
+Si une erreur **Pester** apparaît (*The Setup command may only be used inside a Describe block*), le module Pester entre en conflit avec le script. Utilisez :
+
+```powershell
+powershell -NoProfile -File .\Install-BrainTumorEnv.ps1
+```
+
+(`setup_from_zero.ps1` lance `Install-BrainTumorEnv.ps1` dans un **PowerShell sans profil** pour éviter Pester.)
+
+**Encodage :** sous Windows, les scripts `.ps1` doivent rester **ASCII** dans les chaînes affichées (pas de tiret long « — » ni caractères UTF-8 hors BOM) ; sinon PowerShell 5.1 peut couper les guillemets et afficher *installation* introuvable.
+
+### Windows — TensorFlow / erreur « No such file or directory » (chemins longs)
+
+TensorFlow contient des fichiers avec des chemins **très longs**. Par défaut, Windows limite un chemin complet à **260 caractères** : `pip` peut échouer au milieu de l’installation (`client_side_weighted_round_robin...upb.h`), puis Python affiche `No module named 'tensorflow.python'`.
+
+**Correctif recommandé (une fois, en administrateur) :**
+
+1. Ouvrir **PowerShell en administrateur** et exécuter :
+
+```powershell
+New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force
+```
+
+2. **Redémarrer** le PC (ou au minimum fermer toutes les sessions / rouvrir le terminal).
+
+3. Dans `brain-tumor-detection`, **supprimer** le dossier `.venv` (installation cassée).
+
+4. Relancer `Install-BrainTumorEnv.ps1`.
+
+**Alternative :** cloner le dépôt vers un chemin **court**, par ex. `C:\dev\MediFollow`, pour réduire la longueur totale.
+
+Documentation Microsoft : [Maximum path length limitation](https://learn.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation).
 
 ### Linux / macOS
 

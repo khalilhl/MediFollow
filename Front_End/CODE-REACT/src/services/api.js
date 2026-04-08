@@ -1152,6 +1152,9 @@ export const brainTumorApi = {
     }
     return api.get(path);
   },
+  /** JWT medecin — historique des analyses lancees par ce compte (page /doctor/brain-mri sans patient). */
+  listMyRecordsAsDoctor: (limit = 40) =>
+    api.getWithDoctorToken(`/brain-tumor/doctor/my-records?limit=${encodeURIComponent(limit)}`),
 };
 
 export const appointmentApi = {

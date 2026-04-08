@@ -3044,7 +3044,12 @@
     "historySourceDoctor": "Clinician",
     "historySourcePatient": "Patient",
     "historyEmpty": "No saved analysis yet.",
-    "historyLoadError": "Could not load saved analyses (check session or assignment)."
+    "historyLoadError": "Could not load saved analyses (check session or assignment).",
+    "historySubtitleDoctor": "Sessions saved under your doctor account (with or without a patient record).",
+    "historySubtitlePatient": "Analyses recorded for the patient shown.",
+    "historyColFile": "File",
+    "historyColPatient": "Patient record",
+    "historyPatientLinked": "Yes"
   },
   "patientBrainMri": {
     "title": "Brain MRI — assisted review (your space)",

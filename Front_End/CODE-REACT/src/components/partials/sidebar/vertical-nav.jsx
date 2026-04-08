@@ -478,6 +478,17 @@ const VerticalNav = () => {
                 </Nav.Item>
                 <Nav.Item as="li">
                     <Link
+                        to="/doctor/availability-calendar"
+                        className={`nav-link ${
+                            location.pathname === "/doctor/availability-calendar" ? "active" : ""
+                        }`}
+                    >
+                        <i className="ri-calendar-check-line"></i>
+                        <span className="item-name">{t("sidebar.doctorAvailability")}</span>
+                    </Link>
+                </Nav.Item>
+                <Nav.Item as="li">
+                    <Link
                         to="/doctor/urgent-nurse-escalations"
                         className={`nav-link ${location.pathname === "/doctor/urgent-nurse-escalations" ? "active" : ""}`}
                     >
@@ -510,15 +521,6 @@ const VerticalNav = () => {
                     >
                         <i className="ri-capsule-line"></i>
                         <span className="item-name">{t("sidebar.prescriptions")}</span>
-                    </Link>
-                </Nav.Item>
-                <Nav.Item as="li">
-                    <Link
-                        to="/doctor/availability-calendar"
-                        className={`nav-link ${location.pathname === "/doctor/availability-calendar" ? "active" : ""}`}
-                    >
-                        <i className="ri-calendar-2-line"></i>
-                        <span className="item-name">{t("sidebar.appointmentCalendar")}</span>
                     </Link>
                 </Nav.Item>
                 <Nav.Item as="li">

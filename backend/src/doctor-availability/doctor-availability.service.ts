@@ -14,16 +14,49 @@ export function normalizeTime(t: string): string {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
-/** Évite les échecs 2026-4-9 vs 2026-04-09 entre calendrier médecin et champ date patient. */
+/**
+ * Canonique YYYY-MM-DD pour calendrier / RDV.
+ * Accepte YYYY-MM-DD, YYYY/MM/DD, DD/MM/YYYY (séparateurs / ou - côté jour européen).
+ * Sans cela, une date type 08/04/2026 faisait échouer le filtre (yearMonth = "08/04/2").
+ */
 export function normalizeDateString(d: string | undefined): string {
   if (!d || typeof d !== 'string') return '';
   const part = d.trim().split('T')[0];
-  const segs = part.split('-');
-  if (segs.length !== 3) return part;
-  const y = segs[0];
-  const m = segs[1].padStart(2, '0');
-  const day = segs[2].padStart(2, '0');
-  return `${y}-${m}-${day}`;
+  if (!part) return '';
+
+  const dashSegs = part.split('-');
+  if (dashSegs.length === 3 && dashSegs[0].length === 4) {
+    const y = dashSegs[0];
+    const m = dashSegs[1].padStart(2, '0');
+    const day = dashSegs[2].padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+  // DD-MM-YYYY (tirets, ex. 08-04-2026)
+  if (dashSegs.length === 3 && dashSegs[2].length === 4) {
+    const day = dashSegs[0].padStart(2, '0');
+    const m = dashSegs[1].padStart(2, '0');
+    const y = dashSegs[2];
+    return `${y}-${m}-${day}`;
+  }
+
+  const slashSegs = part.split('/');
+  if (slashSegs.length === 3) {
+    const [a, b, c] = slashSegs;
+    if (a.length === 4) {
+      const y = a;
+      const m = b.padStart(2, '0');
+      const day = c.padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+    if (c.length === 4) {
+      const day = a.padStart(2, '0');
+      const m = b.padStart(2, '0');
+      const y = c;
+      return `${y}-${m}-${day}`;
+    }
+  }
+
+  return '';
 }
 
 export function normalizeDoctorId(id: unknown): string {
@@ -79,6 +112,13 @@ export function expandRangesToTimes(ranges: { from: string; to: string }[], step
     }
   }
   return [...new Set(out)].sort((a, b) => a.localeCompare(b));
+}
+
+/** Créneaux effectifs : préfère times ; sinon recalcule depuis ranges (données anciennes ou partielles). */
+function effectiveTimesForDay(day: { times?: string[]; ranges?: { from: string; to: string }[] }): string[] {
+  const fromTimes = (day.times || []).map((t) => normalizeTime(String(t))).filter(Boolean);
+  if (fromTimes.length) return fromTimes;
+  return expandRangesToTimes(day.ranges || [], 30);
 }
 
 function expandYearMonths(anchorDate: string, count: number): string[] {
@@ -153,9 +193,10 @@ export class DoctorAvailabilityService {
     const ym = nd.slice(0, 7);
     const doc = await this.availabilityModel.findOne({ doctorId: id, yearMonth: ym }).lean().exec();
     if (!doc?.slots?.length) return false;
-    const day = doc.slots.find((s) => normalizeDateString(s.date) === nd);
-    if (!day?.times?.length) return false;
-    return day.times.map((t) => normalizeTime(t)).includes(nt);
+    const day = doc.slots.find((s) => normalizeDateString(String(s.date || '')) === nd);
+    if (!day) return false;
+    const eff = effectiveTimesForDay(day);
+    return eff.includes(nt);
   }
 
   async isSlotOccupiedByAppointment(doctorId: string, date: string, time: string): Promise<boolean> {
@@ -197,8 +238,9 @@ export class DoctorAvailabilityService {
       const doc = await this.availabilityModel.findOne({ doctorId: id, yearMonth: ym }).lean().exec();
       if (!doc?.slots?.length) continue;
       for (const day of doc.slots) {
-        const dNorm = normalizeDateString(day.date);
-        for (const t of day.times || []) {
+        const dNorm = normalizeDateString(String(day.date || ''));
+        const times = effectiveTimesForDay(day);
+        for (const t of times) {
           const nt = normalizeTime(t);
           if (dNorm && nt) {
             const key = `${dNorm}|${nt}`;

@@ -52,8 +52,11 @@ const BrainMriAnalysisPage = ({ variant = "doctor", patientId: patientIdProp, em
   });
   const userId = sessionUser?.id || sessionUser?._id;
 
+  /** Id patient normalisé (prop / query) — requis pour predictDoctor + historique côté médecin. */
+  const normalizedPropPid = normalizeMongoId(patientIdProp) || undefined;
+
   /** Pour l’historique : patient = soi ; médecin = patient du dossier (prop) ou query. */
-  const historyPatientId = isPatient ? userId : patientIdProp;
+  const historyPatientId = isPatient ? userId : normalizedPropPid || patientIdProp;
 
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");

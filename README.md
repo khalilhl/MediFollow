@@ -262,6 +262,26 @@ npm run start:dev
 # API available at http://localhost:3000
 ```
 
+### 2.5 Brain MRI analysis (Python + TensorFlow) — required for `/doctor/brain-mri`
+
+The folder `brain-tumor-detection/` is part of the repo, but **model files** (`.keras`) are not committed. On a **new machine**, run once:
+
+**Windows (PowerShell):**
+
+```powershell
+cd brain-tumor-detection
+.\setup_from_zero.ps1
+```
+
+**Linux / macOS:**
+
+```bash
+cd brain-tumor-detection
+chmod +x setup_from_zero.sh && ./setup_from_zero.sh
+```
+
+This creates a local virtualenv, installs dependencies, and generates `brain_tumor_resnet.keras`. See `brain-tumor-detection/README.md` for training on a real dataset.
+
 ### 3. Frontend Setup
 
 ```bash
@@ -287,6 +307,7 @@ npm run dev
 
 ```
 MediFollow/
+├── brain-tumor-detection/            # Python + TensorFlow (brain MRI analysis; run setup_from_zero.ps1 after clone)
 ├── backend/                          # NestJS REST API
 │   └── src/
 │       ├── auth/                     # Auth, JWT, MFA, Super Admin management

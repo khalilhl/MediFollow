@@ -150,7 +150,9 @@ export class BrainTumorService {
       return h5;
     } catch {
       throw new ServiceUnavailableException(
-        'Modèle introuvable (brain_tumor_resnet.keras ou .h5). Entraînez avec train_brain_tumor.py ou définissez BRAIN_TUMOR_MODEL.',
+        'Modèle introuvable (brain_tumor_resnet.keras ou .h5). Après clone: dans brain-tumor-detection, ' +
+          'activez le venv puis exécutez: python build_stub_brain_model.py (ou entraînez avec train_brain_tumor.py). ' +
+          'Vous pouvez aussi définir BRAIN_TUMOR_MODEL dans backend/.env vers un fichier .keras/.h5 existant.',
       );
     }
   }
@@ -187,6 +189,8 @@ export class BrainTumorService {
     const candidates = [
       path.resolve(process.cwd(), '..', 'brain-tumor-detection'),
       path.resolve(process.cwd(), 'brain-tumor-detection'),
+      /** Depuis backend/dist/brain-tumor → racine du dépôt /brain-tumor-detection */
+      path.join(__dirname, '..', '..', '..', 'brain-tumor-detection'),
     ];
     for (const c of candidates) {
       try {

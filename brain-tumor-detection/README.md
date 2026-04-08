@@ -2,6 +2,30 @@
 
 Pipeline d’entraînement et d’inférence pour le dataset Kaggle *Brain MRI Images for Brain Tumor Detection* (dossiers `yes` / `no`).
 
+## Démarrage depuis zéro (nouveau PC / clone Git)
+
+Ce dossier **doit** exister à la racine du dépôt : `MediFollow/brain-tumor-detection/`.  
+Les **fichiers modèle** (`.keras` / `.h5`) ne sont **pas** versionnés : chaque machine doit les générer ou les copier.
+
+### Windows (recommandé)
+
+```powershell
+cd brain-tumor-detection
+.\setup_from_zero.ps1
+```
+
+### Linux / macOS
+
+```bash
+cd brain-tumor-detection
+chmod +x setup_from_zero.sh
+./setup_from_zero.sh
+```
+
+Le script crée `.venv`, installe TensorFlow, puis lance **`build_stub_brain_model.py`** pour produire `brain_tumor_resnet.keras` (sans dataset — pour faire fonctionner l’API). Ensuite : relancer le backend NestJS (`cd ../backend` → `npm run start:dev`).
+
+Détails manuels : voir section *Après un `git clone`* ci-dessous.
+
 ## Prérequis
 
 - **Python 3.11 ou 3.12** (obligatoire pour TensorFlow : **pas de wheel pour Python 3.14** pour l’instant).  
@@ -18,6 +42,25 @@ pip install -r requirements.txt
 ```
 
 Ou : `.\setup_env.ps1` (crée `.venv` avec `py -3.12` si disponible).
+
+## Après un `git clone` — fichier modèle manquant
+
+Les fichiers `brain_tumor_resnet.keras` / `.h5` **ne sont pas dans le dépôt** (`.gitignore`, fichiers lourds). Sans eux, l’API NestJS affiche *Modèle introuvable*.
+
+**Option A — Rapide (sans dataset, pour tester la stack)** : génère un `.keras` avec la même architecture que l’entraînement (ResNet50 ImageNet + tête non entraînée sur vos IRM). Les prédictions ne sont **pas** cliniquement fiables.
+
+```powershell
+cd brain-tumor-detection
+.\.venv\Scripts\Activate.ps1   # ou votre venv Python 3.11/3.12
+pip install -r requirements.txt
+python build_stub_brain_model.py
+```
+
+La première fois, TensorFlow peut télécharger les poids ImageNet (~100 Mo). Ensuite relancez le backend.
+
+**Option B — Production** : entraînez avec un vrai dataset (`yes` / `no`), voir section *Entraînement* ci-dessous.
+
+**Option C** : copiez un fichier `.keras` ou `.h5` depuis un collègue et placez-le dans `brain-tumor-detection/`, ou définissez `BRAIN_TUMOR_MODEL` dans `backend/.env` avec le chemin absolu vers ce fichier.
 
 ## Dataset
 
@@ -58,7 +101,8 @@ python train_brain_tumor.py --data_root "C:\chemin\vers\dataset"
 
 Sorties :
 
-- `brain_tumor_resnet.h5` — modèle sauvegardé  
+- `brain_tumor_resnet.keras` — modèle (format recommandé)  
+- `brain_tumor_resnet.h5` — ancien format si utilisé  
 - `training_history.png` — courbes loss / accuracy (train & validation)
 
 Paramètres par défaut : 10 epochs, batch 16, split 70 % / 15 % / 15 %, ResNet50 ImageNet gelé + couche dense sigmoid.

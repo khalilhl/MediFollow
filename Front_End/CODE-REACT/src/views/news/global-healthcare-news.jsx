@@ -40,13 +40,13 @@ const GlobalHealthcareNews = () => {
                 setLoading(false);
             } catch (err) {
                 console.error("Error fetching news:", err);
-                setError("Unable to load latest healthcare news. Please try again later.");
+                setError(t("newsPage.loadError"));
                 setLoading(false);
             }
         };
 
         fetchNews();
-    }, []);
+    }, [t]);
 
     const renderSkeletons = () => {
         return Array.from({ length: 6 }).map((_, i) => (
@@ -69,10 +69,10 @@ const GlobalHealthcareNews = () => {
                 <div className="news-header">
                     <h1 className="news-title">
                         <i className="ri-newspaper-line me-2 text-primary"></i>
-                        {t("sidebar.globalNews") || "Global Healthcare News"}
+                        {t("newsPage.title")}
                     </h1>
                     <p className="news-subtitle">
-                        Stay updated with the latest in healthcare, medical research, and true global health events.
+                        {t("newsPage.subtitle")}
                     </p>
                 </div>
 
@@ -100,7 +100,7 @@ const GlobalHealthcareNews = () => {
                                                 </div>
                                             )}
                                             <div className="news-card-overlay">
-                                                <span className="read-more-badge">Read Full Article</span>
+                                                <span className="read-more-badge">{t("newsPage.readFullArticle")}</span>
                                             </div>
                                         </div>
                                         <div className="news-card-body">
@@ -118,7 +118,7 @@ const GlobalHealthcareNews = () => {
                                             </p>
                                             <div className="news-footer">
                                                 <span className="news-reading-time">
-                                                    <i className="ri-time-line"></i> {article.reading_time_minutes} min read
+                                                    <i className="ri-time-line"></i> {t("newsPage.minRead", { count: article.reading_time_minutes })}
                                                 </span>
                                                 <div className="news-tags">
                                                     {article.tag_list.slice(0, 2).map(tag => (

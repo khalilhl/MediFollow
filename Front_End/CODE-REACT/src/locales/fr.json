@@ -1661,7 +1661,18 @@
     "signUp": "S'inscrire",
     "faceNotEnrolledTitle": "Visage non enregistré",
     "faceNotEnrolledBody": "Aucun visage n'est enregistré pour ce compte. Enregistrez d'abord votre visage dans votre profil pour utiliser la connexion visage.",
-    "understood": "Compris"
+    "understood": "Compris",
+    "startEyeNav": "Suivi oculaire",
+    "stopEyeNav": "Arrêter suivi oculaire",
+    "eyeTrackingActive": "Suivi oculaire actif",
+    "eyeNavHelp": "Suivi oculaire : regardez l'écran — le curseur suit votre regard. Fixez un élément 1,5 s pour cliquer. La calibration améliore la précision."
+  },
+  "eyeTracking": {
+    "calibrationTitle": "Calibration du suivi oculaire",
+    "calibrationDesc": "Regardez chaque point violet et cliquez dessus 3 fois. Cela entraîne le modèle à suivre votre regard avec précision.",
+    "calibrationProgress": "{{current}} / {{total}} points enregistrés",
+    "calibrationSkip": "Passer la calibration",
+    "calibrationDone": "Commencer la navigation"
   },
   "signUp": {
     "logoAlt": "Logo",

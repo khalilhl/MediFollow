@@ -5,7 +5,6 @@ import { Appointment } from './schemas/appointment.schema';
 import { Patient } from '../patient/schemas/patient.schema';
 import { DoctorAvailabilityService, normalizeDateString, normalizeDoctorId, normalizeTime } from '../doctor-availability/doctor-availability.service';
 import { NotificationService } from '../notification/notification.service';
-import { GamificationService } from '../gamification/gamification.service';
 
 @Injectable()
 export class AppointmentService {
@@ -14,7 +13,6 @@ export class AppointmentService {
     @InjectModel(Patient.name) private patientModel: Model<Patient>,
     private doctorAvailabilityService: DoctorAvailabilityService,
     private notificationService: NotificationService,
-    private gamificationService: GamificationService,
   ) {}
 
   private toObjectId(id: string) {
@@ -240,13 +238,6 @@ export class AppointmentService {
         }
       }
       
-      const becameCompleted = st === 'completed' && prevSt !== 'completed';
-      if (becameCompleted) {
-        const dId = String(doc.doctorId || '');
-        const pId = String(doc.patientId || '');
-        if (dId) await this.gamificationService.awardPoints(dId, 'doctor', 'appointment_complete');
-        if (pId) await this.gamificationService.awardPoints(pId, 'patient', 'appointment_complete');
-      }
     }
     return doc;
   }

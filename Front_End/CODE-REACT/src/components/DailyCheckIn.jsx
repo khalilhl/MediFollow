@@ -137,12 +137,16 @@ const DailyCheckIn = ({ patientId, onSubmitted, existingLog, lastRecordedWeightK
 
   const STEPS = useMemo(
     () => [
-      t("dailyCheckIn.stepVitals"),
-      t("dailyCheckIn.stepSymptoms"),
-      t("dailyCheckIn.stepWellbeing"),
-      t("dailyCheckIn.stepReview"),
+      { key: "symptoms", label: t("dailyCheckIn.stepSymptoms") },
+      { key: "vitals", label: t("dailyCheckIn.stepVitals") },
+      { key: "wellbeing", label: t("dailyCheckIn.stepWellbeing") },
+      { key: "review", label: t("dailyCheckIn.stepReview") },
     ],
     [t],
+  );
+  const VITALS_STEP_INDEX = useMemo(
+    () => STEPS.findIndex((s) => s.key === "vitals"),
+    [STEPS],
   );
 
   const moodsWithLabels = useMemo(
@@ -166,6 +170,7 @@ const DailyCheckIn = ({ patientId, onSubmitted, existingLog, lastRecordedWeightK
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [vitalsErrors, setVitalsErrors] = useState({});
+  const currentStepKey = STEPS[step]?.key;
 
   const alreadyDone = !!existingLog;
 
@@ -180,7 +185,7 @@ const DailyCheckIn = ({ patientId, onSubmitted, existingLog, lastRecordedWeightK
   };
 
   const goNextStep = () => {
-    if (step === 0) {
+    if (currentStepKey === "vitals") {
       const errs = validateVitals(form.vitals, t);
       if (Object.keys(errs).length > 0) {
         setVitalsErrors(errs);
@@ -202,7 +207,7 @@ const DailyCheckIn = ({ patientId, onSubmitted, existingLog, lastRecordedWeightK
     const vitalErrs = validateVitals(form.vitals, t);
     if (Object.keys(vitalErrs).length > 0) {
       setVitalsErrors(vitalErrs);
-      setStep(0);
+      setStep(VITALS_STEP_INDEX >= 0 ? VITALS_STEP_INDEX : 0);
       setError(t("dailyCheckIn.errorFixVitals"));
       setLoading(false);
       return;
@@ -397,9 +402,9 @@ const DailyCheckIn = ({ patientId, onSubmitted, existingLog, lastRecordedWeightK
           <div className="mb-3">
             <div className="d-flex justify-content-between mb-1">
               {STEPS.map((s, i) => (
-                <span key={s} className={`small fw-bold d-inline-flex align-items-center gap-1 ${i === step ? "text-primary" : i < step ? "text-success" : "text-muted"}`}>
+                <span key={s.key} className={`small fw-bold d-inline-flex align-items-center gap-1 ${i === step ? "text-primary" : i < step ? "text-success" : "text-muted"}`}>
                   {i < step ? <i className="ri-checkbox-circle-fill" aria-hidden /> : null}
-                  {s}
+                  {s.label}
                 </span>
               ))}
             </div>
@@ -409,7 +414,7 @@ const DailyCheckIn = ({ patientId, onSubmitted, existingLog, lastRecordedWeightK
           {error && <div className="alert alert-danger py-2 small">{error}</div>}
 
           {/* Step 0: Vitals */}
-          {step === 0 && (
+          {currentStepKey === "vitals" && (
             <div>
               <p className="text-muted small mb-3">{t("dailyCheckIn.enterVitals")}</p>
               <p className="text-muted small mb-2" style={{ fontSize: "0.8rem" }}>
@@ -568,7 +573,7 @@ const DailyCheckIn = ({ patientId, onSubmitted, existingLog, lastRecordedWeightK
           )}
 
           {/* Step 1: Symptoms — scores (int) + présence (bool), pas de texte libre pour l’analyse */}
-          {step === 1 && (
+          {currentStepKey === "symptoms" && (
             <div>
               <p className="text-muted small mb-3">{t("dailyCheckIn.symptomsIntroStructured")}</p>
 
@@ -725,7 +730,7 @@ const DailyCheckIn = ({ patientId, onSubmitted, existingLog, lastRecordedWeightK
           )}
 
           {/* Step 2: Wellbeing */}
-          {step === 2 && (
+          {currentStepKey === "wellbeing" && (
             <div>
               <div className="mb-4">
                 <label className="form-label fw-bold">{t("dailyCheckIn.painQuestion")} <span className="text-primary">{form.painLevel}/10</span></label>
@@ -759,7 +764,7 @@ const DailyCheckIn = ({ patientId, onSubmitted, existingLog, lastRecordedWeightK
           )}
 
           {/* Step 3: Review */}
-          {step === 3 && (
+          {currentStepKey === "review" && (
             <div>
               <p className="text-muted small mb-3">{t("dailyCheckIn.reviewIntro")}</p>
               <div className="row g-2 mb-3">

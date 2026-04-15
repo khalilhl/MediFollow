@@ -53,13 +53,11 @@ import EditNurse from "../views/nurse/edit-nurse"
 // Calendar Page
 import Calendar from "../views/calendar/calendar"
 import VideoMeeting from "../views/video-meeting/video-meeting"
-import GlobalHealthcareNews from "../views/news/global-healthcare-news"
 import HealthcareChatbot from "../views/chatbot/healthcare-chatbot"
 
 // Chat Page
 import Chat from "../views/chat/chat"
 import NotificationsCenterPage from "../views/notifications/notifications-center"
-import GamificationHub from "../views/gamification/gamification-hub"
 
 // UI Elements
 import Alerts from "../views/ui-elements/alerts";
@@ -369,12 +367,6 @@ export const DefaultRoute = [
         element: <VideoMeeting />
       },
 
-      //  ------ Global News Feed Route ------
-      {
-        path: '/global-news',
-        element: <GlobalHealthcareNews />
-      },
-
       //  ------ Health Chatbot Route ------
       {
         path: '/health-chatbot',
@@ -389,11 +381,6 @@ export const DefaultRoute = [
         path: '/notifications',
         element: <NotificationsCenterPage />
       },
-      {
-        path: '/rewards',
-        element: <GamificationHub />
-      },
-
       //  ------ UI Elements Route ------ 
       {
         path: "/ui-elements/alerts",

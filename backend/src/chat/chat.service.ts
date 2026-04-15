@@ -10,7 +10,6 @@ import { Doctor } from '../doctor/schemas/doctor.schema';
 import { Nurse } from '../nurse/schemas/nurse.schema';
 import { User } from '../auth/schemas/user.schema';
 import { NotificationService } from '../notification/notification.service';
-import { GamificationService } from '../gamification/gamification.service';
 
 type JwtUser = {
   id: unknown;
@@ -48,7 +47,6 @@ export class ChatService {
     @InjectModel(User.name) private userModel: Model<User>,
     private readonly messageCrypto: ChatMessageCryptoService,
     private readonly notificationService: NotificationService,
-    private readonly gamificationService: GamificationService,
   ) {}
 
   private pid(patientId: string): Types.ObjectId {
@@ -899,7 +897,6 @@ export class ChatService {
     });
     const mapped = this.mapCreatedMessage(doc.toObject());
     await this.notifyRecipientsAfterMessage(user, routing, { kind, text }, mapped).catch(() => {});
-    await this.gamificationService.awardPoints(uid, staffRole, 'chat_sent');
     return mapped;
   }
 

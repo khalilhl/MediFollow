@@ -1661,7 +1661,18 @@
     "signUp": "Sign up",
     "faceNotEnrolledTitle": "Face not registered",
     "faceNotEnrolledBody": "No face is registered for this account. Register your face in your profile first to use face login.",
-    "understood": "OK"
+    "understood": "OK",
+    "startEyeNav": "Eye tracking",
+    "stopEyeNav": "Stop eye tracking",
+    "eyeTrackingActive": "Eye tracking active",
+    "eyeNavHelp": "Eye tracking: look at the screen — the cursor follows your gaze. Stare at an element for 1.5 s to click it. Calibration improves accuracy."
+  },
+  "eyeTracking": {
+    "calibrationTitle": "Eye Tracking Calibration",
+    "calibrationDesc": "Look at each purple dot and click it 3 times. This trains the model to follow your gaze accurately.",
+    "calibrationProgress": "{{current}} / {{total}} points recorded",
+    "calibrationSkip": "Skip calibration",
+    "calibrationDone": "Start navigating"
   },
   "signUp": {
     "logoAlt": "Logo",

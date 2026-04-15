@@ -251,15 +251,6 @@ const VerticalNav = () => {
                 </Nav.Item>
                 <Nav.Item as="li">
                     <Link
-                        to="/global-news"
-                        className={`nav-link ${location.pathname === "/global-news" ? "active" : ""}`}
-                    >
-                        <i className="ri-newspaper-line"></i>
-                        <span className="item-name">{t("sidebar.globalNews")}</span>
-                    </Link>
-                </Nav.Item>
-                <Nav.Item as="li">
-                    <Link
                         to="/health-chatbot"
                         className={`nav-link ${location.pathname === "/health-chatbot" ? "active" : ""}`}
                     >
@@ -271,15 +262,6 @@ const VerticalNav = () => {
                     <Link to="/chat" className={`nav-link ${location.pathname === "/chat" ? "active" : ""}`}>
                         <i className="ri-chat-3-line"></i>
                         <span className="item-name">{t("sidebar.secureMessaging")}</span>
-                    </Link>
-                </Nav.Item>
-                <Nav.Item as="li">
-                    <Link
-                        to="/rewards"
-                        className={`nav-link ${location.pathname === "/rewards" ? "active" : ""}`}
-                    >
-                        <i className="ri-award-fill"></i>
-                        <span className="item-name">{t("sidebar.rewards", "Rewards & Badges")}</span>
                     </Link>
                 </Nav.Item>
                 {renderEmailAccordion()}
@@ -380,15 +362,6 @@ const VerticalNav = () => {
                 </Nav.Item>
                 <Nav.Item as="li">
                     <Link
-                        to="/global-news"
-                        className={`nav-link ${location.pathname === "/global-news" ? "active" : ""}`}
-                    >
-                        <i className="ri-newspaper-line"></i>
-                        <span className="item-name">{t("sidebar.globalNews")}</span>
-                    </Link>
-                </Nav.Item>
-                <Nav.Item as="li">
-                    <Link
                         to="/health-chatbot"
                         className={`nav-link ${location.pathname === "/health-chatbot" ? "active" : ""}`}
                     >
@@ -400,15 +373,6 @@ const VerticalNav = () => {
                     <Link to="/chat" className={`nav-link ${location.pathname === "/chat" ? "active" : ""}`}>
                         <i className="ri-chat-3-line"></i>
                         <span className="item-name">{t("sidebar.secureMessaging")}</span>
-                    </Link>
-                </Nav.Item>
-                <Nav.Item as="li">
-                    <Link
-                        to="/rewards"
-                        className={`nav-link ${location.pathname === "/rewards" ? "active" : ""}`}
-                    >
-                        <i className="ri-award-fill"></i>
-                        <span className="item-name">{t("sidebar.rewards", "Rewards & Badges")}</span>
                     </Link>
                 </Nav.Item>
                 {renderEmailAccordion()}
@@ -452,15 +416,6 @@ const VerticalNav = () => {
                 </Nav.Item>
                 <Nav.Item as="li">
                     <Link
-                        to="/global-news"
-                        className={`nav-link ${location.pathname === "/global-news" ? "active" : ""}`}
-                    >
-                        <i className="ri-newspaper-line"></i>
-                        <span className="item-name">{t("sidebar.globalNews")}</span>
-                    </Link>
-                </Nav.Item>
-                <Nav.Item as="li">
-                    <Link
                         to="/health-chatbot"
                         className={`nav-link ${location.pathname === "/health-chatbot" ? "active" : ""}`}
                     >
@@ -472,15 +427,6 @@ const VerticalNav = () => {
                     <Link to="/chat" className={`nav-link ${location.pathname === "/chat" ? "active" : ""}`}>
                         <i className="ri-chat-3-line"></i>
                         <span className="item-name">{t("sidebar.secureMessaging")}</span>
-                    </Link>
-                </Nav.Item>
-                <Nav.Item as="li">
-                    <Link
-                        to="/rewards"
-                        className={`nav-link ${location.pathname === "/rewards" ? "active" : ""}`}
-                    >
-                        <i className="ri-award-fill"></i>
-                        <span className="item-name">{t("sidebar.rewards", "Rewards & Badges")}</span>
                     </Link>
                 </Nav.Item>
                 {renderEmailAccordion()}
@@ -809,15 +755,6 @@ const VerticalNav = () => {
                             <Link to="/admin/dashboard" className={`nav-link ${location.pathname === "/admin/dashboard" ? "active" : ""}`}>
                                 <i className="ri-dashboard-2-fill"></i>
                                 <span className="item-name">{t("sidebar.adminDashboard")}</span>
-                            </Link>
-                        </Nav.Item>
-                        <Nav.Item as="li">
-                            <Link
-                                to="/global-news"
-                                className={`nav-link ${location.pathname === "/global-news" ? "active" : ""}`}
-                            >
-                                <i className="ri-newspaper-line"></i>
-                                <span className="item-name">{t("sidebar.globalNews")}</span>
                             </Link>
                         </Nav.Item>
                         <Nav.Item as="li">

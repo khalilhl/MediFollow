@@ -1239,11 +1239,6 @@ export const chatbotApi = {
   ask: (messages, lang) => api.post('/chatbot/ask', { messages, lang }),
 };
 
-export const gamificationApi = {
-  getMyStats: () => api.get('/gamification/my-stats'),
-  awardPoints: (action) => api.post('/gamification/award-points', { action }),
-};
-
 /** Formulaire public page /contact (sans JWT). */
 export const publicContactApi = {
   send: (data) => api.postNoAuth('/contact', data),

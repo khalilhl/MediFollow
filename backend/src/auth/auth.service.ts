@@ -19,7 +19,6 @@ import { PasskeyCredential } from './schemas/passkey-credential.schema';
 import { PasskeyChallenge } from './schemas/passkey-challenge.schema';
 import { FaceLoginProfile } from './schemas/face-login-profile.schema';
 import { DepartmentCatalog } from '../department/schemas/department-catalog.schema';
-import { GamificationService } from '../gamification/gamification.service';
 
 const {
   generateAuthenticationOptions,
@@ -42,7 +41,6 @@ export class AuthService {
     @InjectModel(DepartmentCatalog.name) private departmentCatalogModel: Model<DepartmentCatalog>,
     private jwtService: JwtService,
     private emailService: EmailService,
-    private gamificationService: GamificationService,
   ) {}
 
   private async releaseAdminCatalogAssignments(adminId: Types.ObjectId | string) {
@@ -567,7 +565,6 @@ export class AuthService {
         academicTitle: d.academicTitle === 'prof' ? 'prof' : 'dr',
       },
     };
-    await this.gamificationService.awardPoints(d._id.toString(), 'doctor', 'login');
     return result;
   }
 
@@ -599,7 +596,6 @@ export class AuthService {
         height: (p as any).height,
       },
     };
-    await this.gamificationService.awardPoints(p._id.toString(), 'patient', 'login');
     return result;
   }
 
@@ -624,7 +620,6 @@ export class AuthService {
         profileImage: n.profileImage,
       },
     };
-    await this.gamificationService.awardPoints(n._id.toString(), 'nurse', 'login');
     return result;
   }
 

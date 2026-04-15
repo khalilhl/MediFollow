@@ -1669,7 +1669,18 @@
     "signUp": "إنشاء حساب",
     "faceNotEnrolledTitle": "الوجه غير مسجّل",
     "faceNotEnrolledBody": "لا يوجد وجه مسجّل لهذا الحساب. سجّل وجهك في ملفك أولًا لاستخدام تسجيل الدخول بالوجه.",
-    "understood": "فهمت"
+    "understood": "فهمت",
+    "startEyeNav": "تتبع العين",
+    "stopEyeNav": "إيقاف تتبع العين",
+    "eyeTrackingActive": "تتبع العين نشط",
+    "eyeNavHelp": "تتبع العين: انظر إلى الشاشة — يتبع المؤشر نظرك. ثبّت نظرك على عنصر لمدة 1.5 ثانية للنقر. المعايرة تحسّن الدقة."
+  },
+  "eyeTracking": {
+    "calibrationTitle": "معايرة تتبع العين",
+    "calibrationDesc": "انظر إلى كل نقطة بنفسجية وانقر عليها 3 مرات. هذا يدرّب النموذج لتتبع نظرك بدقة.",
+    "calibrationProgress": "{{current}} / {{total}} نقطة مسجّلة",
+    "calibrationSkip": "تخطي المعايرة",
+    "calibrationDone": "بدء التنقل"
   },
   "signUp": {
     "logoAlt": "الشعار",

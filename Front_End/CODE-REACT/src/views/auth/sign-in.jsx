@@ -512,6 +512,7 @@ const SignIn = () => {
                       <button type="button" className="btn-close btn-sm float-end" onClick={() => setHandError("")} aria-label={t("signIn.closeAria")} />
                     </div>
                   )}
+
                   <div className="assist-actions d-flex gap-2 flex-wrap align-items-center mb-2">
                     {!handActive ? (
                       <button type="button" className="btn btn-sm assist-btn assist-btn-hand" onClick={startHandGesture}>
@@ -584,6 +585,7 @@ const SignIn = () => {
                   <p className="text-muted small mb-2" style={{ fontSize: "0.75rem" }}>
                     {t("signIn.handNavHelp")}
                   </p>
+
                   <div className="form-group mb-3">
                     <div className="d-flex align-items-center justify-content-between mb-1">
                       <label htmlFor="exampleInputEmail1" className="mb-0">{t("signIn.email")}</label>

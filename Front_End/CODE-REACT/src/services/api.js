@@ -1102,6 +1102,79 @@ export const healthLogApi = {
     api.getWithAdminToken("/health-logs/platform/open-vitals-summary"),
 };
 
+/** Certificats médicaux PDF (patient : liste / médecin : liste + création + PDF). */
+export const medicalCertificateApi = {
+  listMinePatient: async () => {
+    const data = await api.getWithPatientToken("/medical-certificates/me");
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.items)) return data.items;
+    if (Array.isArray(data?.certificates)) return data.certificates;
+    return [];
+  },
+  downloadPdfPatient: async (certId, filename) => {
+    const token = okToken(localStorage.getItem("patientToken"));
+    const url = `${API_BASE}/medical-certificates/${encodeURIComponent(String(certId))}/pdf`;
+    const res = await fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ message: res.statusText }));
+      const error = new Error(messageFromApiErr(err));
+      error.status = res.status;
+      throw error;
+    }
+    const blob = await res.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    try {
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = filename || "medical-certificate.pdf";
+      a.rel = "noopener";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } finally {
+      URL.revokeObjectURL(objectUrl);
+    }
+  },
+  listForDoctorPatient: async (patientId) => {
+    const data = await api.getWithDoctorToken(
+      `/medical-certificates/doctor/patient/${encodeURIComponent(String(patientId))}`,
+    );
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.items)) return data.items;
+    return [];
+  },
+  createFromPatientMedications: (patientId) =>
+    api.postWithDoctorToken("/medical-certificates", { patientId: String(patientId) }),
+  downloadPdfDoctor: async (certId, filename) => {
+    const token = okToken(localStorage.getItem("doctorToken"));
+    const url = `${API_BASE}/medical-certificates/${encodeURIComponent(String(certId))}/pdf`;
+    const res = await fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ message: res.statusText }));
+      const error = new Error(messageFromApiErr(err));
+      error.status = res.status;
+      throw error;
+    }
+    const blob = await res.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    try {
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = filename || "medical-certificate.pdf";
+      a.rel = "noopener";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } finally {
+      URL.revokeObjectURL(objectUrl);
+    }
+  },
+};
+
 export const medicationApi = {
   create: (data) => api.post('/medications', data),
   getByPatient: (patientId) => api.get(`/medications/patient/${patientId}`),

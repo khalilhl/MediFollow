@@ -51,6 +51,9 @@ export default defineConfig(({ mode }) => {
     base: baseUrl,
     /** Dev : si le front appelle `/api` sur le port Vite, proxifier vers Nest (évite « Cannot GET /api/... »). */
     server: {
+      /** Toujours http://localhost:5173 — pas de bascule automatique vers 5174/5175 */
+      port: 5173,
+      strictPort: true,
       proxy: {
         "/api": {
           target: "http://localhost:3000",

@@ -669,7 +669,18 @@
       "every8h": "كل 8 ساعات",
       "weekly": "أسبوعيًا",
       "asNeeded": "عند الحاجة"
-    }
+    },
+    "medicalCertificatesTitle": "الشهادات الطبية (PDF)",
+    "medicalCertificatesLead": "أنشئ ملف PDF من الأدوية النشطة الحالية للمريض. يمكنه تنزيل نفس المستند من لوحة التحكم.",
+    "medicalCertificatesEmpty": "لا توجد شهادة مُنشأة لهذا المريض بعد.",
+    "certificateGenerate": "إنشاء شهادة (PDF)",
+    "certificateCreating": "جاري الإنشاء…",
+    "certificateNeedMedications": "أضف دواءً نشطًا واحدًا على الأقل أعلاه قبل إنشاء الشهادة.",
+    "certificateColDate": "التاريخ",
+    "certificateColMeds": "الأدوية",
+    "certificateColPdf": "تنزيل",
+    "certificateCreateError": "تعذّر إنشاء الشهادة.",
+    "certificateDownloadError": "تعذّر تنزيل ملف PDF."
   },
   "doctorAvailabilityCalendar": {
     "loginHint": "سجّل الدخول كطبيب.",

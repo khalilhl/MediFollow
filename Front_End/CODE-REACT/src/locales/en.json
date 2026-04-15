@@ -669,7 +669,18 @@
       "every8h": "Every 8 hours",
       "weekly": "Weekly",
       "asNeeded": "As needed"
-    }
+    },
+    "medicalCertificatesTitle": "Medical certificates (PDF)",
+    "medicalCertificatesLead": "Generate a PDF from this patient’s current active medications. The patient can download the same document from their dashboard.",
+    "medicalCertificatesEmpty": "No certificate generated yet for this patient.",
+    "certificateGenerate": "Generate certificate (PDF)",
+    "certificateCreating": "Creating…",
+    "certificateNeedMedications": "Add at least one active medication above before generating a certificate.",
+    "certificateColDate": "Date",
+    "certificateColMeds": "Medications",
+    "certificateColPdf": "Download",
+    "certificateCreateError": "Could not create the certificate.",
+    "certificateDownloadError": "Could not download the PDF."
   },
   "doctorAvailabilityCalendar": {
     "loginHint": "Sign in as a doctor.",

@@ -669,7 +669,18 @@
       "every8h": "Toutes les 8 heures",
       "weekly": "Hebdomadaire",
       "asNeeded": "Si besoin"
-    }
+    },
+    "medicalCertificatesTitle": "Certificats médicaux (PDF)",
+    "medicalCertificatesLead": "Générez un PDF à partir des médicaments actifs du patient. Le patient peut télécharger le même document depuis son tableau de bord.",
+    "medicalCertificatesEmpty": "Aucun certificat généré pour ce patient pour le moment.",
+    "certificateGenerate": "Générer un certificat (PDF)",
+    "certificateCreating": "Création…",
+    "certificateNeedMedications": "Ajoutez au moins un médicament actif ci-dessus avant de générer un certificat.",
+    "certificateColDate": "Date",
+    "certificateColMeds": "Médicaments",
+    "certificateColPdf": "Télécharger",
+    "certificateCreateError": "Impossible de créer le certificat.",
+    "certificateDownloadError": "Impossible de télécharger le PDF."
   },
   "doctorAvailabilityCalendar": {
     "loginHint": "Connectez-vous en tant que médecin.",

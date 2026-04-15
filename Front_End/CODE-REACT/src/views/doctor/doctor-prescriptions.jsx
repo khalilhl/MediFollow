@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Button, Card, Col, Container, Form, InputGroup, Row, Spinner, Table } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { patientApi, medicationApi } from "../../services/api";
+import { patientApi, medicationApi, medicalCertificateApi } from "../../services/api";
 import MedicationNameAutocomplete from "../../components/MedicationNameAutocomplete";
 import DosageAutocomplete from "../../components/DosageAutocomplete";
 import { formatMedicationFrequencyDisplay } from "../../utils/medicationFrequencyLabel";
@@ -59,6 +59,9 @@ const DoctorPrescriptions = () => {
   const [error, setError] = useState("");
   /** Plusieurs lignes de médicaments pour une seule ordonnance */
   const [lines, setLines] = useState(() => [emptyMedicationLine()]);
+  const [medicalCertificates, setMedicalCertificates] = useState([]);
+  const [loadingCertificates, setLoadingCertificates] = useState(false);
+  const [creatingCertificate, setCreatingCertificate] = useState(false);
 
   useEffect(() => {
     if (!doctorId) return;
@@ -112,6 +115,43 @@ const DoctorPrescriptions = () => {
   useEffect(() => {
     setLines([emptyMedicationLine()]);
   }, [selectedPatientId]);
+
+  useEffect(() => {
+    if (!selectedPatientId) {
+      setMedicalCertificates([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setLoadingCertificates(true);
+      try {
+        const list = await medicalCertificateApi.listForDoctorPatient(selectedPatientId);
+        if (!cancelled) setMedicalCertificates(Array.isArray(list) ? list : []);
+      } catch {
+        if (!cancelled) setMedicalCertificates([]);
+      } finally {
+        if (!cancelled) setLoadingCertificates(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedPatientId]);
+
+  const handleCreateMedicalCertificate = async () => {
+    if (!selectedPatientId) return;
+    setCreatingCertificate(true);
+    setError("");
+    try {
+      await medicalCertificateApi.createFromPatientMedications(selectedPatientId);
+      const list = await medicalCertificateApi.listForDoctorPatient(selectedPatientId);
+      setMedicalCertificates(Array.isArray(list) ? list : []);
+    } catch (e) {
+      setError(e?.message || t("doctorPrescriptions.certificateCreateError"));
+    } finally {
+      setCreatingCertificate(false);
+    }
+  };
 
   const updateLine = (id, patch) => {
     setLines((prev) => prev.map((row) => (row.id === id ? { ...row, ...patch } : row)));
@@ -447,6 +487,96 @@ const DoctorPrescriptions = () => {
                   <PaginationBar page={medPage} totalPages={medTotalPages} totalItems={medTotalItems} pageSize={5} onPageChange={setMedPage} />
                 </div>
               </>
+            )}
+          </Card.Body>
+        </Card>
+      )}
+
+      {selectedPatientId && (
+        <Card className="border-0 shadow-sm mt-4">
+          <Card.Header className="bg-white border-bottom py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <Card.Title className="h6 mb-0">
+              <i className="ri-file-pdf-line text-danger me-2" aria-hidden />
+              {t("doctorPrescriptions.medicalCertificatesTitle")}
+            </Card.Title>
+            <Button
+              type="button"
+              variant="outline-danger"
+              size="sm"
+              disabled={creatingCertificate || loadingMeds || medications.length === 0}
+              onClick={handleCreateMedicalCertificate}
+            >
+              {creatingCertificate ? (
+                <>
+                  <Spinner animation="border" size="sm" className="me-1" />
+                  {t("doctorPrescriptions.certificateCreating")}
+                </>
+              ) : (
+                <>
+                  <i className="ri-add-line me-1" aria-hidden />
+                  {t("doctorPrescriptions.certificateGenerate")}
+                </>
+              )}
+            </Button>
+          </Card.Header>
+          <Card.Body>
+            <p className="text-muted small mb-3">{t("doctorPrescriptions.medicalCertificatesLead")}</p>
+            {medications.length === 0 && (
+              <p className="text-muted small mb-0">{t("doctorPrescriptions.certificateNeedMedications")}</p>
+            )}
+            {loadingCertificates ? (
+              <div className="text-center py-3">
+                <Spinner animation="border" size="sm" variant="primary" />
+              </div>
+            ) : medicalCertificates.length === 0 ? (
+              <p className="text-muted small mb-0">{t("doctorPrescriptions.medicalCertificatesEmpty")}</p>
+            ) : (
+              <div className="table-responsive">
+                <Table hover size="sm" className="mb-0 align-middle">
+                  <thead className="table-light">
+                    <tr>
+                      <th>{t("doctorPrescriptions.certificateColDate")}</th>
+                      <th>{t("doctorPrescriptions.certificateColMeds")}</th>
+                      <th className="text-end">{t("doctorPrescriptions.certificateColPdf")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {medicalCertificates.map((c) => (
+                      <tr key={String(c._id)}>
+                        <td className="small text-muted">
+                          {c.issuedAt ? String(c.issuedAt).slice(0, 10) : "—"}
+                        </td>
+                        <td className="small">{Array.isArray(c.items) ? c.items.length : 0}</td>
+                        <td className="text-end">
+                          <Button
+                            type="button"
+                            variant="outline-primary"
+                            size="sm"
+                            onClick={() => {
+                              const certId = String(c._id ?? c.id ?? "").trim();
+                              if (!certId) return;
+                              medicalCertificateApi
+                                .downloadPdfDoctor(
+                                  certId,
+                                  `medical-certificate-${String(c.issuedAt || "").slice(0, 10)}.pdf`,
+                                )
+                                .catch((err) => {
+                                  console.error(err);
+                                  window.alert(
+                                    err?.message || t("doctorPrescriptions.certificateDownloadError"),
+                                  );
+                                });
+                            }}
+                          >
+                            <i className="ri-download-2-line me-1" aria-hidden />
+                            PDF
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              </div>
             )}
           </Card.Body>
         </Card>

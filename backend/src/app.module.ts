@@ -21,6 +21,7 @@ import { BrainTumorModule } from './brain-tumor/brain-tumor.module';
 import { VideoMeetingModule } from './video-meeting/video-meeting.module';
 import { ChatbotModule } from './chatbot/chatbot.module';
 import { ContactModule } from './contact/contact.module';
+import { MedicalCertificateModule } from './medical-certificate/medical-certificate.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { ContactModule } from './contact/contact.module';
     VideoMeetingModule,
     ChatbotModule,
     ContactModule,
+    MedicalCertificateModule,
   ],
 })
 export class AppModule {}

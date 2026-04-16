@@ -35,7 +35,7 @@ pipeline {
                           --network=host \
                           -v "$(pwd):/usr/src" \
                           sonarsource/sonar-scanner-cli \
-                          -Dsonar.projectKey=medifollow-backend \
+                          -Dsonar.projectKey=MediFollow-Backend \
                           -Dsonar.sources=. \
                           -Dsonar.host.url=http://localhost:9000 \
                           -Dsonar.login=$SONAR_TOKEN

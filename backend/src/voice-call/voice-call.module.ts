@@ -13,4 +13,3 @@ import { NotificationModule } from '../notification/notification.module';
   providers: [VoiceCallGateway],
 })
 export class VoiceCallModule {}
-

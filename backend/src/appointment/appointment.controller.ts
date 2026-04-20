@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Controller,
   Get,
   Post,
@@ -63,20 +62,6 @@ export class AppointmentController {
       throw new ForbiddenException('Accès réservé aux médecins');
     }
     return this.appointmentService.findConfirmedByDoctorForMonth(String(req.user.id), yearMonth);
-  }
-
-  /** RDV des patients du même département que le coordinateur (JWT carecoordinator). */
-  @UseGuards(JwtAuthGuard)
-  @Get('coordinator/my-department')
-  getCoordinatorDepartmentAppointments(@Req() req: { user?: { role?: string; department?: string } }) {
-    if (req.user?.role !== 'carecoordinator') {
-      throw new ForbiddenException('Accès réservé aux coordinateurs de soins');
-    }
-    const dept = String(req.user?.department || '').trim();
-    if (!dept) {
-      throw new BadRequestException('Aucun département assigné à votre profil');
-    }
-    return this.appointmentService.findForCoordinatorDepartment(dept);
   }
 
   @Get('patient/:id')

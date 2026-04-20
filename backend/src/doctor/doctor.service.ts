@@ -12,15 +12,6 @@ export class DoctorService {
     private emailService: EmailService,
   ) {}
 
-  /** Toujours persister `dr` ou `prof` pour l’affichage (Dr. / Pr.). */
-  private normalizeAcademicTitle(v: unknown): 'dr' | 'prof' {
-    return v === 'prof' ? 'prof' : 'dr';
-  }
-
-  private mapDoctorLean<T extends { academicTitle?: string }>(doc: T): T & { academicTitle: 'dr' | 'prof' } {
-    return { ...doc, academicTitle: this.normalizeAcademicTitle(doc.academicTitle) };
-  }
-
   async create(data: Partial<Doctor>) {
     const exists = await this.doctorModel.findOne({ email: data.email }).exec();
     if (exists) throw new ConflictException('Un médecin avec cet email existe déjà');
@@ -30,7 +21,6 @@ export class DoctorService {
     const doctor = await this.doctorModel.create({
       ...data,
       password: hashed,
-      academicTitle: this.normalizeAcademicTitle(data.academicTitle),
     });
     try {
       await this.emailService.sendDoctorCredentials(
@@ -43,18 +33,18 @@ export class DoctorService {
       console.error('[Doctor] Failed to send credentials email:', e?.message || e);
     }
     const { password, ...result } = doctor.toObject();
-    return this.mapDoctorLean(result as { academicTitle?: string });
+    return result;
   }
 
   async findAll() {
-    const doctors = await this.doctorModel.find().select('-password').sort({ createdAt: -1 }).lean().exec();
-    return doctors.map((d) => this.mapDoctorLean(d as { academicTitle?: string }));
+    const doctors = await this.doctorModel.find().select('-password').sort({ createdAt: -1 }).exec();
+    return doctors;
   }
 
   async findById(id: string) {
-    const doc = await this.doctorModel.findById(id).select('-password').lean().exec();
-    if (!doc) throw new NotFoundException('Médecin non trouvé');
-    return this.mapDoctorLean(doc as { academicTitle?: string });
+    const doctor = await this.doctorModel.findById(id).select('-password').exec();
+    if (!doctor) throw new NotFoundException('Médecin non trouvé');
+    return doctor;
   }
 
   async update(id: string, data: Partial<Doctor>) {
@@ -71,12 +61,8 @@ export class DoctorService {
       delete updateData.password;
     }
     delete updateData._id;
-    if (data.academicTitle !== undefined && data.academicTitle !== null) {
-      updateData.academicTitle = this.normalizeAcademicTitle(data.academicTitle);
-    }
-    const updated = await this.doctorModel.findByIdAndUpdate(id, { $set: updateData }, { new: true }).select('-password').lean().exec();
-    if (!updated) throw new NotFoundException('Médecin non trouvé');
-    return this.mapDoctorLean(updated as { academicTitle?: string });
+    const updated = await this.doctorModel.findByIdAndUpdate(id, { $set: updateData }, { new: true }).select('-password').exec();
+    return updated;
   }
 
   async delete(id: string) {

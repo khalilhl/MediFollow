@@ -296,7 +296,7 @@ export default function NotificationsCenterPage() {
             <p className="small text-white text-opacity-75 mb-1 fw-medium">{roleLabel}</p>
             <h1 className="notifications-center__title">{t("notifications.pageTitle")}</h1>
             <p className="notifications-center__subtitle">
-              {role === "admin" ? t("notifications.pageSubtitleAdmin") : t("notifications.pageSubtitle")}
+              {t("notifications.pageSubtitle")}
             </p>
           </Col>
           <Col xs={12} md="auto" className="d-flex flex-wrap align-items-center gap-2 justify-content-md-end">
@@ -433,21 +433,6 @@ export default function NotificationsCenterPage() {
                           {t("notifications.markAsRead")}
                         </button>
                       )}
-                      {n.type === "video_meeting_invite" && n.meta?.meetingCode && (
-                        <button
-                          type="button"
-                          className="btn btn-info btn-sm mt-2 fw-semibold text-white d-block"
-                          style={{ backgroundColor: '#089bab', borderColor: '#089bab' }}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            window.open(`https://meet.jit.si/MediFollow${n.meta.meetingCode}#config.prejoinPageEnabled=false`, '_blank');
-                            if (!isRead) onMarkRead(id);
-                          }}
-                        >
-                          <i className="ri-vidicon-line me-1" /> Join Meeting
-                        </button>
-                      )}
                     </div>
                   </div>
                 </Link>
@@ -548,21 +533,6 @@ export default function NotificationsCenterPage() {
                             }}
                           >
                             {t("notifications.markAsRead")}
-                          </button>
-                        )}
-                        {n.type === "video_meeting_invite" && n.meta?.meetingCode && (
-                          <button
-                            type="button"
-                            className="btn btn-info btn-sm mt-2 fw-semibold text-white d-block"
-                            style={{ backgroundColor: '#089bab', borderColor: '#089bab' }}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              window.open(`https://meet.jit.si/MediFollow${n.meta.meetingCode}#config.prejoinPageEnabled=false`, '_blank');
-                              if (!n.read) onMarkRead(id);
-                            }}
-                          >
-                            <i className="ri-vidicon-line me-1" /> Join Meeting
                           </button>
                         )}
                       </div>

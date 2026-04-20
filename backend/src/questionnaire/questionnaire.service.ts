@@ -81,49 +81,19 @@ export class QuestionnaireService {
     return { ok: true };
   }
 
-  private normalizeQuestions(
-    raw: unknown,
-  ): {
-    qid: string;
-    label: string;
-    type: 'yes_no' | 'scale_10' | 'text' | 'multiple_choice';
-    order: number;
-    options?: string[];
-  }[] {
+  private normalizeQuestions(raw: unknown): { qid: string; label: string; type: 'yes_no' | 'scale_10' | 'text'; order: number }[] {
     if (!Array.isArray(raw) || raw.length === 0) {
       return [
         { qid: 'q1', label: 'Comment évaluez-vous votre état général ?', type: 'scale_10' as const, order: 0 },
         { qid: 'q2', label: 'Avez-vous une douleur importante ?', type: 'yes_no' as const, order: 1 },
       ];
     }
-    return raw.map((q: any, i: number) => {
-      const type = ['yes_no', 'scale_10', 'text', 'multiple_choice'].includes(q.type) ? q.type : 'text';
-      let options: string[] | undefined;
-      if (type === 'multiple_choice') {
-        const rawOpts = q.options;
-        const list = Array.isArray(rawOpts)
-          ? rawOpts.map((x: unknown) => String(x ?? '').trim()).filter(Boolean)
-          : String(rawOpts || '')
-              .split(/\r?\n/)
-              .map((s) => s.trim())
-              .filter(Boolean);
-        options = list.length >= 2 ? list : ['Option A', 'Option B'];
-      }
-      const row: {
-        qid: string;
-        label: string;
-        type: 'yes_no' | 'scale_10' | 'text' | 'multiple_choice';
-        order: number;
-        options?: string[];
-      } = {
-        qid: String(q.qid || `q${i + 1}`),
-        label: String(q.label || 'Question'),
-        type,
-        order: typeof q.order === 'number' ? q.order : i,
-      };
-      if (options) row.options = options;
-      return row;
-    });
+    return raw.map((q: any, i: number) => ({
+      qid: String(q.qid || `q${i + 1}`),
+      label: String(q.label || 'Question'),
+      type: ['yes_no', 'scale_10', 'text'].includes(q.type) ? q.type : 'text',
+      order: typeof q.order === 'number' ? q.order : i,
+    }));
   }
 
   // ─── Admin : protocols ───────────────────────────────────────────────────

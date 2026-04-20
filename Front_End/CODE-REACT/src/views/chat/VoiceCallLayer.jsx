@@ -8,7 +8,7 @@ import React, {
     useState,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { Spinner } from "react-bootstrap";
+import { Modal, Spinner } from "react-bootstrap";
 import { io } from "socket.io-client";
 import { chatApi } from "../../services/api";
 import {
@@ -18,29 +18,6 @@ import {
     getSelfDisplayName,
 } from "./voiceCallUtils";
 import { startIncomingRingtone, startOutgoingRingback } from "./callRingtone";
-import { detectDominantExpression } from "../../services/face-emotions";
-
-/** Libellés face-api.js / FER (7 classes). */
-const EMOTION_EMOJI = {
-    neutral: "😐",
-    happy: "🙂",
-    sad: "😢",
-    angry: "😠",
-    fearful: "😨",
-    disgusted: "🤢",
-    surprised: "😮",
-};
-
-/** Secours si une clé i18n manque (ne jamais afficher `chat.voice.emotion.xxx` brut). */
-const EMOTION_LABEL_DEFAULT_EN = {
-    neutral: "Neutral",
-    happy: "Happy",
-    sad: "Sad",
-    angry: "Angry",
-    fearful: "Fearful",
-    disgusted: "Disgusted",
-    surprised: "Surprised",
-};
 
 /** Routage messagerie aligné sur POST /chat/messages (patient seul, patient+staff, ou pair). */
 function sendCallLogToThread(routing, bodyJson) {
@@ -112,8 +89,6 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
     /** audio = appel vocal ; video = visio (caméra + micro). */
     const [mediaMode, setMediaMode] = useState(/** @type {CallMediaMode} */ ("audio"));
     const [camOff, setCamOff] = useState(false);
-    /** Émotion dominante du patient (flux analysé : local si patient, distant si soignant). */
-    const [patientEmotion, setPatientEmotion] = useState(/** @type {{ label: string, confidence: number } | null} */ (null));
 
     const phaseRef = useRef(phase);
     useEffect(() => {
@@ -149,24 +124,17 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
     const connectedAtRef = useRef(null);
     /** Flux distant si ontrack arrive avant le montage du <video> (récepteur / appelant). */
     const pendingRemoteStreamRef = useRef(null);
-    /** Pair cible pour appels via window.medifollow.startCall (hors fil de chat). */
-    const peerOverrideRef = useRef(null);
 
     const [micMuted, setMicMuted] = useState(false);
     const [callRecording, setCallRecording] = useState(false);
     /** Affichage MM:SS uniquement une fois la communication établie (appelant ou appelé). */
     const [callTimerLabel, setCallTimerLabel] = useState("00:00");
-    /** Libellé contact si appel global (sans peerContext messagerie). */
-    const [peerLabelFallback, setPeerLabelFallback] = useState(null);
-
-    const peerDisplayName = peerContext?.label || peerLabelFallback || "…";
 
     const runHangupBody = useCallback((notifyPeer) => {
         connectedAtRef.current = null;
         setMicMuted(false);
         setCamOff(false);
         setCallRecording(false);
-        setPatientEmotion(null);
         setMediaMode("audio");
         callMediaRef.current = "audio";
         if (localVideoRef.current) localVideoRef.current.srcObject = null;
@@ -184,8 +152,6 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
         }
         roomIdRef.current = null;
         remoteUserIdRef.current = null;
-        peerOverrideRef.current = null;
-        setPeerLabelFallback(null);
         setPendingIncoming(null);
         setPhase("idle");
         setErrorHint(null);
@@ -271,59 +237,11 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
         }
     }, [phase, mediaMode]);
 
-    /** Détection d’émotions (FER / faceExpressionNet) sur le flux du patient : local si patient, distant si soignant. */
-    useEffect(() => {
-        const role = session?.role;
-        const staffRoles = ["doctor", "nurse", "carecoordinator"];
-        const isAnalyzing =
-            mediaMode === "video" &&
-            !camOff &&
-            (phase === "connected" || (phase === "outgoing" && role === "patient"));
-        if (!isAnalyzing || !role) {
-            setPatientEmotion(null);
-            return undefined;
-        }
-
-        const pickVideoEl = () => {
-            if (role === "patient") return localVideoRef.current;
-            if (staffRoles.includes(role)) return remoteVideoRef.current;
-            return null;
-        };
-
-        let cancelled = false;
-        let timerId = 0;
-
-        const tick = async () => {
-            const el = pickVideoEl();
-            if (!el || cancelled) return;
-            try {
-                const res = await detectDominantExpression(el);
-                if (cancelled) return;
-                /* 7 classes softmax : le max est souvent < 0,35 ; 0,32 masquait tout le badge */
-                if (res && res.confidence >= 0.12) {
-                    setPatientEmotion({ label: res.label, confidence: res.confidence });
-                } else {
-                    setPatientEmotion(null);
-                }
-            } catch {
-                if (!cancelled) setPatientEmotion(null);
-            }
-        };
-
-        timerId = window.setInterval(tick, 850);
-        void tick();
-
-        return () => {
-            cancelled = true;
-            window.clearInterval(timerId);
-        };
-    }, [phase, mediaMode, session?.role, camOff]);
-
     const enqueueHangup = useCallback(
         async (notifyPeer) => {
             const ph = phaseRef.current;
             const t0 = connectedAtRef.current;
-            const routing = (peerOverrideRef.current || peerContext)?.routing;
+            const routing = peerContext?.routing;
             if (notifyPeer && routing) {
                 let outcome = "cancelled";
                 let durationSec;
@@ -375,13 +293,6 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
         },
         [enqueueHangup],
     );
-
-    /** Perte de session (déconnexion) : raccrocher sans démonter le composant (évite erreurs portail Modal). */
-    useEffect(() => {
-        if (!session?.id && phaseRef.current !== "idle") {
-            hangup(false);
-        }
-    }, [session?.id, hangup]);
 
     const toggleMicMute = useCallback(() => {
         const stream = localStreamRef.current;
@@ -582,40 +493,32 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
     useEffect(() => {
         const ph = phaseRef.current;
         if (ph === "idle" || ph === "ringing") return;
-        const ctx = peerOverrideRef.current || peerContext;
-        if (!ctx?.roomId) {
+        if (!peerContext?.roomId) {
             hangup(true);
             return;
         }
-        if (roomIdRef.current && ctx.roomId !== roomIdRef.current) {
+        if (roomIdRef.current && peerContext.roomId !== roomIdRef.current) {
             hangup(true);
         }
     }, [peerContext?.roomId, hangup]);
 
     const startOutgoing = useCallback(async (opts = {}) => {
         const isVideo = !!opts.video;
-        const ctx = peerOverrideRef.current || peerContext;
-        if (!ctx?.remoteUserId || !ctx?.roomId) return;
+        if (!peerContext?.remoteUserId || !peerContext?.roomId) return;
         const s = socketRef.current;
         if (!s?.connected) {
             setErrorHint(t("chat.voice.errorSignalUnavailable"));
-            peerOverrideRef.current = null;
-            setPeerLabelFallback(null);
             return;
         }
-        if (phaseRef.current !== "idle") {
-            peerOverrideRef.current = null;
-            setPeerLabelFallback(null);
-            return;
-        }
+        if (phaseRef.current !== "idle") return;
 
         connectedAtRef.current = null;
         setMediaMode(isVideo ? "video" : "audio");
         callMediaRef.current = isVideo ? "video" : "audio";
         setPhase("outgoing");
         setErrorHint(null);
-        roomIdRef.current = ctx.roomId;
-        remoteUserIdRef.current = ctx.remoteUserId;
+        roomIdRef.current = peerContext.roomId;
+        remoteUserIdRef.current = peerContext.remoteUserId;
 
         try {
             const stream = await navigator.mediaDevices.getUserMedia(
@@ -628,10 +531,10 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
             stream.getTracks().forEach((track) => pc.addTrack(track, stream));
 
             pc.onicecandidate = (e) => {
-                if (e.candidate && ctx.remoteUserId) {
+                if (e.candidate && peerContext.remoteUserId) {
                     s.emit("voice:ice", {
-                        roomId: ctx.roomId,
-                        toUserId: ctx.remoteUserId,
+                        roomId: peerContext.roomId,
+                        toUserId: peerContext.remoteUserId,
                         candidate: e.candidate.toJSON(),
                     });
                 }
@@ -646,8 +549,8 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
             await pc.setLocalDescription(offer);
 
             s.emit("voice:invite", {
-                roomId: ctx.roomId,
-                toUserId: ctx.remoteUserId,
+                roomId: peerContext.roomId,
+                toUserId: peerContext.remoteUserId,
                 offer: pc.localDescription,
                 callerName: getSelfDisplayName(session),
                 video: isVideo,
@@ -732,9 +635,8 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
         }
         void (async () => {
             try {
-                const r = (peerOverrideRef.current || peerContext)?.routing;
-                if (r) {
-                    await sendCallLogToThread(r, JSON.stringify({ outcome: "declined" }));
+                if (peerContext?.routing) {
+                    await sendCallLogToThread(peerContext.routing, JSON.stringify({ outcome: "declined" }));
                     onAfterCallLogged?.();
                 }
             } catch (e) {
@@ -747,32 +649,6 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
         setPhase("idle");
     }, [pendingIncoming, peerContext, onAfterCallLogged]);
 
-    useEffect(() => {
-        if (!window.medifollow) window.medifollow = {};
-        window.medifollow.startCall = async (toUserId, opts = {}) => {
-            if (!session?.id) return;
-            if (phaseRef.current !== "idle") return;
-            const room = [
-                `${session.role}:${session.id}`,
-                `${opts.peerRole || "user"}:${toUserId}`,
-            ]
-                .sort()
-                .join("|");
-            const label = opts.peerName || "Contact";
-            peerOverrideRef.current = {
-                roomId: room,
-                remoteUserId: String(toUserId),
-                label,
-                routing: undefined,
-            };
-            setPeerLabelFallback(label);
-            await startOutgoing({ video: opts.video !== false });
-        };
-        return () => {
-            if (window.medifollow) delete window.medifollow.startCall;
-        };
-    }, [session, startOutgoing]);
-
     useImperativeHandle(
         ref,
         () => ({
@@ -782,70 +658,36 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
         [startOutgoing],
     );
 
-    const voiceModalOpen =
-        !!session?.id && (phase === "outgoing" || phase === "ringing" || phase === "connected");
+    const voiceModalOpen = phase === "outgoing" || phase === "ringing" || phase === "connected";
 
-    const handleVoiceModalHide = useCallback(() => {
+    const handleVoiceModalHide = () => {
         if (phase === "ringing") rejectIncoming();
         else hangup(true);
-    }, [phase, rejectIncoming, hangup]);
-
-    /** Pas de react-bootstrap Modal (portail body) : évite NotFoundError removeChild. */
-    useEffect(() => {
-        if (!voiceModalOpen) return undefined;
-        const onKey = (e) => {
-            if (e.key === "Escape") {
-                e.preventDefault();
-                handleVoiceModalHide();
-            }
-        };
-        window.addEventListener("keydown", onKey);
-        const prevOverflow = document.body.style.overflow;
-        document.body.style.overflow = "hidden";
-        return () => {
-            window.removeEventListener("keydown", onKey);
-            document.body.style.overflow = prevOverflow;
-        };
-    }, [voiceModalOpen, handleVoiceModalHide]);
+    };
 
     return (
         <>
             <audio ref={remoteAudioRef} autoPlay playsInline className="d-none" />
 
-            {/* Overlay fixe (sans portail) — entrant, sortant, en communication */}
-            {voiceModalOpen ? (
-                <div
-                    className={`voice-call-modal-unified modal fade show d-block ${mediaMode === "video" ? "voice-call-modal--video" : ""}`}
-                    style={{
-                        position: "fixed",
-                        inset: 0,
-                        zIndex: 1055,
-                        overflow: "hidden auto",
-                    }}
-                    tabIndex={-1}
-                    role="dialog"
-                    aria-modal="true"
-                    aria-labelledby="voice-call-modal-title"
+            {/* Une seule modale pour entrant, sortant et communication */}
+            <Modal
+                show={voiceModalOpen}
+                onHide={handleVoiceModalHide}
+                centered
+                backdrop="static"
+                keyboard
+                className={`voice-call-modal-unified ${mediaMode === "video" ? "voice-call-modal--video" : ""}`}
+                dialogClassName={`voice-call-modal__dialog ${mediaMode === "video" ? "voice-call-modal__dialog--video" : ""}`}
+                contentClassName="voice-call-modal__content"
+                aria-labelledby="voice-call-modal-title"
+            >
+                <Modal.Body
+                    className={`voice-call-modal__body text-center position-relative ${
+                        mediaMode === "video" && (phase === "outgoing" || phase === "connected")
+                            ? "voice-call-modal__body--video p-0"
+                            : ""
+                    }`}
                 >
-                    <div
-                        className="modal-backdrop fade show"
-                        style={{ position: "fixed", inset: 0, zIndex: 0 }}
-                        aria-hidden
-                    />
-                    <div
-                        className={`modal-dialog modal-dialog-centered voice-call-modal__dialog ${
-                            mediaMode === "video" ? "voice-call-modal__dialog--video" : ""
-                        }`}
-                        style={{ position: "relative", zIndex: 1, pointerEvents: "auto" }}
-                    >
-                        <div className="modal-content voice-call-modal__content">
-                            <div
-                                className={`modal-body voice-call-modal__body text-center position-relative ${
-                                    mediaMode === "video" && (phase === "outgoing" || phase === "connected")
-                                        ? "voice-call-modal__body--video p-0"
-                                        : ""
-                                }`}
-                            >
                     {phase === "ringing" && (
                         <>
                             <button
@@ -894,35 +736,13 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
                         <div className={`voice-call-modal__video-wrap ${phase === "outgoing" ? "is-outgoing" : "is-live"}`}>
                             <video ref={remoteVideoRef} className="voice-call-modal__remote" playsInline autoPlay />
                             <video ref={localVideoRef} className="voice-call-modal__local" playsInline autoPlay muted />
-                            {patientEmotion && EMOTION_EMOJI[patientEmotion.label] != null && (
-                                <div
-                                    className={`voice-call-modal__emotion-badge ${
-                                        session?.role === "patient" && phase === "connected"
-                                            ? "voice-call-modal__emotion-badge--pip"
-                                            : "voice-call-modal__emotion-badge--main"
-                                    }`}
-                                    role="status"
-                                    aria-live="polite"
-                                    title={t("chat.voice.emotionHint")}
-                                >
-                                    <span className="voice-call-modal__emotion-emoji" aria-hidden>
-                                        {EMOTION_EMOJI[patientEmotion.label]}
-                                    </span>
-                                    <span className="voice-call-modal__emotion-label">
-                                        {t(`chat.voice.emotion.${patientEmotion.label}`, {
-                                            defaultValue:
-                                                EMOTION_LABEL_DEFAULT_EN[patientEmotion.label] ?? patientEmotion.label,
-                                        })}
-                                    </span>
-                                </div>
-                            )}
                             <div className="voice-call-modal__video-overlay">
                                 {phase === "outgoing" && (
                                     <>
                                         <Spinner animation="border" role="status" variant="light" className="mb-2" />
                                         <p className="voice-call-modal__title mb-1 fw-semibold">{t("chat.voice.outgoingVideo")}</p>
                                         <p className="voice-call-modal__subtitle small mb-3">
-                                            {t("chat.voice.connectingLine", { name: peerDisplayName })}
+                                            {t("chat.voice.connectingLine", { name: peerContext?.label || "…" })}
                                         </p>
                                         <div className="voice-call-toolbar">
                                             <button
@@ -970,7 +790,7 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
                                         </p>
                                         <p className="voice-call-modal__subtitle small mb-2">
                                             {t("chat.voice.with")}{" "}
-                                            <strong className="text-white">{peerDisplayName}</strong>
+                                            <strong className="text-white">{peerContext?.label || "…"}</strong>
                                         </p>
                                         <div className="voice-call-toolbar">
                                             <button
@@ -1047,7 +867,7 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
                                 {t("chat.voice.outgoingAudio")}
                             </p>
                             <p className="voice-call-modal__subtitle small mb-3">
-                                {t("chat.voice.connectingLine", { name: peerDisplayName })}
+                                {t("chat.voice.connectingLine", { name: peerContext?.label || "…" })}
                             </p>
                             <div className="voice-call-toolbar">
                                 <button
@@ -1092,7 +912,7 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
                             </p>
                             <p className="voice-call-modal__subtitle small mb-3">
                                 {t("chat.voice.with")}{" "}
-                                <strong className="text-white">{peerDisplayName}</strong>
+                                <strong className="text-white">{peerContext?.label || "…"}</strong>
                             </p>
                             <div className="voice-call-toolbar">
                                 <button
@@ -1142,11 +962,8 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
                             </button>
                         </>
                     )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            ) : null}
+                </Modal.Body>
+            </Modal>
 
             {errorHint && (
                 <div

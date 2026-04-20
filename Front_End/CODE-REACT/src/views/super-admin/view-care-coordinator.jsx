@@ -3,21 +3,31 @@ import { Row, Col, Card, Button, Badge, Spinner, Alert } from "react-bootstrap";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { superAdminApi } from "../../services/api";
-import { hospitalDepartmentLabel } from "../../constants/hospitalDepartments";
 
-function coordinatorDepartmentDisplay(coord, t) {
-  const raw = coord.department || coord.specialty;
-  if (!raw) return "";
-  return hospitalDepartmentLabel(raw, t);
+const SPECIALTY_I18N = {
+  "Coordination des soins": "specCareCoordination",
+  "Suivi post-opératoire": "specPostOp",
+  "Maladies chroniques": "specChronic",
+  Pédiatrie: "specPediatrics",
+  Gériatrie: "specGeriatrics",
+  Oncologie: "specOncology",
+  Autre: "specOther",
+};
+
+function specialtyLabel(specialty, t) {
+  if (!specialty) return "";
+  const key = SPECIALTY_I18N[specialty];
+  return key ? t(`addCareCoordinator.${key}`) : specialty;
 }
 
 const FIELD_DEFS = [
   { labelKey: "labelEmail", getValue: (a) => a.email, icon: "ri-mail-line" },
   { labelKey: "labelPhone", getValue: (a) => a.phone, icon: "ri-phone-line" },
+  { labelKey: "labelDepartment", getValue: (a) => a.department, icon: "ri-building-2-line" },
   {
-    labelKey: "labelDepartment",
-    getValue: (a, t) => coordinatorDepartmentDisplay(a, t),
-    icon: "ri-building-2-line",
+    labelKey: "labelSpecialty",
+    getValue: (a, t) => specialtyLabel(a.specialty, t),
+    icon: "ri-stethoscope-line",
   },
   { labelKey: "labelAddress", getValue: (a) => a.address, icon: "ri-map-pin-line" },
   { labelKey: "labelCity", getValue: (a) => a.city, icon: "ri-building-line" },
@@ -65,9 +75,6 @@ const ViewCareCoordinator = () => {
     coordinator.email;
 
   const initial = displayName?.length ? displayName[0].toUpperCase() : t("superAdminViewCareCoordinator.avatarFallback");
-  const pic = coordinator.profileImage && String(coordinator.profileImage).trim();
-  const avatarSrc =
-    pic && (pic.startsWith("data:") || pic.startsWith("http") || pic.startsWith("/")) ? pic : null;
 
   return (
     <Row className="justify-content-center">
@@ -91,21 +98,12 @@ const ViewCareCoordinator = () => {
           </Card.Header>
           <Card.Body className="p-4">
             <div className="d-flex align-items-center gap-4 mb-4 pb-4 border-bottom">
-              {avatarSrc ? (
-                <img
-                  src={avatarSrc}
-                  alt=""
-                  className="rounded-circle border"
-                  style={{ width: 80, height: 80, objectFit: "cover", flexShrink: 0 }}
-                />
-              ) : (
-                <div
-                  className="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
-                  style={{ width: 80, height: 80, background: "#009688", fontSize: 28, flexShrink: 0 }}
-                >
-                  {initial}
-                </div>
-              )}
+              <div
+                className="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
+                style={{ width: 80, height: 80, background: "#009688", fontSize: 28, flexShrink: 0 }}
+              >
+                {initial}
+              </div>
               <div>
                 <h4 className="mb-1">{displayName}</h4>
                 <Badge bg="secondary" className="me-2">{t("superAdminViewCareCoordinator.roleBadge")}</Badge>

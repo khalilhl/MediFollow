@@ -15,7 +15,7 @@ import {
   appointmentIdString,
 } from './notification-appointments.helper';
 
-type RecipientRole = 'doctor' | 'nurse' | 'patient' | 'admin' | 'carecoordinator';
+type RecipientRole = 'doctor' | 'nurse' | 'patient' | 'admin';
 
 @Injectable()
 export class NotificationService {
@@ -139,70 +139,6 @@ export class NotificationService {
         recipientId: rid,
         recipientRole,
         type: 'lab_analysis_anomaly',
-        title,
-        body,
-        patientId: params.patientId,
-        patientName,
-        read: false,
-        meta,
-      });
-    };
-
-    await sendTo(p.nurseId, 'nurse');
-    await sendTo(p.doctorId, 'doctor');
-  }
-
-  /**
-   * Patient : analyse IRM assistée (upload) — notifie médecin référent et infirmier assigné.
-   */
-  async notifyCareTeamBrainMriAnalysis(params: {
-    patientId: Types.ObjectId;
-    prediction: number;
-    probability: number;
-  }) {
-    const patient = await this.patientModel
-      .findById(params.patientId)
-      .select('firstName lastName email doctorId nurseId')
-      .lean()
-      .exec();
-    if (!patient) return;
-
-    const p = patient as {
-      firstName?: string;
-      lastName?: string;
-      email?: string;
-      doctorId?: string;
-      nurseId?: string;
-    };
-    const patientName =
-      `${p.firstName || ''} ${p.lastName || ''}`.trim() || p.email || 'Patient';
-    const pct = Math.round(params.probability * 1000) / 10;
-    const screening =
-      params.prediction === 1
-        ? 'Dépistage positif (classe tumeur) — à confirmer cliniquement.'
-        : 'Pas de signal positif au seuil du modèle.';
-    const title = `Analyse IRM cérébrale — ${patientName}`;
-    const body = `${patientName} a effectué une analyse d’assistance IRM. ${screening} Score modèle : ${pct} %.`;
-
-    const meta: Record<string, unknown> = {
-      kind: 'brain_mri_patient_analysis',
-      patientName,
-      prediction: params.prediction,
-      probability: params.probability,
-    };
-
-    const notifiedRecipientIds = new Set<string>();
-
-    const sendTo = async (recipientId: string | undefined, recipientRole: 'doctor' | 'nurse') => {
-      if (recipientId == null || !String(recipientId).trim()) return;
-      const rid = String(recipientId);
-      if (notifiedRecipientIds.has(rid)) return;
-      notifiedRecipientIds.add(rid);
-
-      await this.notificationModel.create({
-        recipientId: rid,
-        recipientRole,
-        type: 'brain_mri_patient_analysis',
         title,
         body,
         patientId: params.patientId,
@@ -579,12 +515,6 @@ export class NotificationService {
       const name = `${(n as any).firstName || ''} ${(n as any).lastName || ''}`.trim();
       return name || 'Infirmier(ère)';
     }
-    if (senderRole === 'carecoordinator') {
-      const usr = await this.userModel.findById(oid).select('firstName lastName email name').lean().exec();
-      if (!usr) return 'Coordinateur';
-      const name = `${(usr as any).firstName || ''} ${(usr as any).lastName || ''}`.trim() || (usr as any).name || (usr as any).email;
-      return name || 'Coordinateur';
-    }
     return 'Contact';
   }
 
@@ -632,7 +562,7 @@ export class NotificationService {
 
   /** Libellé du destinataire pour la copie « message envoyé » (expéditeur). */
   private async resolveOutboundRecipientLabel(
-    routing: { patientId?: string; peerRole?: 'doctor' | 'nurse' | 'carecoordinator'; peerId?: string },
+    routing: { patientId?: string; peerRole?: 'doctor' | 'nurse'; peerId?: string },
     senderRole: string,
     senderId: string,
   ): Promise<string> {
@@ -642,15 +572,6 @@ export class NotificationService {
         if (!d) return 'Médecin';
         const name = `${(d as any).firstName || ''} ${(d as any).lastName || ''}`.trim();
         return name ? `Dr. ${name}` : 'Médecin';
-      }
-      if (routing.peerRole === 'carecoordinator') {
-        const usr = await this.userModel.findById(routing.peerId).select('firstName lastName name email').lean().exec();
-        if (!usr) return 'Coordinateur';
-        const name =
-          `${(usr as any).firstName || ''} ${(usr as any).lastName || ''}`.trim() ||
-          (usr as any).name ||
-          (usr as any).email;
-        return name || 'Coordinateur';
       }
       const n = await this.nurseModel.findById(routing.peerId).select('firstName lastName').lean().exec();
       if (!n) return 'Infirmier(ère)';
@@ -663,12 +584,6 @@ export class NotificationService {
         const name = `${(d as any).firstName || ''} ${(d as any).lastName || ''}`.trim();
         return name ? `Dr. ${name}` : 'Médecin';
       }
-      if (routing.peerRole === 'carecoordinator') {
-        const usr = await this.userModel.findById(routing.peerId).select('firstName lastName name email').lean().exec();
-        if (!usr) return 'Coordinateur';
-        const name = `${(usr as any).firstName || ''} ${(usr as any).lastName || ''}`.trim() || (usr as any).name || (usr as any).email;
-        return name || 'Coordinateur';
-      }
       const n = await this.nurseModel.findById(routing.peerId).select('firstName lastName').lean().exec();
       if (!n) return 'Infirmier(ère)';
       return `${(n as any).firstName || ''} ${(n as any).lastName || ''}`.trim() || 'Infirmier(ère)';
@@ -678,7 +593,7 @@ export class NotificationService {
       if (pid !== senderId) return '';
       return 'Équipe soignante';
     }
-    if (senderRole === 'doctor' || senderRole === 'nurse' || senderRole === 'carecoordinator') {
+    if (senderRole === 'doctor' || senderRole === 'nurse') {
       const pid = String(routing.patientId || '');
       if (pid) {
         const p = await this.patientModel.findById(pid).select('firstName lastName email').lean().exec();
@@ -748,10 +663,10 @@ export class NotificationService {
   private async resolveChatRecipients(params: {
     senderRole: string;
     senderId: string;
-    routing: { patientId?: string; peerRole?: 'doctor' | 'nurse' | 'carecoordinator'; peerId?: string };
-  }): Promise<{ recipientId: string; recipientRole: 'doctor' | 'nurse' | 'patient' | 'carecoordinator' }[]> {
+    routing: { patientId?: string; peerRole?: 'doctor' | 'nurse'; peerId?: string };
+  }): Promise<{ recipientId: string; recipientRole: 'doctor' | 'nurse' | 'patient' }[]> {
     const { senderRole, senderId, routing } = params;
-    const out: { recipientId: string; recipientRole: 'doctor' | 'nurse' | 'patient' | 'carecoordinator' }[] = [];
+    const out: { recipientId: string; recipientRole: 'doctor' | 'nurse' | 'patient' }[] = [];
 
     if (senderRole === 'patient' && routing.peerRole && routing.peerId) {
       out.push({ recipientId: routing.peerId, recipientRole: routing.peerRole });
@@ -759,10 +674,7 @@ export class NotificationService {
     }
 
     if (routing.peerRole && routing.peerId && senderRole !== 'patient') {
-      out.push({
-        recipientId: routing.peerId,
-        recipientRole: routing.peerRole as 'doctor' | 'nurse' | 'carecoordinator',
-      });
+      out.push({ recipientId: routing.peerId, recipientRole: routing.peerRole });
       return out;
     }
 
@@ -778,7 +690,7 @@ export class NotificationService {
       return out;
     }
 
-    if (senderRole === 'doctor' || senderRole === 'nurse' || senderRole === 'carecoordinator') {
+    if (senderRole === 'doctor' || senderRole === 'nurse') {
       const pid = String(routing.patientId || '');
       if (pid) {
         out.push({ recipientId: pid, recipientRole: 'patient' });
@@ -790,10 +702,10 @@ export class NotificationService {
   }
 
   async notifyChatDispatch(params: {
-    senderRole: 'patient' | 'doctor' | 'nurse' | 'carecoordinator';
+    senderRole: 'patient' | 'doctor' | 'nurse';
     senderId: string;
     senderName: string;
-    routing: { patientId?: string; peerRole?: 'doctor' | 'nurse' | 'carecoordinator'; peerId?: string };
+    routing: { patientId?: string; peerRole?: 'doctor' | 'nurse'; peerId?: string };
     kind: 'text' | 'voice' | 'image' | 'video' | 'document' | 'call';
     bodyText: string;
     mappedPatientId?: string;

@@ -22,18 +22,6 @@ function attachApiErrorFields(error, err) {
  */
 const getValidToken = () => {
   try {
-    /** Coordinateur : toujours le jeton admin (évite conflit avec une session patient résiduelle). */
-    if (localStorage.getItem("adminUser")) {
-      try {
-        const u = JSON.parse(localStorage.getItem("adminUser") || "null");
-        if (u?.role === "carecoordinator") {
-          const t = okToken(localStorage.getItem("adminToken"));
-          if (t) return t;
-        }
-      } catch {
-        /* ignore */
-      }
-    }
     if (localStorage.getItem("patientUser")) {
       const t = okToken(localStorage.getItem("patientToken"));
       if (t) return t;
@@ -101,46 +89,6 @@ export const api = {
   /** POST multipart (sans Content-Type : le navigateur définit la boundary). */
   async postMultipart(endpoint, formData) {
     const token = getValidToken();
-    const res = await fetch(`${API_BASE}${endpoint}`, {
-      method: "POST",
-      headers: {
-        ...(token && { Authorization: `Bearer ${token}` }),
-      },
-      body: formData,
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ message: res.statusText }));
-      const error = new Error(messageFromApiErr(err));
-      error.status = res.status;
-      attachApiErrorFields(error, err);
-      throw error;
-    }
-    return res.json();
-  },
-
-  /** Multipart réservé au jeton médecin (évite un conflit si patient + médecin en localStorage). */
-  async postMultipartWithDoctorToken(endpoint, formData) {
-    const token = okToken(localStorage.getItem("doctorToken"));
-    const res = await fetch(`${API_BASE}${endpoint}`, {
-      method: "POST",
-      headers: {
-        ...(token && { Authorization: `Bearer ${token}` }),
-      },
-      body: formData,
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ message: res.statusText }));
-      const error = new Error(messageFromApiErr(err));
-      error.status = res.status;
-      attachApiErrorFields(error, err);
-      throw error;
-    }
-    return res.json();
-  },
-
-  /** Multipart réservé au jeton patient (IRM cérébrale assistée depuis l’espace patient). */
-  async postMultipartWithPatientToken(endpoint, formData) {
-    const token = okToken(localStorage.getItem("patientToken"));
     const res = await fetch(`${API_BASE}${endpoint}`, {
       method: "POST",
       headers: {
@@ -597,8 +545,6 @@ export const authApi = {
   faceLogin: (descriptor, email) =>
     api.postNoAuth("/auth/face/login", email ? { email, descriptor } : { descriptor }),
   me: () => api.get("/auth/me"),
-  /** Session médecin : évite d’utiliser le jeton patient si les deux existent. */
-  meDoctor: () => api.getWithDoctorToken("/auth/me"),
   updateMe: (data) => api.put("/auth/me", data),
 };
 
@@ -646,60 +592,22 @@ export const nurseApi = {
 };
 
 export const departmentApi = {
-  /** JWT admin / super admin (évite un mauvais jeton si session patient résiduelle). */
-  summary: () => api.getWithAdminToken("/departments/summary"),
-  catalog: () => api.get("/departments/catalog"),
-  /** Super admin : noms du catalogue sans administrateur assigné. */
-  catalogEligibleForAdmin: () => api.get("/departments/catalog/eligible-for-admin"),
-  /** Noms présents uniquement dans department_catalog (pas liste fusionnée). */
-  catalogNamesOnly: () => api.get("/departments/catalog/names-only"),
-  createCatalog: (data) => api.post("/departments", data),
-  ensureCatalog: (data) => api.post("/departments/catalog/ensure", data),
-  updateCatalog: (catalogId, data) =>
-    api.patch(`/departments/catalog/${encodeURIComponent(catalogId)}`, data),
-  deleteCatalog: (catalogId) => api.delete(`/departments/catalog/${encodeURIComponent(catalogId)}`),
-  assignCatalogAdmin: (catalogId, adminUserId) =>
-    api.patch(`/departments/catalog/${encodeURIComponent(catalogId)}/assign`, {
-      adminUserId,
-    }),
+  summary: () => api.get("/departments/summary"),
   /** Médecin connecté : infirmiers du même département (JWT). */
   getMyNursesAsDoctor: () => api.getWithDoctorToken("/departments/doctor/my-nurses"),
   /** Médecin connecté : médecins du même département (JWT). */
   getMyDoctorsAsDoctor: () => api.getWithDoctorToken("/departments/doctor/my-doctors"),
   usersByDepartment: (department) =>
     api.get(`/departments/users?department=${encodeURIComponent(department)}`),
-  /** Coordinateur : patients du même département + scores de suivi (JWT adminToken). */
-  coordinatorDashboardStats: () => api.getWithAdminToken("/departments/coordinator/dashboard-stats"),
-  coordinatorMyPatients: () => api.getWithAdminToken("/departments/coordinator/my-patients"),
-  coordinatorPatientHistory: (patientId) =>
-    api.getWithAdminToken(`/departments/coordinator/patient/${encodeURIComponent(patientId)}/history`),
-  /** Tableau de bord admin hôpital (JWT admin / superadmin / coordinateur / auditeur). */
-  adminDashboardStats: () => api.getWithAdminToken("/departments/admin/dashboard-stats"),
 };
 
 /** Tableau de bord audit (JWT auditeur ou super admin). */
-/** Toujours adminToken : l’auditeur et le super admin partagent cette session (pas getValidToken qui peut envoyer patient/doctor). */
 export const auditorApi = {
-  getDashboard: () => api.getWithAdminToken("/audit/dashboard"),
-  getLogs: (params = {}) => {
-    const q = new URLSearchParams();
-    Object.entries(params).forEach(([k, v]) => {
-      if (v != null && v !== "") q.set(k, String(v));
-    });
-    const qs = q.toString();
-    return api.getWithAdminToken(`/audit/logs${qs ? `?${qs}` : ""}`);
-  },
-  getLogById: (id) => api.getWithAdminToken(`/audit/logs/item/${encodeURIComponent(id)}`),
+  getDashboard: () => api.get("/audit/dashboard"),
 };
 
 export const superAdminApi = {
   getAllUsers: () => api.get("/auth/users"),
-  /** Créer un compte admin (JWT super admin uniquement). */
-  createAdmin: (data) => api.post("/auth/admins", data),
-  getAdmins: () => api.get("/auth/admins"),
-  getAdminById: (id) => api.get(`/auth/admins/${encodeURIComponent(id)}`),
-  updateAdmin: (id, data) => api.put(`/auth/admins/${encodeURIComponent(id)}`, data),
-  deleteAdmin: (id) => api.delete(`/auth/admins/${encodeURIComponent(id)}`),
   toggleUserActive: (id) => api.put(`/auth/users/${id}/toggle-active`, {}),
   deleteUser: (id) => api.delete(`/auth/users/${id}`),
   createAuditor: (data) => api.post("/auth/auditors", data),
@@ -716,14 +624,6 @@ export const superAdminApi = {
 /** Messagerie équipe soignante (JWT patient / médecin / infirmier). */
 export const chatApi = {
   getDepartmentContacts: () => {
-    try {
-      const u = JSON.parse(localStorage.getItem("adminUser") || "null");
-      if (u?.role === "carecoordinator") {
-        return api.getWithAdminToken("/chat/department-contacts");
-      }
-    } catch {
-      /* ignore */
-    }
     if (typeof localStorage !== "undefined" && localStorage.getItem("doctorUser")) {
       return api.getWithDoctorToken("/chat/department-contacts");
     }
@@ -759,14 +659,6 @@ export const chatApi = {
     return api.post("/chat/groups", payload);
   },
   getConversations: () => {
-    try {
-      const u = JSON.parse(localStorage.getItem("adminUser") || "null");
-      if (u?.role === "carecoordinator") {
-        return api.getWithAdminToken("/chat/conversations");
-      }
-    } catch {
-      /* ignore */
-    }
     if (typeof localStorage !== "undefined" && localStorage.getItem("doctorUser")) {
       return api.getWithDoctorToken("/chat/conversations");
     }
@@ -785,7 +677,7 @@ export const chatApi = {
       arg1 &&
       typeof arg1 === "object" &&
       !Array.isArray(arg1) &&
-      (arg1.peerRole === "doctor" || arg1.peerRole === "nurse" || arg1.peerRole === "carecoordinator") &&
+      (arg1.peerRole === "doctor" || arg1.peerRole === "nurse") &&
       arg1.peerId;
     const q = new URLSearchParams();
     if (isGroup) {
@@ -803,14 +695,6 @@ export const chatApi = {
       if (params.limit != null) q.set("limit", String(params.limit));
       const qs = q.toString();
       const path = `/chat/messages/${encodeURIComponent(patientId)}${qs ? `?${qs}` : ""}`;
-      try {
-        const u = JSON.parse(localStorage.getItem("adminUser") || "null");
-        if (u?.role === "carecoordinator") {
-          return api.getWithAdminToken(path);
-        }
-      } catch {
-        /* ignore */
-      }
       if (typeof localStorage !== "undefined" && localStorage.getItem("doctorUser")) {
         return api.getWithDoctorToken(path);
       }
@@ -824,14 +708,6 @@ export const chatApi = {
     }
     const path = `/chat/messages?${q.toString()}`;
     if (isGroup || isPeer) {
-      try {
-        const u = JSON.parse(localStorage.getItem("adminUser") || "null");
-        if (u?.role === "carecoordinator") {
-          return api.getWithAdminToken(path);
-        }
-      } catch {
-        /* ignore */
-      }
       if (typeof localStorage !== "undefined" && localStorage.getItem("doctorUser")) {
         return api.getWithDoctorToken(path);
       }
@@ -855,14 +731,6 @@ export const chatApi = {
       data.peerRole = payload.peerRole;
       data.peerId = payload.peerId;
     }
-    try {
-      const u = JSON.parse(localStorage.getItem("adminUser") || "null");
-      if (u?.role === "carecoordinator") {
-        return api.postWithAdminToken("/chat/messages", data);
-      }
-    } catch {
-      /* ignore */
-    }
     if (typeof localStorage !== "undefined" && localStorage.getItem("doctorUser")) {
       return api.postWithDoctorToken("/chat/messages", data);
     }
@@ -880,14 +748,6 @@ export const chatApi = {
   sendMediaMessage: (formData) => api.postMultipart("/chat/messages/media", formData),
   markRead: (patientId) => {
     const path = `/chat/read/${encodeURIComponent(patientId)}`;
-    try {
-      const u = JSON.parse(localStorage.getItem("adminUser") || "null");
-      if (u?.role === "carecoordinator") {
-        return api.patchWithAdminToken(path, {});
-      }
-    } catch {
-      /* ignore */
-    }
     if (typeof localStorage !== "undefined" && localStorage.getItem("doctorUser")) {
       return api.patchWithDoctorToken(path, {});
     }
@@ -901,14 +761,6 @@ export const chatApi = {
   },
   markReadPeer: (peerRole, peerId) => {
     const path = `/chat/read-peer?peerRole=${encodeURIComponent(peerRole)}&peerId=${encodeURIComponent(peerId)}`;
-    try {
-      const u = JSON.parse(localStorage.getItem("adminUser") || "null");
-      if (u?.role === "carecoordinator") {
-        return api.patchWithAdminToken(path, {});
-      }
-    } catch {
-      /* ignore */
-    }
     if (typeof localStorage !== "undefined" && localStorage.getItem("doctorUser")) {
       return api.patchWithDoctorToken(path, {});
     }
@@ -1097,82 +949,6 @@ export const healthLogApi = {
         : '';
     return api.getWithDoctorToken(`/health-logs/doctor/nurse-escalations${q}`);
   },
-  /** JWT super admin — alertes vitales ouvertes (toute la plateforme). */
-  platformOpenVitalsSummary: () =>
-    api.getWithAdminToken("/health-logs/platform/open-vitals-summary"),
-};
-
-/** Certificats médicaux PDF (patient : liste / médecin : liste + création + PDF). */
-export const medicalCertificateApi = {
-  listMinePatient: async () => {
-    const data = await api.getWithPatientToken("/medical-certificates/me");
-    if (Array.isArray(data)) return data;
-    if (Array.isArray(data?.items)) return data.items;
-    if (Array.isArray(data?.certificates)) return data.certificates;
-    return [];
-  },
-  downloadPdfPatient: async (certId, filename) => {
-    const token = okToken(localStorage.getItem("patientToken"));
-    const url = `${API_BASE}/medical-certificates/${encodeURIComponent(String(certId))}/pdf`;
-    const res = await fetch(url, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ message: res.statusText }));
-      const error = new Error(messageFromApiErr(err));
-      error.status = res.status;
-      throw error;
-    }
-    const blob = await res.blob();
-    const objectUrl = URL.createObjectURL(blob);
-    try {
-      const a = document.createElement("a");
-      a.href = objectUrl;
-      a.download = filename || "medical-certificate.pdf";
-      a.rel = "noopener";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-    } finally {
-      URL.revokeObjectURL(objectUrl);
-    }
-  },
-  listForDoctorPatient: async (patientId) => {
-    const data = await api.getWithDoctorToken(
-      `/medical-certificates/doctor/patient/${encodeURIComponent(String(patientId))}`,
-    );
-    if (Array.isArray(data)) return data;
-    if (Array.isArray(data?.items)) return data.items;
-    return [];
-  },
-  createFromPatientMedications: (patientId) =>
-    api.postWithDoctorToken("/medical-certificates", { patientId: String(patientId) }),
-  downloadPdfDoctor: async (certId, filename) => {
-    const token = okToken(localStorage.getItem("doctorToken"));
-    const url = `${API_BASE}/medical-certificates/${encodeURIComponent(String(certId))}/pdf`;
-    const res = await fetch(url, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ message: res.statusText }));
-      const error = new Error(messageFromApiErr(err));
-      error.status = res.status;
-      throw error;
-    }
-    const blob = await res.blob();
-    const objectUrl = URL.createObjectURL(blob);
-    try {
-      const a = document.createElement("a");
-      a.href = objectUrl;
-      a.download = filename || "medical-certificate.pdf";
-      a.rel = "noopener";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-    } finally {
-      URL.revokeObjectURL(objectUrl);
-    }
-  },
 };
 
 export const medicationApi = {
@@ -1196,42 +972,6 @@ export const doctorAvailabilityApi = {
     api.putWithDoctorToken(`/doctor-availability/me/${encodeURIComponent(yearMonth)}`, { slots }),
 };
 
-/** JWT médecin / patient — détection assistée tumeur IRM (multipart, champ file). */
-export const brainTumorApi = {
-  /** Si `patientId` est fourni (médecin depuis le dossier), l’analyse est enregistrée pour ce patient. */
-  predictDoctor: (file, patientId) => {
-    const fd = new FormData();
-    fd.append("file", file);
-    const pid = patientId != null ? String(patientId).trim() : "";
-    if (pid) {
-      fd.append("patientId", pid);
-    }
-    const q = pid ? `?patientId=${encodeURIComponent(pid)}` : "";
-    return api.postMultipartWithDoctorToken(`/brain-tumor/predict${q}`, fd);
-  },
-  predictPatient: (file) => {
-    const fd = new FormData();
-    fd.append("file", file);
-    return api.postMultipartWithPatientToken("/brain-tumor/predict", fd);
-  },
-  listRecords: (patientId, limit) => {
-    const q = new URLSearchParams();
-    q.set("patientId", String(patientId));
-    if (limit) q.set("limit", String(limit));
-    const path = `/brain-tumor/records?${q.toString()}`;
-    if (typeof localStorage !== "undefined" && localStorage.getItem("doctorUser")) {
-      return api.getWithDoctorToken(path);
-    }
-    if (typeof localStorage !== "undefined" && localStorage.getItem("patientUser")) {
-      return api.getWithPatientToken(path);
-    }
-    return api.get(path);
-  },
-  /** JWT medecin — historique des analyses lancees par ce compte (page /doctor/brain-mri sans patient). */
-  listMyRecordsAsDoctor: (limit = 40) =>
-    api.getWithDoctorToken(`/brain-tumor/doctor/my-records?limit=${encodeURIComponent(limit)}`),
-};
-
 export const appointmentApi = {
   create: (data) => api.post('/appointments', data),
   getByPatient: (patientId) => api.get(`/appointments/patient/${patientId}`),
@@ -1245,9 +985,6 @@ export const appointmentApi = {
   getPendingForAdmin: () => api.getWithAdminToken('/appointments/admin/pending'),
   /** RDV confirmés à venir (JWT admin / superadmin) */
   getConfirmedForAdmin: () => api.getWithAdminToken('/appointments/admin/confirmed'),
-  /** RDV des patients du département du coordinateur (JWT carecoordinator) */
-  getCoordinatorDepartmentAppointments: () =>
-    api.getWithAdminToken("/appointments/coordinator/my-department"),
   update: (id, data) => api.put(`/appointments/${id}`, data),
   /** Mise à jour côté admin (jeton admin explicite) */
   updateAsAdmin: (id, data) => api.putWithAdminToken(`/appointments/${id}`, data),
@@ -1293,26 +1030,4 @@ export const mailApi = {
     api.post(`/mail/messages/${encodeURIComponent(stateId)}/labels/${encodeURIComponent(labelId)}`, {}),
   removeLabel: (stateId, labelId) =>
     api.delete(`/mail/messages/${encodeURIComponent(stateId)}/labels/${encodeURIComponent(labelId)}`),
-};
-
-/* ─────────────── Video Meeting ─────────────── */
-export const videoMeetingApi = {
-  create: (data) => api.post('/video-meetings', data),
-  getMyMeetings: () => api.get('/video-meetings'),
-  getAll: () => api.get('/video-meetings/all'),
-  getByCode: (code) => api.get(`/video-meetings/code/${encodeURIComponent(code)}`),
-  getById: (id) => api.get(`/video-meetings/${id}`),
-  update: (id, data) => api.put(`/video-meetings/${id}`, data),
-  cancel: (id) => api.delete(`/video-meetings/${id}`),
-  join: (code) => api.post(`/video-meetings/join/${encodeURIComponent(code)}`, {}),
-  getInvitableUsers: () => api.get('/video-meetings/invitable-users'),
-};
-
-export const chatbotApi = {
-  ask: (messages, lang) => api.post('/chatbot/ask', { messages, lang }),
-};
-
-/** Formulaire public page /contact (sans JWT). */
-export const publicContactApi = {
-  send: (data) => api.postNoAuth('/contact', data),
 };

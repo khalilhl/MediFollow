@@ -282,7 +282,7 @@
 
 // Accessibility: larger text mode on sign-in page
 .sign-in-page.a11y-large-text .sign-in-from {
-    font-size: 1.28rem;
+    font-size: 1.12rem;
     position: static !important;
     top: auto !important;
     bottom: auto !important;
@@ -309,41 +309,34 @@
 }
 
 .sign-in-page.a11y-large-text .sign-in-from h1 {
-    font-size: 2.75rem;
-    line-height: 1.18;
+    font-size: 2.35rem;
+    line-height: 1.2;
 }
 
 .sign-in-page.a11y-large-text .sign-in-from p,
 .sign-in-page.a11y-large-text .sign-in-from label,
 .sign-in-page.a11y-large-text .sign-in-from .form-text,
 .sign-in-page.a11y-large-text .sign-in-from .alert {
-    font-size: 1.06em !important;
+    font-size: 1.03em !important;
 }
 
 .sign-in-page.a11y-large-text .sign-in-from .form-control {
-    font-size: 1.2rem;
-    padding-top: 0.82rem;
-    padding-bottom: 0.82rem;
+    font-size: 1.08rem;
+    padding-top: 0.7rem;
+    padding-bottom: 0.7rem;
 }
 
 .sign-in-page.a11y-large-text .sign-in-from .btn {
-    font-size: 1.08rem;
-    padding-top: 0.62rem;
-    padding-bottom: 0.62rem;
-    min-height: 2.75rem;
+    font-size: 0.98rem;
+    padding-top: 0.52rem;
+    padding-bottom: 0.52rem;
 }
 
 .sign-in-from .a11y-toolbar {
-    border: none;
+    border: 1px solid var(--bs-border-color);
     border-radius: 12px;
     padding: 0.7rem;
-    overflow: hidden;
-    box-sizing: border-box;
-    /* Fond opaque + contour en ombre intérieure : coins nets sans « trous » blancs */
-    background-color: var(--bs-body-bg);
-    box-shadow:
-        inset 0 0 0 1px var(--bs-border-color),
-        0 1px 3px rgba(15, 23, 42, 0.05);
+    background: var(--bs-body-bg);
 }
 
 .sign-in-from .a11y-toolbar-title {
@@ -375,15 +368,13 @@
     opacity: 0.9;
 }
 
-.sign-in-from .assist-actions .assist-btn.assist-btn-hand,
-.iq-navbar .assist-btn.assist-btn-hand {
+.sign-in-from .assist-actions .assist-btn.assist-btn-hand {
     border: 1px solid rgba(8, 155, 171, 0.45);
     color: #0b6f7f;
     background: rgba(8, 155, 171, 0.08);
 }
 
-.sign-in-from .assist-actions .assist-btn.assist-btn-hand:hover,
-.iq-navbar .assist-btn.assist-btn-hand:hover {
+.sign-in-from .assist-actions .assist-btn.assist-btn-hand:hover {
     border-color: rgba(8, 155, 171, 0.7);
     background: rgba(8, 155, 171, 0.14);
 }
@@ -399,8 +390,7 @@
     background: #f8f9fa;
 }
 
-.sign-in-from .assist-actions .assist-btn.is-active,
-.iq-navbar .assist-btn.assist-btn-hand.is-active {
+.sign-in-from .assist-actions .assist-btn.is-active {
     color: #fff;
     border-color: transparent;
     background: linear-gradient(135deg, #0b93a3 0%, #0a6f89 100%);
@@ -450,75 +440,6 @@
     border-top: 1px solid #cdd1f3;
     margin-top: 30px;
     padding-top: 20px;
-}
-
-/* Sessions patient / médecin / infirmier / admin : grand texte (même clé localStorage que la page de connexion) */
-body.patient-a11y-large-text,
-body.doctor-a11y-large-text,
-body.nurse-a11y-large-text,
-body.admin-a11y-large-text {
-    .wrapper {
-        font-size: 1.06rem;
-    }
-
-    .main-content,
-    .content-inner,
-    .content-page {
-        font-size: 1.06rem;
-    }
-
-    h1,
-    .h1 {
-        font-size: clamp(1.65rem, 2.2vw, 2.1rem);
-    }
-
-    h2,
-    .h2 {
-        font-size: clamp(1.4rem, 1.8vw, 1.75rem);
-    }
-
-    h3,
-    .h3,
-    .card-title {
-        font-size: 1.22rem;
-    }
-
-    h4,
-    h5,
-    h6 {
-        font-size: 1.1rem;
-    }
-
-    p,
-    .card-body,
-    .table td,
-    .table th,
-    .form-label,
-    .list-group-item,
-    .nav-link .item-name {
-        font-size: 1.03em !important;
-    }
-
-    small,
-    .small,
-    .text-muted {
-        font-size: 0.95em !important;
-    }
-
-    .btn {
-        font-size: 0.98rem;
-    }
-
-    .form-control,
-    .form-select {
-        font-size: 1.05rem;
-        padding-top: 0.55rem;
-        padding-bottom: 0.55rem;
-    }
-
-    .iq-navbar .caption .font-size-12 {
-        font-size: 0.92rem !important;
-    }
 }
 
 .sign-in-page .sign-in-page-bg {
@@ -873,47 +794,6 @@ label.iq-active {
     }
 }
 
-/* Menu super admin : libellés longs (retour à la ligne, largeur fluide) */
-.super-admin-sidebar {
-    .super-admin-nav-link {
-        display: flex !important;
-        align-items: flex-start !important;
-        flex-wrap: nowrap;
-        gap: 0.5rem;
-        width: 100%;
-        max-width: 100%;
-        padding-top: 0.5rem;
-        padding-bottom: 0.5rem;
-        line-height: 1.35;
-
-        > i:first-of-type {
-            flex-shrink: 0;
-            margin-top: 0.12em;
-        }
-
-        .item-name {
-            flex: 1 1 auto;
-            min-width: 0;
-            white-space: normal;
-            word-wrap: break-word;
-            overflow-wrap: anywhere;
-            hyphens: auto;
-            line-height: 1.35;
-        }
-    }
-}
-
-.sidebar.sidebar-mini .super-admin-sidebar .super-admin-nav-link .item-name {
-    font-size: clamp(0.78rem, 2.6vw, 0.95rem);
-    line-height: 1.3;
-}
-
-@media (min-width: 1200px) {
-    .super-admin-sidebar .super-admin-nav-link .item-name {
-        font-size: clamp(0.85rem, 0.9vw + 0.65rem, 1rem);
-    }
-}
-
 @media (min-width:570px) and (max-width:900px) {
     .sign-in-page {
         // margin-top: 10rem !important;
@@ -1024,62 +904,5 @@ label.iq-active {
 @media (min-width: 768px) and (max-width: 1020px) {
     .iq-top-new {
         margin-top: 12rem !important;
-    }
-}
-
-/* ===== Accessibility: Grand texte — toutes les pages (global) ===== */
-html.a11y-large-text {
-    font-size: 120% !important;
-
-    h1, h2, h3, h4, h5, h6 {
-        font-size: calc(1em + 0.35rem) !important;
-        line-height: 1.3 !important;
-    }
-
-    p, label, span, td, th, li, a, .form-text, .badge, .small {
-        font-size: 1.05rem !important;
-        line-height: 1.7 !important;
-    }
-
-    .btn, .nav-link, .breadcrumb-item {
-        font-size: 1rem !important;
-        padding: 0.45rem 0.85rem !important;
-    }
-
-    .form-control, .form-select {
-        font-size: 1rem !important;
-        padding: 0.55rem 0.8rem !important;
-        min-height: 44px !important;
-    }
-
-    .card {
-        .card-header, .card-body, .card-footer {
-            font-size: 1rem !important;
-        }
-    }
-
-    table {
-        font-size: 1rem !important;
-    }
-
-    .a11y-coordinator-toolbar .a11y-btn {
-        font-size: 1rem !important;
-        padding: 0.45rem 1rem !important;
-    }
-}
-
-// Sidebar: libellé admin « alertes » sur deux lignes si besoin (thème force white-space: nowrap sur .nav-link)
-.sidebar .navbar-nav .nav-link.sidebar-nav-link--multiline {
-    white-space: normal !important;
-    align-items: flex-start !important;
-    padding-top: 0.55rem;
-    padding-bottom: 0.55rem;
-
-    .item-name {
-        white-space: normal !important;
-        line-height: 1.35;
-        min-width: 0;
-        flex: 1 1 auto;
-        text-transform: none;
     }
 }

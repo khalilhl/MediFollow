@@ -5,14 +5,25 @@ import Card from "../../components/Card";
 import { Link } from "react-router-dom";
 import { superAdminApi } from "../../services/api";
 import ConfirmActionModal from "../../components/ConfirmActionModal";
-import { hospitalDepartmentLabel } from "../../constants/hospitalDepartments";
 
 const generatePath = (path) => window.origin + import.meta.env.BASE_URL + path;
 const DEFAULT_AVATAR = generatePath("/assets/images/user/11.png");
 
+/** Same canonical values as add-care-coordinator.jsx — keys under addCareCoordinator.spec* */
+const SPECIALTY_I18N = {
+  "Coordination des soins": "specCareCoordination",
+  "Suivi post-opératoire": "specPostOp",
+  "Maladies chroniques": "specChronic",
+  Pédiatrie: "specPediatrics",
+  Gériatrie: "specGeriatrics",
+  Oncologie: "specOncology",
+  Autre: "specOther",
+};
+
 function specialtyLabel(specialty, t) {
   if (!specialty) return t("careCoordinatorList.defaultSpecialtyBadge");
-  return hospitalDepartmentLabel(specialty, t);
+  const key = SPECIALTY_I18N[specialty];
+  return key ? t(`addCareCoordinator.${key}`) : specialty;
 }
 
 const CareCoordinatorList = () => {
@@ -133,7 +144,7 @@ const CareCoordinatorList = () => {
                         <small className="text-muted">{c.email}</small>
                         <div className="mt-2">
                           <span className="badge bg-info bg-opacity-10 text-info">
-                            {specialtyLabel(c.department || c.specialty, t)}
+                            {specialtyLabel(c.specialty, t)}
                           </span>
                         </div>
                         <div className="mt-2">

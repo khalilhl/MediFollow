@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import Card from "../../components/Card";
 import { Button, Col, Container, Form, Row } from "react-bootstrap";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { nurseApi } from "../../services/api";
-import { HOSPITAL_DEPARTMENTS, hospitalDepartmentLabel } from "../../constants/hospitalDepartments";
-import { fetchMergedDepartmentNames, mergeDepartmentOptionsForValue } from "../../utils/mergedDepartmentNames";
+import { HOSPITAL_DEPARTMENTS } from "../../constants/hospitalDepartments";
 
 const generatePath = (path) => window.origin + import.meta.env.BASE_URL + path;
 
@@ -69,17 +68,6 @@ const EditNurse = () => {
     };
     if (id) fetchNurse();
   }, [id, t]);
-
-  const [deptOptions, setDeptOptions] = useState(HOSPITAL_DEPARTMENTS);
-
-  useEffect(() => {
-    fetchMergedDepartmentNames().then(setDeptOptions);
-  }, []);
-
-  const departmentSelectOptions = useMemo(
-    () => mergeDepartmentOptionsForValue(deptOptions, formData.cname),
-    [deptOptions, formData.cname],
-  );
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -261,8 +249,8 @@ const EditNurse = () => {
                       <Form.Label className="mb-0">{t("editNurse.labelDepartment")}</Form.Label>
                       <Form.Control as="select" className="my-2" name="cname" defaultValue={formData.cname}>
                         <option value="">{t("editNurse.selectDepartment")}</option>
-                        {departmentSelectOptions.map((d) => (
-                          <option key={d} value={d}>{hospitalDepartmentLabel(d, t)}</option>
+                        {HOSPITAL_DEPARTMENTS.map((d) => (
+                          <option key={d} value={d}>{d}</option>
                         ))}
                       </Form.Control>
                     </Col>

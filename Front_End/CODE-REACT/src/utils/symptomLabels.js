@@ -11,7 +11,6 @@ export const SYMPTOM_IDS = [
   "lossAppetite",
   "insomnia",
   "palpitations",
-  "cough",
 ];
 
 /** Anciennes entrées possibles (avant passage aux ids) — affichage rétrocompatible */
@@ -27,7 +26,6 @@ const LEGACY_EN_TO_ID = {
   "Loss of appetite": "lossAppetite",
   Insomnia: "insomnia",
   Palpitations: "palpitations",
-  Cough: "cough",
 };
 
 /**

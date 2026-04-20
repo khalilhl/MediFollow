@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Row, Col, Card, Button, Badge, Form, InputGroup, Spinner, Alert, Modal } from "react-bootstrap";
-import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { superAdminApi, doctorApi, patientApi, nurseApi } from "../../services/api";
 
@@ -41,7 +40,6 @@ const UserList = () => {
   const [filterStatus, setFilterStatus] = useState("all");
   const [actionMsg, setActionMsg] = useState("");
   const [confirmModal, setConfirmModal] = useState({ show: false, user: null });
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   const loadUsers = useCallback(async () => {
     try {
@@ -101,15 +99,6 @@ const UserList = () => {
     loadUsers();
   }, [loadUsers]);
 
-  useEffect(() => {
-    try {
-      const u = JSON.parse(localStorage.getItem("adminUser") || "null");
-      setIsSuperAdmin(u?.role === "superadmin");
-    } catch {
-      setIsSuperAdmin(false);
-    }
-  }, []);
-
   const handleToggle = async (user) => {
     try {
       if (user.collection === "doctor") await doctorApi.toggleActive(user._id);
@@ -165,28 +154,13 @@ const UserList = () => {
 
   return (
     <>
-      <Row className="align-items-center mb-4 flex-wrap">
-        <Col md>
+      <Row>
+        <Col md={12}>
           <h4 className="fw-bold mb-1" style={{ color: "#009688" }}>
             {t("superAdminUsers.pageTitle")}
           </h4>
-          <p className="text-muted mb-0">{t("superAdminUsers.subtitle")}</p>
+          <p className="text-muted mb-4">{t("superAdminUsers.subtitle")}</p>
         </Col>
-        {isSuperAdmin && (
-          <Col xs="auto" className="mb-4">
-            <Button
-              as={Link}
-              to="/super-admin/admins"
-              variant="primary"
-              size="sm"
-              className="text-nowrap"
-              style={{ background: "#009688", borderColor: "#009688" }}
-            >
-              <i className="ri-user-add-line me-1"></i>
-              {t("superAdminUsers.addAdminButton")}
-            </Button>
-          </Col>
-        )}
       </Row>
 
       <Row className="mb-4">
@@ -341,7 +315,6 @@ const UserList = () => {
           </Button>
         </Modal.Footer>
       </Modal>
-
     </>
   );
 };

@@ -143,29 +143,6 @@ export class MailPolicyService {
       return;
     }
 
-    /** Administration / coordination : peuvent adresser n’importe quel patient, médecin ou infirmier (comptes applicatifs). */
-    if (['admin', 'superadmin', 'carecoordinator', 'auditor'].includes(fromRole)) {
-      for (const r of recipients) {
-        if (r.role === 'patient') {
-          const p = await this.patientModel.findById(this.oid(r.id)).select('_id').lean().exec();
-          if (!p) throw new NotFoundException('Patient introuvable');
-          continue;
-        }
-        if (r.role === 'doctor') {
-          const d = await this.doctorModel.findById(this.oid(r.id)).select('_id').lean().exec();
-          if (!d) throw new NotFoundException('Médecin introuvable');
-          continue;
-        }
-        if (r.role === 'nurse') {
-          const n = await this.nurseModel.findById(this.oid(r.id)).select('_id').lean().exec();
-          if (!n) throw new NotFoundException('Infirmier introuvable');
-          continue;
-        }
-        throw new ForbiddenException('Destinataire non autorisé');
-      }
-      return;
-    }
-
     throw new ForbiddenException('Rôle non autorisé pour la messagerie interne');
   }
 }

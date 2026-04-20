@@ -47,9 +47,7 @@ export function getSelfDisplayName(session) {
                   ? "doctorUser"
                   : session.role === "nurse"
                     ? "nurseUser"
-                    : session.role === "carecoordinator"
-                      ? "adminUser"
-                      : null;
+                    : null;
         if (!key) return "Utilisateur";
         const raw = localStorage.getItem(key);
         if (!raw) return "Utilisateur";
@@ -76,8 +74,6 @@ export function getAuthTokenForSocket() {
         if (localStorage.getItem("patientUser")) return okToken(localStorage.getItem("patientToken"));
         if (localStorage.getItem("doctorUser")) return okToken(localStorage.getItem("doctorToken"));
         if (localStorage.getItem("nurseUser")) return okToken(localStorage.getItem("nurseToken"));
-        const u = JSON.parse(localStorage.getItem("adminUser") || "null");
-        if (u?.role === "carecoordinator") return okToken(localStorage.getItem("adminToken"));
     } catch {
         /* ignore */
     }

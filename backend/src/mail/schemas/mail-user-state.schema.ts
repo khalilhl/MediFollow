@@ -15,11 +15,7 @@ export class MailUserState extends Document {
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'MailMessage', required: true })
   messageId: Types.ObjectId;
 
-  @Prop({
-    type: String,
-    enum: ['patient', 'doctor', 'nurse', 'admin', 'superadmin', 'carecoordinator', 'auditor'],
-    required: true,
-  })
+  @Prop({ type: String, enum: ['patient', 'doctor', 'nurse'], required: true })
   userRole: string;
 
   @Prop({ type: MongooseSchema.Types.ObjectId, required: true })

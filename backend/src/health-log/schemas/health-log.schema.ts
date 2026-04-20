@@ -20,25 +20,7 @@ export class HealthLog extends Document {
     heartRate?: number;
     temperature?: number;
     oxygenSaturation?: number;
-    /** Fréquence respiratoire (resp/min) — dictionnaire clinique */
-    respiratoryRate?: number;
     weight?: number;
-  };
-
-  /**
-   * Subjectif structuré (scores int + présence bool) — pas de texte libre pour l’analyse.
-   * Les entrées `symptoms` (ids) sont dérivées à l’enregistrement pour compatibilité affichage.
-   */
-  @Prop({ type: Object, default: {} })
-  symptomStructured?: {
-    fatigue?: number;
-    chestPain?: number;
-    shortBreath?: number;
-    nausea?: number;
-    feltFever?: boolean;
-    palpitations?: boolean;
-    cough?: boolean;
-    dizzinessConfusion?: boolean;
   };
 
   @Prop({ type: [String], default: [] })
@@ -58,10 +40,6 @@ export class HealthLog extends Document {
 
   @Prop({ default: false })
   flagged: boolean;
-
-  /** Geographic location attached to the health log for emergency routing */
-  @Prop({ type: Object, required: false })
-  location?: { lat: number; lng: number };
 
   /** Chaîne d’escalade : alerte auto → infirmier → (optionnel) médecin → clôture */
   @Prop({

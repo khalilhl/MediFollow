@@ -2,15 +2,18 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Appointment } from './schemas/appointment.schema';
-import { Patient } from '../patient/schemas/patient.schema';
-import { DoctorAvailabilityService, normalizeDateString, normalizeDoctorId, normalizeTime } from '../doctor-availability/doctor-availability.service';
+import {
+  DoctorAvailabilityService,
+  normalizeDateString,
+  normalizeDoctorId,
+  normalizeTime,
+} from '../doctor-availability/doctor-availability.service';
 import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class AppointmentService {
   constructor(
     @InjectModel(Appointment.name) private appointmentModel: Model<Appointment>,
-    @InjectModel(Patient.name) private patientModel: Model<Patient>,
     private doctorAvailabilityService: DoctorAvailabilityService,
     private notificationService: NotificationService,
   ) {}
@@ -76,7 +79,6 @@ export class AppointmentService {
       requestedDate: data.requestedDate || date,
       requestedTime: data.requestedTime || time,
       adminNotes: data.adminNotes || '',
-      isVideoCall: !!data.isVideoCall,
       status,
     });
 
@@ -184,40 +186,6 @@ export class AppointmentService {
       .exec();
   }
 
-  /** Patients du département (department ou service) — aligné DepartmentService. */
-  private patientDeptFilter(name: string) {
-    return {
-      $or: [
-        { department: name },
-        {
-          $and: [
-            { $or: [{ department: null }, { department: '' }, { department: { $exists: false } }] },
-            { service: name },
-          ],
-        },
-      ],
-    };
-  }
-
-  /**
-   * Tous les rendez-vous des patients du département (coordinateur de soins).
-   * Tri : date décroissante, puis heure.
-   */
-  async findForCoordinatorDepartment(departmentName: string) {
-    const name = String(departmentName || '').trim();
-    if (!name) return [];
-    const patients = await this.patientModel.find(this.patientDeptFilter(name)).select('_id').lean().exec();
-    const ids = patients.map((p: { _id: Types.ObjectId }) => p._id);
-    if (!ids.length) return [];
-    return this.appointmentModel
-      .find({ patientId: { $in: ids } })
-      .populate('patientId', 'firstName lastName email phone department service')
-      .sort({ date: -1, time: -1 })
-      .limit(500)
-      .lean()
-      .exec();
-  }
-
   async update(id: string, data: any) {
     const prev = await this.appointmentModel.findById(id).exec();
     const patch: any = { ...data };
@@ -237,7 +205,6 @@ export class AppointmentService {
           console.error('[Appointment] notifyDoctorNewAppointment (update):', e);
         }
       }
-      
     }
     return doc;
   }

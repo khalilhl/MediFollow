@@ -1,29 +1,11 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 
-/** Expéditeur : soignant / patient ou compte staff (administration). */
-export type MailSenderRole =
-  | 'patient'
-  | 'doctor'
-  | 'nurse'
-  | 'admin'
-  | 'superadmin'
-  | 'carecoordinator'
-  | 'auditor';
-
-const MAIL_SENDER_ROLES = [
-  'patient',
-  'doctor',
-  'nurse',
-  'admin',
-  'superadmin',
-  'carecoordinator',
-  'auditor',
-] as const;
+export type MailSenderRole = 'patient' | 'doctor' | 'nurse';
 
 @Schema({ timestamps: true })
 export class MailMessage extends Document {
-  @Prop({ type: String, enum: MAIL_SENDER_ROLES, required: true })
+  @Prop({ type: String, enum: ['patient', 'doctor', 'nurse'], required: true })
   senderRole: MailSenderRole;
 
   @Prop({ type: MongooseSchema.Types.ObjectId, required: true })

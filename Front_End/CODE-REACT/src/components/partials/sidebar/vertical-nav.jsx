@@ -1,6 +1,6 @@
 import React, { useContext, useState } from "react"
 import { Accordion, AccordionContext, Collapse, Nav, OverlayTrigger, Tooltip, useAccordionButton } from "react-bootstrap"
-import { Link, useLocation, useNavigate } from "react-router-dom"
+import { Link, useLocation } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 
 
@@ -8,7 +8,6 @@ import { useTranslation } from "react-i18next"
 const VerticalNav = () => {
     const { t } = useTranslation()
     const location = useLocation()
-    const navigate = useNavigate()
     const [activeMenu, setActiveMenu] = useState(false)
     const [active, setActive] = useState('')
     const [patientUser] = useState(() => {
@@ -40,26 +39,6 @@ const VerticalNav = () => {
     const isDoctor = !!doctorUser && !isPatient && !isNurse
     const isSuperAdmin = adminUser?.role === "superadmin"
     const isAuditor = adminUser?.role === "auditor"
-    const isCareCoordinator = adminUser?.role === "carecoordinator"
-    const isCareCoordinatorPatientsActive =
-        location.pathname === "/dashboard-pages/care-coordinator-patients" ||
-        /^\/dashboard-pages\/care-coordinator-patient\/[^/]+$/.test(location.pathname)
-
-    const handleSidebarLogout = () => {
-        const wasDoctor = !!doctorUser
-        const wasPatient = !!patientUser
-        const wasNurse = !!nurseUser
-        localStorage.removeItem("adminToken")
-        localStorage.removeItem("adminUser")
-        localStorage.removeItem("doctorToken")
-        localStorage.removeItem("doctorUser")
-        localStorage.removeItem("patientToken")
-        localStorage.removeItem("patientUser")
-        localStorage.removeItem("nurseToken")
-        localStorage.removeItem("nurseUser")
-        window.dispatchEvent(new CustomEvent("user-signed-out"))
-        navigate(wasDoctor || wasPatient || wasNurse ? "/auth/sign-in" : "/auth/lock-screen")
-    }
 
     const emailItems = [
         { path: "/email/inbox", nameKey: "emailInbox", icon: "ri-inbox-fill" },
@@ -93,11 +72,6 @@ const VerticalNav = () => {
         { path: "/nurse/add-nurse", nameKey: "nurseAdd", icon: "ri-user-add-fill" },
         { path: "/nurse/nurse-profile", nameKey: "nurseProfileItem", icon: "ri-profile-fill" },
     ];
-
-    /** Session admin hôpital : sous-menus sans les entrées « Profil médecin / patient / infirmier ». */
-    const adminStaffDoctorItems = doctorItems.filter((i) => i.path !== "/doctor/doctor-profile");
-    const adminStaffPatientItems = patientItems.filter((i) => i.path !== "/patient/patient-profile");
-    const adminStaffNurseItems = nurseItems.filter((i) => i.path !== "/nurse/nurse-profile");
 
     const uiElementsItems = [
         { path: "/ui-elements/colors", nameKey: "uiColors", icon: "ri-font-color" },
@@ -250,15 +224,6 @@ const VerticalNav = () => {
                     </Link>
                 </Nav.Item>
                 <Nav.Item as="li">
-                    <Link
-                        to="/health-chatbot"
-                        className={`nav-link ${location.pathname === "/health-chatbot" ? "active" : ""}`}
-                    >
-                        <i className="ri-robot-2-line"></i>
-                        <span className="item-name">{t("sidebar.healthChatbot")}</span>
-                    </Link>
-                </Nav.Item>
-                <Nav.Item as="li">
                     <Link to="/chat" className={`nav-link ${location.pathname === "/chat" ? "active" : ""}`}>
                         <i className="ri-chat-3-line"></i>
                         <span className="item-name">{t("sidebar.secureMessaging")}</span>
@@ -320,33 +285,10 @@ const VerticalNav = () => {
                     </Link>
                 </Nav.Item>
                 <Nav.Item as="li">
-                    <Link
-                        to="/patient/brain-mri"
-                        className={`nav-link ${location.pathname === "/patient/brain-mri" ? "active" : ""}`}
-                    >
-                        <i className="ri-brain-line"></i>
-                        <span className="item-name">{t("sidebar.brainMriPatient")}</span>
+                    <Link to={`/patient/patient-profile/${patientUser?.id}`} className={`nav-link ${location.pathname === `/patient/patient-profile/${patientUser?.id}` ? "active" : ""}`}>
+                        <i className="ri-user-heart-fill"></i>
+                        <span className="item-name">{t("sidebar.myProfile")}</span>
                     </Link>
-                </Nav.Item>
-                <Nav.Item as="li">
-                    <Link
-                        to="/video-meeting"
-                        className={`nav-link ${location.pathname === "/video-meeting" ? "active" : ""}`}
-                    >
-                        <i className="ri-vidicon-line"></i>
-                        <span className="item-name">{t("sidebar.videoMeeting")}</span>
-                    </Link>
-                </Nav.Item>
-                <Nav.Item as="li">
-                    <button
-                        type="button"
-                        className="nav-link text-start w-100 border-0 bg-transparent"
-                        onClick={handleSidebarLogout}
-                        aria-label={t("sidebar.logout")}
-                    >
-                        <i className="ri-logout-box-r-line" aria-hidden />
-                        <span className="item-name">{t("sidebar.logout")}</span>
-                    </button>
                 </Nav.Item>
             </ul>
         )
@@ -362,15 +304,6 @@ const VerticalNav = () => {
                     </Link>
                 </Nav.Item>
                 <Nav.Item as="li">
-                    <Link
-                        to="/health-chatbot"
-                        className={`nav-link ${location.pathname === "/health-chatbot" ? "active" : ""}`}
-                    >
-                        <i className="ri-robot-2-line"></i>
-                        <span className="item-name">{t("sidebar.healthChatbot")}</span>
-                    </Link>
-                </Nav.Item>
-                <Nav.Item as="li">
                     <Link to="/chat" className={`nav-link ${location.pathname === "/chat" ? "active" : ""}`}>
                         <i className="ri-chat-3-line"></i>
                         <span className="item-name">{t("sidebar.secureMessaging")}</span>
@@ -378,24 +311,10 @@ const VerticalNav = () => {
                 </Nav.Item>
                 {renderEmailAccordion()}
                 <Nav.Item as="li">
-                    <Link
-                        to="/video-meeting"
-                        className={`nav-link ${location.pathname === "/video-meeting" ? "active" : ""}`}
-                    >
-                        <i className="ri-vidicon-line"></i>
-                        <span className="item-name">{t("sidebar.videoMeeting")}</span>
+                    <Link to={`/nurse/nurse-profile/${nurseUser?.id}`} className={`nav-link ${location.pathname === `/nurse/nurse-profile/${nurseUser?.id}` ? "active" : ""}`}>
+                        <i className="ri-nurse-fill"></i>
+                        <span className="item-name">{t("sidebar.myProfile")}</span>
                     </Link>
-                </Nav.Item>
-                <Nav.Item as="li">
-                    <button
-                        type="button"
-                        className="nav-link text-start w-100 border-0 bg-transparent"
-                        onClick={handleSidebarLogout}
-                        aria-label={t("sidebar.logout")}
-                    >
-                        <i className="ri-logout-box-r-line" aria-hidden />
-                        <span className="item-name">{t("sidebar.logout")}</span>
-                    </button>
                 </Nav.Item>
             </ul>
         )
@@ -414,15 +333,6 @@ const VerticalNav = () => {
                     <Link to="/dashboard" className={`nav-link ${location.pathname === "/dashboard" ? "active" : ""}`}>
                         <i className="ri-dashboard-2-fill"></i>
                         <span className="item-name">{t("sidebar.dashboard")}</span>
-                    </Link>
-                </Nav.Item>
-                <Nav.Item as="li">
-                    <Link
-                        to="/health-chatbot"
-                        className={`nav-link ${location.pathname === "/health-chatbot" ? "active" : ""}`}
-                    >
-                        <i className="ri-robot-2-line"></i>
-                        <span className="item-name">{t("sidebar.healthChatbot")}</span>
                     </Link>
                 </Nav.Item>
                 <Nav.Item as="li">
@@ -453,17 +363,6 @@ const VerticalNav = () => {
                     >
                         <i className="ri-user-heart-line"></i>
                         <span className="item-name">{t("sidebar.myPatients")}</span>
-                    </Link>
-                </Nav.Item>
-                <Nav.Item as="li">
-                    <Link
-                        to="/doctor/availability-calendar"
-                        className={`nav-link ${
-                            location.pathname === "/doctor/availability-calendar" ? "active" : ""
-                        }`}
-                    >
-                        <i className="ri-calendar-check-line"></i>
-                        <span className="item-name">{t("sidebar.doctorAvailability")}</span>
                     </Link>
                 </Nav.Item>
                 <Nav.Item as="li">
@@ -504,508 +403,24 @@ const VerticalNav = () => {
                 </Nav.Item>
                 <Nav.Item as="li">
                     <Link
-                        to="/video-meeting"
-                        className={`nav-link ${location.pathname === "/video-meeting" ? "active" : ""}`}
+                        to="/doctor/availability-calendar"
+                        className={`nav-link ${location.pathname === "/doctor/availability-calendar" ? "active" : ""}`}
                     >
-                        <i className="ri-vidicon-line"></i>
-                        <span className="item-name">{t("sidebar.videoMeeting")}</span>
+                        <i className="ri-calendar-2-line"></i>
+                        <span className="item-name">{t("sidebar.appointmentCalendar")}</span>
                     </Link>
                 </Nav.Item>
                 <Nav.Item as="li">
                     <Link
-                        to="/doctor/brain-mri"
-                        className={`nav-link ${location.pathname === "/doctor/brain-mri" ? "active" : ""}`}
+                        to={`/doctor/doctor-profile/${docId}`}
+                        className={`nav-link ${location.pathname === `/doctor/doctor-profile/${docId}` ? "active" : ""}`}
                     >
-                        <i className="ri-brain-line"></i>
-                        <span className="item-name">{t("sidebar.brainMri")}</span>
+                        <i className="ri-profile-fill"></i>
+                        <span className="item-name">{t("sidebar.myProfile")}</span>
                     </Link>
-                </Nav.Item>
-                <Nav.Item as="li">
-                    <button
-                        type="button"
-                        className="nav-link text-start w-100 border-0 bg-transparent"
-                        onClick={handleSidebarLogout}
-                        aria-label={t("sidebar.logout")}
-                    >
-                        <i className="ri-logout-box-r-line" aria-hidden />
-                        <span className="item-name">{t("sidebar.logout")}</span>
-                    </button>
                 </Nav.Item>
             </ul>
         )
-    }
-
-    /** Session super administrateur : uniquement l’espace super admin (pas de démos / menu hôpital). */
-    if (isSuperAdmin) {
-        return (
-            <>
-                <ul className="navbar-nav iq-main-menu super-admin-sidebar" id="sidebar-menu">
-                    <Nav.Item as="li" className="static-item ms-2">
-                        <Link className="nav-link static-item disabled text-start" tabIndex="-1">
-                            <span className="default-icon">{t("sidebar.superAdminSection")}</span>
-                        </Link>
-                    </Nav.Item>
-                    <Nav.Item as="li">
-                        <Link to="/super-admin/dashboard" className={`nav-link super-admin-nav-link ${location.pathname === "/super-admin/dashboard" ? "active" : ""}`}>
-                            <i className="ri-shield-star-fill"></i>
-                            <span className="item-name">{t("sidebar.superAdminDashboard")}</span>
-                        </Link>
-                    </Nav.Item>
-                    <Nav.Item as="li">
-                        <Link
-                            to="/super-admin/platform-users"
-                            className={`nav-link super-admin-nav-link ${location.pathname.startsWith("/super-admin/platform-users") ? "active" : ""}`}
-                        >
-                            <i className="ri-group-2-fill"></i>
-                            <span className="item-name">{t("sidebar.platformAccounts")}</span>
-                        </Link>
-                    </Nav.Item>
-                    <Nav.Item as="li">
-                        <Link
-                            to="/super-admin/admins"
-                            className={`nav-link super-admin-nav-link ${location.pathname.startsWith("/super-admin/admins") ? "active" : ""}`}
-                        >
-                            <i className="ri-user-star-fill"></i>
-                            <span className="item-name">{t("sidebar.hospitalAdmins")}</span>
-                        </Link>
-                    </Nav.Item>
-                    <Nav.Item as="li">
-                        <Link to="/super-admin/users" className={`nav-link super-admin-nav-link ${location.pathname === "/super-admin/users" ? "active" : ""}`}>
-                            <i className="ri-team-fill"></i>
-                            <span className="item-name">{t("sidebar.allUsers")}</span>
-                        </Link>
-                    </Nav.Item>
-                    <Nav.Item as="li">
-                        <Link
-                            to="/super-admin/departments"
-                            className={`nav-link super-admin-nav-link ${location.pathname.startsWith("/super-admin/departments") ? "active" : ""}`}
-                        >
-                            <i className="ri-building-2-fill"></i>
-                            <span className="item-name">{t("sidebar.departments")}</span>
-                        </Link>
-                    </Nav.Item>
-                    <Nav.Item as="li">
-                        <Link
-                            to="/super-admin/audit"
-                            className={`nav-link super-admin-nav-link ${location.pathname === "/super-admin/audit" ? "active" : ""}`}
-                        >
-                            <i className="ri-bar-chart-box-fill"></i>
-                            <span className="item-name">{t("sidebar.auditorDashboard")}</span>
-                        </Link>
-                    </Nav.Item>
-                    <Nav.Item as="li">
-                        <Link
-                            to="/super-admin/audit-logs"
-                            className={`nav-link super-admin-nav-link ${location.pathname === "/super-admin/audit-logs" ? "active" : ""}`}
-                        >
-                            <i className="ri-file-list-3-line"></i>
-                            <span className="item-name">{t("sidebar.auditorLogs")}</span>
-                        </Link>
-                    </Nav.Item>
-                    <Nav.Item as="li">
-                        <Link to="/super-admin/auditors" className={`nav-link super-admin-nav-link ${location.pathname.startsWith("/super-admin/auditors") ? "active" : ""}`}>
-                            <i className="ri-shield-check-fill"></i>
-                            <span className="item-name">{t("sidebar.auditors")}</span>
-                        </Link>
-                    </Nav.Item>
-                    <Nav.Item as="li">
-                        <Link to="/super-admin/care-coordinators" className={`nav-link super-admin-nav-link ${location.pathname.startsWith("/super-admin/care-coordinators") ? "active" : ""}`}>
-                            <i className="ri-heart-pulse-fill"></i>
-                            <span className="item-name">{t("sidebar.careCoordinators")}</span>
-                        </Link>
-                    </Nav.Item>
-                    <Nav.Item as="li">
-                        <button
-                            type="button"
-                            className="nav-link super-admin-nav-link text-start w-100 border-0 bg-transparent"
-                            onClick={handleSidebarLogout}
-                            aria-label={t("sidebar.logout")}
-                        >
-                            <i className="ri-logout-box-r-line" aria-hidden />
-                            <span className="item-name">{t("sidebar.logout")}</span>
-                        </button>
-                    </Nav.Item>
-                </ul>
-            </>
-        );
-    }
-
-    /** Session auditeur uniquement : menu minimal (pas de démos template). */
-    if (isAuditor && !isSuperAdmin) {
-        return (
-            <>
-                <ul className="navbar-nav iq-main-menu" id="sidebar-menu">
-                    <Nav.Item as="li" className="static-item ms-2">
-                        <Link className="nav-link static-item disabled text-start" tabIndex="-1">
-                            <span className="default-icon">{t("sidebar.auditorSection")}</span>
-                        </Link>
-                    </Nav.Item>
-                    <Nav.Item as="li">
-                        <Link
-                            to="/auditor/dashboard"
-                            className={`nav-link ${location.pathname === "/auditor/dashboard" ? "active" : ""}`}
-                        >
-                            <i className="ri-bar-chart-box-fill"></i>
-                            <span className="item-name">{t("sidebar.auditorDashboard")}</span>
-                        </Link>
-                    </Nav.Item>
-                    <Nav.Item as="li">
-                        <Link
-                            to="/auditor/logs"
-                            className={`nav-link ${location.pathname === "/auditor/logs" ? "active" : ""}`}
-                        >
-                            <i className="ri-file-list-3-line"></i>
-                            <span className="item-name">{t("sidebar.auditorLogs")}</span>
-                        </Link>
-                    </Nav.Item>
-                    <Nav.Item as="li">
-                        <button
-                            type="button"
-                            className="nav-link w-100 text-start border-0 bg-transparent"
-                            onClick={handleSidebarLogout}
-                            aria-label={t("sidebar.logout")}
-                        >
-                            <i className="ri-logout-box-line" aria-hidden />
-                            <span className="item-name">{t("sidebar.logout")}</span>
-                        </button>
-                    </Nav.Item>
-                </ul>
-            </>
-        );
-    }
-
-    /** Menu réduit : uniquement les écrans branchés pour le rôle coordinateur. */
-    if (isCareCoordinator) {
-        return (
-            <>
-                <ul className="navbar-nav iq-main-menu" id="sidebar-menu">
-                    <Nav.Item as="li" className="static-item ms-2">
-                        <Link className="nav-link static-item disabled text-start" tabIndex="-1">
-                            <span className="default-icon">{t("sidebar.sectionDashboard")}</span>
-                            <OverlayTrigger
-                                key="cc-home"
-                                placement="right"
-                                overlay={<Tooltip id="cc-home">{t("sidebar.homeTooltip")}</Tooltip>}
-                            >
-                                <span className="mini-icon">-</span>
-                            </OverlayTrigger>
-                        </Link>
-                    </Nav.Item>
-                    <Nav.Item as="li">
-                        <Link
-                            to="/dashboard-pages/care-coordinator-dashboard"
-                            className={`nav-link ${location.pathname === "/dashboard-pages/care-coordinator-dashboard" ? "active" : ""}`}
-                        >
-                            <i className="ri-heart-pulse-fill"></i>
-                            <span className="item-name">{t("sidebar.careCoordinatorDashboard")}</span>
-                        </Link>
-                    </Nav.Item>
-                    <Nav.Item as="li">
-                        <Link
-                            to="/dashboard-pages/care-coordinator-patients"
-                            className={`nav-link ${isCareCoordinatorPatientsActive ? "active" : ""}`}
-                        >
-                            <i className="ri-team-line"></i>
-                            <span className="item-name">{t("sidebar.careCoordinatorPatients")}</span>
-                        </Link>
-                    </Nav.Item>
-                    <Nav.Item as="li">
-                        <Link
-                            to="/dashboard-pages/care-coordinator-appointments"
-                            className={`nav-link ${location.pathname === "/dashboard-pages/care-coordinator-appointments" ? "active" : ""}`}
-                        >
-                            <i className="ri-calendar-check-line"></i>
-                            <span className="item-name">{t("sidebar.careCoordinatorAppointments")}</span>
-                        </Link>
-                    </Nav.Item>
-                    <Nav.Item as="li">
-                        <Link
-                            to="/dashboard-pages/care-coordinator-communication"
-                            className={`nav-link ${location.pathname === "/dashboard-pages/care-coordinator-communication" ? "active" : ""}`}
-                        >
-                            <i className="ri-message-3-line"></i>
-                            <span className="item-name">{t("sidebar.careCoordinatorCommunication")}</span>
-                        </Link>
-                    </Nav.Item>
-                    <li>
-                        <hr className="hr-horizontal" />
-                    </li>
-                    <Nav.Item as="li" className="static-item ms-2">
-                        <Nav.Link className="static-item disabled text-start" tabIndex="-1">
-                            <span className="default-icon">{t("sidebar.sectionApps")}</span>
-                            <span className="mini-icon">-</span>
-                        </Nav.Link>
-                    </Nav.Item>
-                    <Nav.Item as="li">
-                        <Link
-                            to="/notifications"
-                            className={`nav-link ${location.pathname === "/notifications" ? "active" : ""}`}
-                        >
-                            <i className="ri-notification-3-fill"></i>
-                            <span className="item-name">{t("sidebar.notificationsCenter")}</span>
-                        </Link>
-                    </Nav.Item>
-                    <Nav.Item as="li">
-                        <Link to="/chat" className={`nav-link ${location.pathname === "/chat" ? "active" : ""}`}>
-                            <i className="ri-message-fill"></i>
-                            <span className="item-name">{t("sidebar.chat")}</span>
-                        </Link>
-                    </Nav.Item>
-                    <Nav.Item as="li">
-                        <button
-                            type="button"
-                            className="nav-link w-100 text-start border-0 bg-transparent"
-                            onClick={handleSidebarLogout}
-                            aria-label={t("sidebar.logout")}
-                        >
-                            <i className="ri-logout-box-line" aria-hidden />
-                            <span className="item-name">{t("sidebar.logout")}</span>
-                        </button>
-                    </Nav.Item>
-                </ul>
-            </>
-        );
-    }
-
-    /** Administrateur hôpital (JWT role admin) : menu réduit aux fonctions métier. */
-    if (adminUser?.role === "admin") {
-    return (
-        <>
-            <ul className="navbar-nav iq-main-menu" id="sidebar-menu">
-                <Nav.Item as="li" className="static-item ms-2">
-                    <Link className="nav-link static-item disabled text-start" tabIndex="-1">
-                            <span className="default-icon">{t("sidebar.adminSessionSection")}</span>
-                    </Link>
-                </Nav.Item>
-                        <Nav.Item as="li">
-                            <Link to="/admin/dashboard" className={`nav-link ${location.pathname === "/admin/dashboard" ? "active" : ""}`}>
-                                <i className="ri-dashboard-2-fill"></i>
-                                <span className="item-name">{t("sidebar.adminDashboard")}</span>
-                            </Link>
-                        </Nav.Item>
-                        <Nav.Item as="li">
-                            <Link
-                                to="/health-chatbot"
-                                className={`nav-link ${location.pathname === "/health-chatbot" ? "active" : ""}`}
-                            >
-                                <i className="ri-robot-2-line"></i>
-                                <span className="item-name">{t("sidebar.healthChatbot")}</span>
-                            </Link>
-                        </Nav.Item>
-                        <Nav.Item as="li">
-                            <Link
-                                to="/admin/departments"
-                                className={`nav-link ${location.pathname.startsWith("/admin/departments") ? "active" : ""}`}
-                            >
-                                <i className="ri-building-2-fill"></i>
-                                <span className="item-name">{t("sidebar.departments")}</span>
-                            </Link>
-                        </Nav.Item>
-                        <Nav.Item as="li">
-                            <Link
-                                to="/admin/appointment-requests"
-                                className={`nav-link ${location.pathname === "/admin/appointment-requests" ? "active" : ""}`}
-                            >
-                                <i className="ri-calendar-check-line"></i>
-                                <span className="item-name">{t("sidebar.appointmentRequests")}</span>
-                            </Link>
-                        </Nav.Item>
-                        <Nav.Item as="li">
-                            <Link
-                                to="/admin/questionnaire-bank"
-                                className={`nav-link ${location.pathname === "/admin/questionnaire-bank" ? "active" : ""}`}
-                            >
-                                <i className="ri-draft-line"></i>
-                                <span className="item-name">{t("sidebar.questionnaireBank")}</span>
-                            </Link>
-                        </Nav.Item>
-                    <li>
-                        <hr className="hr-horizontal" />
-                    </li>
-                    <Nav.Item as="li" className="static-item ms-2">
-                        <Nav.Link className="static-item disabled text-start" tabIndex="-1">
-                            <span className="default-icon">{t("sidebar.adminStaffSection")}</span>
-                        </Nav.Link>
-                    </Nav.Item>
-                    <Accordion bsPrefix="bg-none" onSelect={(e) => setActiveMenu(e)}>
-                        <Accordion.Item as="li" className={`nav-item ${active === "Doctor" && "active"}`} onClick={() => setActive("Doctor")}>
-                            <div className="colors">
-                                <CustomToggle
-                                    eventKey="Doctor"
-                                    activeClass={adminStaffDoctorItems.some((item) => location.pathname === item.path) || location.pathname.startsWith("/doctor/doctor-profile/")}
-                                    onClick={(activeKey) => setActiveMenu(activeKey)}
-                                >
-                                    <OverlayTrigger
-                                        key="Doctor-admin"
-                                        placement="right"
-                                        overlay={<Tooltip id="Doctor-admin">{t("sidebar.tooltipDoctor")}</Tooltip>}
-                                    >
-                                        <i className="icon">
-                                            <svg className="icon-20" width="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                <path opacity="0.4" d="M12.0865 22C11.9627 22 11.8388 21.9716 11.7271 21.9137L8.12599 20.0496C7.10415 19.5201 6.30481 18.9259 5.68063 18.2336C4.31449 16.7195 3.5544 14.776 3.54232 12.7599L3.50004 6.12426C3.495 5.35842 3.98931 4.67103 4.72826 4.41215L11.3405 2.10679C11.7331 1.96656 12.1711 1.9646 12.5707 2.09992L19.2081 4.32684C19.9511 4.57493 20.4535 5.25742 20.4575 6.02228L20.4998 12.6628C20.5129 14.676 19.779 16.6274 18.434 18.1581C17.8168 18.8602 17.0245 19.4632 16.0128 20.0025L12.4439 21.9088C12.3331 21.9686 12.2103 21.999 12.0865 22Z" fill="currentColor"></path>
-                                                <path d="M11.3194 14.3209C11.1261 14.3219 10.9328 14.2523 10.7838 14.1091L8.86695 12.2656C8.57097 11.9793 8.56795 11.5145 8.86091 11.2262C9.15387 10.9369 9.63207 10.934 9.92906 11.2193L11.3083 12.5451L14.6758 9.22479C14.9698 8.93552 15.448 8.93258 15.744 9.21793C16.041 9.50426 16.044 9.97004 15.751 10.2574L11.8519 14.1022C11.7049 14.2474 11.5127 14.3199 11.3194 14.3209Z" fill="currentColor"></path>
-                                            </svg>
-                                        </i>
-                                    </OverlayTrigger>
-                                    <span className="item-name">{t("sidebar.doctorMenu")}</span>
-                                    <i className="right-icon">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" className="icon-18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                                        </svg>
-                                    </i>
-                                </CustomToggle>
-                                <Accordion.Collapse as="ul" eventKey="Doctor" className="sub-nav" id="Doctor-admin">
-                                    <>
-                                        {adminStaffDoctorItems.map(({ path, nameKey, icon }) => (
-                                            <li key={path}>
-                                                <Link className={`nav-link ${location.pathname === path ? "active" : ""}`} to={path}>
-                                                    <i className={icon}></i>
-                                                    <span className="item-name">{t(`sidebar.${nameKey}`)}</span>
-                                                </Link>
-                                            </li>
-                                        ))}
-                                    </>
-                                </Accordion.Collapse>
-                            </div>
-                        </Accordion.Item>
-                        <Accordion.Item as="li" className={`nav-item ${active === "Patient" && "active"}`} onClick={() => setActive("Patient")}>
-                            <div className="colors">
-                                <CustomToggle
-                                    eventKey="Patient"
-                                    activeClass={adminStaffPatientItems.some((item) => location.pathname === item.path) || location.pathname.startsWith("/patient/patient-profile/")}
-                                    onClick={(activeKey) => setActiveMenu(activeKey)}
-                                >
-                                    <OverlayTrigger
-                                        key="Patient-admin"
-                                        placement="right"
-                                        overlay={<Tooltip id="Patient-admin">{t("sidebar.tooltipPatient")}</Tooltip>}
-                                    >
-                                        <i className="ri-user-heart-fill"></i>
-                                    </OverlayTrigger>
-                                    <span className="item-name">{t("sidebar.patientMenu")}</span>
-                                    <i className="right-icon">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" className="icon-18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                                        </svg>
-                                    </i>
-                                </CustomToggle>
-                                <Accordion.Collapse as="ul" eventKey="Patient" className="sub-nav" id="Patient-admin">
-                                    <>
-                                        {adminStaffPatientItems.map(({ path, nameKey, icon }) => (
-                                            <li key={path}>
-                                                <Link className={`nav-link ${location.pathname === path ? "active" : ""}`} to={path}>
-                                                    <i className={icon}></i>
-                                                    <span className="item-name">{t(`sidebar.${nameKey}`)}</span>
-                                                </Link>
-                                            </li>
-                                        ))}
-                                    </>
-                                </Accordion.Collapse>
-                            </div>
-                        </Accordion.Item>
-                        <Accordion.Item as="li" className={`nav-item ${active === "Nurse" && "active"}`} onClick={() => setActive("Nurse")}>
-                            <div className="colors">
-                                <CustomToggle
-                                    eventKey="Nurse"
-                                    activeClass={adminStaffNurseItems.some((item) => location.pathname === item.path) || location.pathname.startsWith("/nurse/nurse-profile/")}
-                                    onClick={(activeKey) => setActiveMenu(activeKey)}
-                                >
-                                    <OverlayTrigger
-                                        key="Nurse-admin"
-                                        placement="right"
-                                        overlay={<Tooltip id="Nurse-admin">{t("sidebar.tooltipNurse")}</Tooltip>}
-                                    >
-                                        <i className="ri-nurse-fill"></i>
-                                    </OverlayTrigger>
-                                    <span className="item-name">{t("sidebar.nurseMenu")}</span>
-                                    <i className="right-icon">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" className="icon-18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                                        </svg>
-                                    </i>
-                                </CustomToggle>
-                                <Accordion.Collapse as="ul" eventKey="Nurse" className="sub-nav" id="Nurse-admin">
-                                    <>
-                                        {adminStaffNurseItems.map(({ path, nameKey, icon }) => (
-                                            <li key={path}>
-                                                <Link className={`nav-link ${location.pathname === path ? "active" : ""}`} to={path}>
-                                                    <i className={icon}></i>
-                                                    <span className="item-name">{t(`sidebar.${nameKey}`)}</span>
-                                                </Link>
-                                            </li>
-                                        ))}
-                                    </>
-                                </Accordion.Collapse>
-                            </div>
-                        </Accordion.Item>
-                    </Accordion>
-                    <Nav.Item as="li">
-                        <OverlayTrigger
-                            placement="right"
-                            overlay={
-                                <Tooltip id="tooltip-admin-alerts-nav">{t("sidebar.adminAlertsSupervisionTooltip")}</Tooltip>
-                            }
-                        >
-                            <Link
-                                to="/notifications"
-                                className={`nav-link sidebar-nav-link--multiline ${location.pathname === "/notifications" ? "active" : ""}`}
-                            >
-                                <i className="ri-alarm-warning-line flex-shrink-0"></i>
-                                <span className="item-name">{t("sidebar.adminAlertsSupervision")}</span>
-                            </Link>
-                        </OverlayTrigger>
-                    </Nav.Item>
-                    <Accordion bsPrefix="bg-none" onSelect={(e) => setActiveMenu(e)}>
-                        <Accordion.Item as="li" className={`nav-item ${active === "Email" && "active"} ${location.pathname.startsWith("/email") ? "active" : ""}`} onClick={() => setActive("Email")}>
-                            <div className="colors">
-                                <CustomToggle
-                                    eventKey="Email"
-                                    activeClass={emailItems.some((item) => isEmailPathActive(item.path))}
-                                    onClick={(activeKey) => setActiveMenu(activeKey)}
-                                >
-                                    <OverlayTrigger
-                                        key="Email-admin"
-                                        placement="right"
-                                        overlay={<Tooltip id="Email-admin">{t("sidebar.tooltipEmail")}</Tooltip>}
-                                    >
-                                        <i className="ri-mail-open-fill"></i>
-                                    </OverlayTrigger>
-                                    <span className="item-name">{t("sidebar.email")}</span>
-                                    <i className="right-icon">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" className="icon-18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                                        </svg>
-                                    </i>
-                                </CustomToggle>
-                                <Accordion.Collapse eventKey="Email" as="ul" className="sub-nav" id="Email-admin">
-                                    <>
-                                        {emailItems.map(({ path, nameKey, icon }) => (
-                                            <li key={path}>
-                                                <Link className={`nav-link ${isEmailPathActive(path) ? "active" : ""}`} to={path}>
-                                                    <i className={`icon ${icon}`}></i>
-                                                    <span className="item-name">{t(`sidebar.${nameKey}`)}</span>
-                                                </Link>
-                                            </li>
-                                        ))}
-                                    </>
-                                </Accordion.Collapse>
-                            </div>
-                        </Accordion.Item>
-                    </Accordion>
-                    <Nav.Item as="li">
-                        <button
-                            type="button"
-                            className="nav-link w-100 text-start border-0 bg-transparent"
-                            onClick={handleSidebarLogout}
-                            aria-label={t("sidebar.logout")}
-                        >
-                            <i className="ri-logout-box-line" aria-hidden />
-                            <span className="item-name">{t("sidebar.logout")}</span>
-                        </button>
-                    </Nav.Item>
-                </ul>
-            </>
-        );
     }
 
     return (
@@ -1045,6 +460,59 @@ const VerticalNav = () => {
 
                     </Link>
                 </Nav.Item>
+                {isAuditor && (
+                    <>
+                        <li><hr className="hr-horizontal" /></li>
+                        <Nav.Item as="li" className="static-item ms-2">
+                            <Link className="nav-link static-item disabled text-start" tabIndex="-1">
+                                <span className="default-icon">{t("sidebar.auditorSection")}</span>
+                            </Link>
+                        </Nav.Item>
+                        <Nav.Item as="li">
+                            <Link to="/auditor/dashboard" className={`nav-link ${location.pathname === "/auditor/dashboard" ? "active" : ""}`}>
+                                <i className="ri-bar-chart-box-fill"></i>
+                                <span className="item-name">{t("sidebar.auditorDashboard")}</span>
+                            </Link>
+                        </Nav.Item>
+                    </>
+                )}
+                {adminUser && !isAuditor && (
+                    <>
+                        <Nav.Item as="li">
+                            <Link to="/admin/dashboard" className={`nav-link ${location.pathname === "/admin/dashboard" ? "active" : ""}`}>
+                                <i className="ri-dashboard-2-fill"></i>
+                                <span className="item-name">{t("sidebar.adminDashboard")}</span>
+                            </Link>
+                        </Nav.Item>
+                        <Nav.Item as="li">
+                            <Link
+                                to="/admin/departments"
+                                className={`nav-link ${location.pathname.startsWith("/admin/departments") ? "active" : ""}`}
+                            >
+                                <i className="ri-building-2-fill"></i>
+                                <span className="item-name">{t("sidebar.departments")}</span>
+                            </Link>
+                        </Nav.Item>
+                        <Nav.Item as="li">
+                            <Link
+                                to="/admin/appointment-requests"
+                                className={`nav-link ${location.pathname === "/admin/appointment-requests" ? "active" : ""}`}
+                            >
+                                <i className="ri-calendar-check-line"></i>
+                                <span className="item-name">{t("sidebar.appointmentRequests")}</span>
+                            </Link>
+                        </Nav.Item>
+                        <Nav.Item as="li">
+                            <Link
+                                to="/admin/questionnaire-bank"
+                                className={`nav-link ${location.pathname === "/admin/questionnaire-bank" ? "active" : ""}`}
+                            >
+                                <i className="ri-draft-line"></i>
+                                <span className="item-name">{t("sidebar.questionnaireBank")}</span>
+                            </Link>
+                        </Nav.Item>
+                    </>
+                )}
                 <Nav.Item as="li">
                     <Link
                         to="/dashboard-pages/dashboard-1" className={`nav-link ${location.pathname === "/dashboard-pages/dashboard-1" ? "active" : ""}`}>
@@ -1729,6 +1197,53 @@ const VerticalNav = () => {
                         </div>
                     </Accordion.Item>
                 </Accordion>
+
+                {isSuperAdmin && (
+                    <>
+                        <li><hr className="hr-horizontal" /></li>
+                        <Nav.Item as="li" className="static-item ms-2">
+                            <Link className="nav-link static-item disabled text-start" tabIndex="-1">
+                                <span className="default-icon">{t("sidebar.superAdminSection")}</span>
+                            </Link>
+                        </Nav.Item>
+                        <Nav.Item as="li">
+                            <Link to="/super-admin/dashboard" className={`nav-link ${location.pathname === "/super-admin/dashboard" ? "active" : ""}`}>
+                                <i className="ri-shield-star-fill"></i>
+                                <span className="item-name">{t("sidebar.superAdminDashboard")}</span>
+                            </Link>
+                        </Nav.Item>
+                        <Nav.Item as="li">
+                            <Link to="/super-admin/users" className={`nav-link ${location.pathname === "/super-admin/users" ? "active" : ""}`}>
+                                <i className="ri-team-fill"></i>
+                                <span className="item-name">{t("sidebar.allUsers")}</span>
+                            </Link>
+                        </Nav.Item>
+                        <Nav.Item as="li">
+                            <Link to="/auditor/dashboard" className={`nav-link ${location.pathname === "/auditor/dashboard" ? "active" : ""}`}>
+                                <i className="ri-bar-chart-box-fill"></i>
+                                <span className="item-name">{t("sidebar.auditorDashboard")}</span>
+                            </Link>
+                        </Nav.Item>
+                        <Nav.Item as="li">
+                            <Link to="/super-admin/auditors" className={`nav-link ${location.pathname.startsWith("/super-admin/auditors") ? "active" : ""}`}>
+                                <i className="ri-shield-check-fill"></i>
+                                <span className="item-name">{t("sidebar.auditors")}</span>
+                            </Link>
+                        </Nav.Item>
+                        <Nav.Item as="li">
+                            <Link to="/super-admin/care-coordinators" className={`nav-link ${location.pathname.startsWith("/super-admin/care-coordinators") ? "active" : ""}`}>
+                                <i className="ri-heart-pulse-fill"></i>
+                                <span className="item-name">{t("sidebar.careCoordinators")}</span>
+                            </Link>
+                        </Nav.Item>
+                        <Nav.Item as="li">
+                            <Link to="/super-admin/profile" className={`nav-link ${location.pathname === "/super-admin/profile" ? "active" : ""}`}>
+                                <i className="ri-user-settings-fill"></i>
+                                <span className="item-name">{t("sidebar.myProfile")}</span>
+                            </Link>
+                        </Nav.Item>
+                    </>
+                )}
 
                 <li>
                     <hr className="hr-horizontal" />

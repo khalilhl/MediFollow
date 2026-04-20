@@ -17,11 +17,6 @@ import { VoiceCallModule } from './voice-call/voice-call.module';
 import { MailModule } from './mail/mail.module';
 import { LabAnalysisModule } from './lab-analysis/lab-analysis.module';
 import { AuditModule } from './audit/audit.module';
-import { BrainTumorModule } from './brain-tumor/brain-tumor.module';
-import { VideoMeetingModule } from './video-meeting/video-meeting.module';
-import { ChatbotModule } from './chatbot/chatbot.module';
-import { ContactModule } from './contact/contact.module';
-import { MedicalCertificateModule } from './medical-certificate/medical-certificate.module';
 
 @Module({
   imports: [
@@ -46,12 +41,6 @@ import { MedicalCertificateModule } from './medical-certificate/medical-certific
     MailModule,
     LabAnalysisModule,
     AuditModule,
-    BrainTumorModule,
-    VideoMeetingModule,
-    ChatbotModule,
-    ContactModule,
-    MedicalCertificateModule,
   ],
 })
 export class AppModule {}
-

@@ -262,34 +262,6 @@ npm run start:dev
 # API available at http://localhost:3000
 ```
 
-### 2.5 Brain MRI analysis (Python + TensorFlow) — required for `/doctor/brain-mri`
-
-The folder `brain-tumor-detection/` is part of the repo, but **model files** (`.keras`) are not committed. On a **new machine**, run once:
-
-**Windows (PowerShell):**
-
-```powershell
-cd brain-tumor-detection
-.\Install-BrainTumorEnv.ps1
-```
-
-If you see a **Pester** error about `Setup`, run:
-
-```powershell
-powershell -NoProfile -File .\Install-BrainTumorEnv.ps1
-```
-
-**Linux / macOS:**
-
-```bash
-cd brain-tumor-detection
-chmod +x setup_from_zero.sh && ./setup_from_zero.sh
-```
-
-This creates a local virtualenv, installs dependencies, and generates `brain_tumor_resnet.keras`. See `brain-tumor-detection/README.md` for training on a real dataset.
-
-**Windows:** if `pip install tensorflow` fails with a long path / `OSError`, enable **long paths** in Windows (registry `LongPathsEnabled = 1`, then reboot) or clone the repo to a shorter folder (e.g. `C:\dev\MediFollow`). Details: `brain-tumor-detection/README.md` section *Windows — TensorFlow / long paths*.
-
 ### 3. Frontend Setup
 
 ```bash
@@ -315,7 +287,6 @@ npm run dev
 
 ```
 MediFollow/
-├── brain-tumor-detection/            # Python + TensorFlow (brain MRI analysis; run setup_from_zero.ps1 after clone)
 ├── backend/                          # NestJS REST API
 │   └── src/
 │       ├── auth/                     # Auth, JWT, MFA, Super Admin management

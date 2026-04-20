@@ -12,11 +12,6 @@ import PatientAppointmentRequest from "../views/dashboard-pages/patient-appointm
 import PatientQuestionnairesPage from "../views/dashboard-pages/patient-questionnaires"
 import PatientLabAnalysisPage from "../views/dashboard-pages/patient-lab-analysis"
 import NurseDashboard from "../views/dashboard-pages/nurse-dashboard"
-import CareCoordinatorDashboard from "../views/dashboard-pages/care-coordinator-dashboard"
-import CareCoordinatorPatients from "../views/dashboard-pages/care-coordinator-patients"
-import CareCoordinatorPatientDetail from "../views/dashboard-pages/care-coordinator-patient-detail"
-import CareCoordinatorAppointments from "../views/dashboard-pages/care-coordinator-appointments"
-import CareCoordinatorCommunication from "../views/dashboard-pages/care-coordinator-communication"
 import Covid19Dashboard from "../views/dashboard-pages/covid-19-dashboard"
 
 // Email Page
@@ -35,8 +30,6 @@ import DoctorDepartmentNurses from "../views/doctor/doctor-department-nurses"
 import DoctorDepartmentDoctors from "../views/doctor/doctor-department-doctors"
 import DoctorAvailabilityCalendar from "../views/doctor/doctor-availability-calendar"
 import DoctorNurseEscalations from "../views/doctor/doctor-nurse-escalations"
-import DoctorBrainMri from "../views/doctor/doctor-brain-mri"
-import PatientBrainMri from "../views/patient/patient-brain-mri"
 
 // Patient Page
 import AddPatient from "../views/patient/add-patient"
@@ -52,8 +45,6 @@ import EditNurse from "../views/nurse/edit-nurse"
 
 // Calendar Page
 import Calendar from "../views/calendar/calendar"
-import VideoMeeting from "../views/video-meeting/video-meeting"
-import HealthcareChatbot from "../views/chatbot/healthcare-chatbot"
 
 // Chat Page
 import Chat from "../views/chat/chat"
@@ -133,14 +124,7 @@ import AddCareCoordinator from "../views/super-admin/add-care-coordinator"
 import EditCareCoordinator from "../views/super-admin/edit-care-coordinator"
 import ViewCareCoordinator from "../views/super-admin/view-care-coordinator"
 import SuperAdminProfile from "../views/super-admin/super-admin-profile"
-import PlatformUsersHub from "../views/super-admin/platform-users-hub"
-import AddPlatformAdmin from "../views/super-admin/add-platform-admin"
-import AdminList from "../views/super-admin/admin-list"
-import ViewAdmin from "../views/super-admin/view-admin"
-import EditAdmin from "../views/super-admin/edit-admin"
 import AuditorDashboard from "../views/auditor/auditor-dashboard"
-import AuditorLogsPage from "../views/auditor/auditor-logs"
-import AuditorSessionGuard from "../components/routing/auditor-session-guard"
 import CommingSoon from "../views/extra-pages/pages-comingsoon"
 import Error404 from "../views/extra-pages/pages-error-404"
 import Error500 from "../views/extra-pages/pages-error-500"
@@ -207,32 +191,8 @@ export const DefaultRoute = [
         element: <PatientLabAnalysisPage />
       },
       {
-        path: '/dashboard-pages/patient-brain-mri',
-        element: <PatientBrainMri />
-      },
-      {
         path: '/dashboard-pages/nurse-dashboard',
         element: <NurseDashboard />
-      },
-      {
-        path: '/dashboard-pages/care-coordinator-dashboard',
-        element: <CareCoordinatorDashboard />
-      },
-      {
-        path: '/dashboard-pages/care-coordinator-patients',
-        element: <CareCoordinatorPatients />
-      },
-      {
-        path: '/dashboard-pages/care-coordinator-patient/:patientId',
-        element: <CareCoordinatorPatientDetail />
-      },
-      {
-        path: '/dashboard-pages/care-coordinator-appointments',
-        element: <CareCoordinatorAppointments />
-      },
-      {
-        path: '/dashboard-pages/care-coordinator-communication',
-        element: <CareCoordinatorCommunication />
       },
       {
         path: '/dashboard-pages/dashboard-4',
@@ -283,10 +243,6 @@ export const DefaultRoute = [
         element: <DoctorAvailabilityCalendar />
       },
       {
-        path: '/doctor/brain-mri',
-        element: <DoctorBrainMri />
-      },
-      {
         path: '/doctor/my-patients',
         element: <DoctorMyPatients />
       },
@@ -328,10 +284,6 @@ export const DefaultRoute = [
         path: '/patient/edit-patient/:id',
         element: <EditPatient />
       },
-      {
-        path: '/patient/brain-mri',
-        element: <PatientBrainMri />
-      },
 
       //  ------ Nurse Route ------
       {
@@ -361,18 +313,7 @@ export const DefaultRoute = [
         element: <Calendar />
       },
 
-      //  ------ Video Meeting Route ------
-      {
-        path: '/video-meeting',
-        element: <VideoMeeting />
-      },
-
-      //  ------ Health Chatbot Route ------
-      {
-        path: '/health-chatbot',
-        element: <HealthcareChatbot />
-      },
-
+      //  ------ Chat Route ------ 
       {
         path: '/chat',
         element: <Chat />
@@ -381,6 +322,7 @@ export const DefaultRoute = [
         path: '/notifications',
         element: <NotificationsCenterPage />
       },
+
       //  ------ UI Elements Route ------ 
       {
         path: "/ui-elements/alerts",
@@ -607,30 +549,6 @@ export const DefaultRoute = [
         element: <SuperAdminDashboard />
       },
       {
-        path: '/super-admin/platform-users',
-        element: <PlatformUsersHub />
-      },
-      {
-        path: '/super-admin/platform-users/add-admin',
-        element: <AddPlatformAdmin />
-      },
-      {
-        path: '/super-admin/admins',
-        element: <AdminList />
-      },
-      {
-        path: '/super-admin/admins/add',
-        element: <AddPlatformAdmin />
-      },
-      {
-        path: '/super-admin/admins/edit/:id',
-        element: <EditAdmin />
-      },
-      {
-        path: '/super-admin/admins/:id',
-        element: <ViewAdmin />
-      },
-      {
         path: '/super-admin/users',
         element: <UserList />
       },
@@ -671,44 +589,8 @@ export const DefaultRoute = [
         element: <SuperAdminProfile />
       },
       {
-        path: '/super-admin/departments',
-        element: <AdminDepartments />
-      },
-      {
-        path: '/super-admin/departments/:departmentName',
-        element: <AdminDepartmentDetail />
-      },
-      {
-        path: '/super-admin/audit',
-        element: (
-          <AuditorSessionGuard>
-            <AuditorDashboard />
-          </AuditorSessionGuard>
-        )
-      },
-      {
-        path: '/super-admin/audit-logs',
-        element: (
-          <AuditorSessionGuard>
-            <AuditorLogsPage />
-          </AuditorSessionGuard>
-        )
-      },
-      {
         path: '/auditor/dashboard',
-        element: (
-          <AuditorSessionGuard>
-            <AuditorDashboard />
-          </AuditorSessionGuard>
-        )
-      },
-      {
-        path: '/auditor/logs',
-        element: (
-          <AuditorSessionGuard>
-            <AuditorLogsPage />
-          </AuditorSessionGuard>
-        )
+        element: <AuditorDashboard />
       },
       {
         path: '/extra-pages/pages-pricing',

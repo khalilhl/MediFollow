@@ -7,12 +7,12 @@ import { useHandGesture } from "../../context/HandGestureContext";
 import { captureFaceDescriptor } from "../../services/face-auth";
 import { generatePath } from "../landing/landingPaths";
 import AuthCarouselMedifollow from "../../components/auth/AuthCarouselMedifollow";
-import { LARGE_TEXT_STORAGE_KEY } from "../../constants/accessibility";
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 const SpeechSynthesis = window.speechSynthesis;
 const isSpeechSupported = !!SpeechRecognition;
 const isTtsSupported = !!SpeechSynthesis;
+const LARGE_TEXT_KEY = "medifollow_large_text_signin";
 
 const KEYWORD_STOP = ["stop", "terminer", "arrêt", "arrêter", "finish", "fin", "توقف", "إيقاف"];
 
@@ -46,7 +46,7 @@ const SignIn = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [largeTextEnabled, setLargeTextEnabled] = useState(() => localStorage.getItem(LARGE_TEXT_STORAGE_KEY) === "1");
+  const [largeTextEnabled, setLargeTextEnabled] = useState(() => localStorage.getItem(LARGE_TEXT_KEY) === "1");
   const [listeningField, setListeningField] = useState(null);
   const [speechError, setSpeechError] = useState("");
   const [isReadingPage, setIsReadingPage] = useState(false);
@@ -198,8 +198,8 @@ const SignIn = () => {
   }, [isTtsSupported, stopPageReading, stopVoiceInput, t, i18n.language]);
 
   useEffect(() => {
-    localStorage.setItem(LARGE_TEXT_STORAGE_KEY, largeTextEnabled ? "1" : "0");
-  }, [largeTextEnabled]);
+    localStorage.setItem(LARGE_TEXT_KEY, largeTextEnabled ? "1" : "0");
+  }, [largeTextEnabled, LARGE_TEXT_KEY]);
 
   useEffect(() => {
     return () => {
@@ -273,7 +273,7 @@ const SignIn = () => {
             localStorage.setItem("adminToken", data.access_token);
             localStorage.setItem("adminUser", JSON.stringify(data.user));
             const role = data.user?.role;
-            const path = role === "auditor" ? "/auditor/dashboard" : "/dashboard-pages/care-coordinator-dashboard";
+            const path = role === "auditor" ? "/auditor/dashboard" : "/super-admin/care-coordinators";
             window.location.href = path;
           }
         }
@@ -315,7 +315,7 @@ const SignIn = () => {
       clearMedifollowSessionExcept("admin");
       localStorage.setItem("adminToken", data.access_token);
       localStorage.setItem("adminUser", JSON.stringify(data.user));
-      const path = role === "auditor" ? "/auditor/dashboard" : "/dashboard-pages/care-coordinator-dashboard";
+      const path = role === "auditor" ? "/auditor/dashboard" : "/super-admin/care-coordinators";
       window.location.href = path;
       return;
     }
@@ -512,7 +512,6 @@ const SignIn = () => {
                       <button type="button" className="btn-close btn-sm float-end" onClick={() => setHandError("")} aria-label={t("signIn.closeAria")} />
                     </div>
                   )}
-
                   <div className="assist-actions d-flex gap-2 flex-wrap align-items-center mb-2">
                     {!handActive ? (
                       <button type="button" className="btn btn-sm assist-btn assist-btn-hand" onClick={startHandGesture}>
@@ -585,7 +584,6 @@ const SignIn = () => {
                   <p className="text-muted small mb-2" style={{ fontSize: "0.75rem" }}>
                     {t("signIn.handNavHelp")}
                   </p>
-
                   <div className="form-group mb-3">
                     <div className="d-flex align-items-center justify-content-between mb-1">
                       <label htmlFor="exampleInputEmail1" className="mb-0">{t("signIn.email")}</label>

@@ -56,16 +56,6 @@ export class MedicationService {
       return;
     }
     if (user.role === 'admin' || user.role === 'superadmin') return;
-    if (user.role === 'carecoordinator') {
-      const patient = await this.patientModel.findById(pid).exec();
-      if (!patient) throw new NotFoundException('Patient introuvable');
-      const coordDept = String((user as JwtUser & { department?: string }).department || '').trim();
-      const pDept = String((patient as any).department || (patient as any).service || '').trim();
-      if (!coordDept || coordDept !== pDept) {
-        throw new ForbiddenException('Accès refusé');
-      }
-      return;
-    }
     throw new ForbiddenException('Accès refusé');
   }
 

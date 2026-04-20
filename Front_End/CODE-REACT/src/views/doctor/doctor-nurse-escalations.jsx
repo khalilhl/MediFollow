@@ -8,7 +8,6 @@ import {
   Container,
   Dropdown,
   Form,
-  InputGroup,
   Modal,
   Row,
   Spinner,
@@ -16,13 +15,10 @@ import {
 } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { formatDoctorFormalName } from "../../utils/doctorDisplayName";
 import { appointmentApi, healthLogApi, medicationApi } from "../../services/api";
 import MedicationNameAutocomplete from "../../components/MedicationNameAutocomplete";
 import DosageAutocomplete from "../../components/DosageAutocomplete";
 import { broadcastDoctorHealthLogResolved, subscribeDoctorHealthLogResolved } from "../../utils/healthLogResolveBroadcast";
-import PaginationBar from "../../components/PaginationBar";
-import { usePagination } from "../../hooks/usePagination";
 
 const FREQUENCY_KEYS = ["freqOnceDay", "freqTwiceDay", "freqThriceDay", "freqEvery8h", "freqWeekly", "freqPrn"];
 
@@ -120,7 +116,6 @@ const DoctorNurseEscalations = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("all");
-  const [search, setSearch] = useState("");
   const [resolveBusyId, setResolveBusyId] = useState(null);
   const [resolveModal, setResolveModal] = useState(null);
   const [modalNote, setModalNote] = useState("");
@@ -135,7 +130,8 @@ const DoctorNurseEscalations = () => {
 
   const doctorDisplayName = useMemo(() => {
     if (!doctorUser) return "";
-    return formatDoctorFormalName(doctorUser, t) || doctorUser.firstName || t("doctorNurseEscalations.doctorFallback");
+    const ln = doctorUser.lastName ? `Dr. ${doctorUser.firstName || ""} ${doctorUser.lastName}`.trim() : "";
+    return ln || doctorUser.firstName || t("doctorNurseEscalations.doctorFallback");
   }, [doctorUser, t]);
 
   const load = useCallback(async () => {
@@ -165,17 +161,14 @@ const DoctorNurseEscalations = () => {
   }, [doctorId, load]);
 
   const filtered = useMemo(() => {
-    let result = items;
-    if (filter === "pending") result = result.filter((r) => r.escalationStatus === "escalated_to_doctor");
-    if (filter === "resolved") result = result.filter((r) => r.escalationStatus === "resolved");
-    if (search.trim()) {
-      const q = search.trim().toLowerCase();
-      result = result.filter((r) => (r.patientName || "").toLowerCase().includes(q));
+    if (filter === "pending") {
+      return items.filter((r) => r.escalationStatus === "escalated_to_doctor");
     }
-    return result;
-  }, [items, filter, search]);
-
-  const { page, setPage, totalPages, paginated, totalItems } = usePagination(filtered, 5);
+    if (filter === "resolved") {
+      return items.filter((r) => r.escalationStatus === "resolved");
+    }
+    return items;
+  }, [items, filter]);
 
   const counts = useMemo(() => {
     const pending = items.filter((r) => r.escalationStatus === "escalated_to_doctor").length;
@@ -371,55 +364,25 @@ const DoctorNurseEscalations = () => {
 
       <Card className="border-0 shadow-sm">
         <Card.Body className="p-3">
-          <Row className="g-2 align-items-end mb-3">
-            {/* Search by patient name */}
-            <Col xs={12} md={6}>
-              <InputGroup size="sm">
-                <InputGroup.Text className="bg-white border-end-0">
-                  <i className="ri-search-line text-muted"></i>
-                </InputGroup.Text>
-                <Form.Control
-                  type="text"
-                  placeholder="Search by patient name..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="border-start-0 ps-0"
-                />
-                {search && (
-                  <Button variant="outline-secondary" size="sm" onClick={() => setSearch("")}>
-                    <i className="ri-close-line"></i>
-                  </Button>
-                )}
-              </InputGroup>
-            </Col>
-            {/* Status filter */}
-            <Col xs={12} md={6} className="d-flex align-items-end justify-content-md-end gap-2">
-              <span className="small text-muted">{t("doctorNurseEscalations.filterLabel")}</span>
-              <ButtonGroup size="sm">
-                {filterTabs.map((tab) => (
-                  <Button
-                    key={tab.key}
-                    variant={filter === tab.key ? "primary" : "outline-primary"}
-                    onClick={() => setFilter(tab.key)}
-                  >
-                    {tab.label}
-                    {tab.key === "pending" && counts.pending > 0 ? (
-                      <Badge bg="danger" className="ms-1">{counts.pending}</Badge>
-                    ) : null}
-                  </Button>
-                ))}
-              </ButtonGroup>
-            </Col>
-          </Row>
-
-          {/* Results counter */}
-          {!loading && (
-            <div className="small text-muted mb-2">
-              {filtered.length === items.length
-                ? `${items.length} escalation(s)`
-                : `${filtered.length} of ${items.length} escalation(s)`}
-            </div>
-          )}
+          <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+            <span className="small text-muted">{t("doctorNurseEscalations.filterLabel")}</span>
+            <ButtonGroup size="sm">
+              {filterTabs.map((tab) => (
+                <Button
+                  key={tab.key}
+                  variant={filter === tab.key ? "primary" : "outline-primary"}
+                  onClick={() => setFilter(tab.key)}
+                >
+                  {tab.label}
+                  {tab.key === "pending" && counts.pending > 0 ? (
+                    <Badge bg="danger" className="ms-1">
+                      {counts.pending}
+                    </Badge>
+                  ) : null}
+                </Button>
+              ))}
+            </ButtonGroup>
+          </div>
 
           {loading ? (
             <div className="text-center py-5">
@@ -447,7 +410,7 @@ const DoctorNurseEscalations = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {paginated.map((row) => {
+                  {filtered.map((row) => {
                     const pending = row.escalationStatus === "escalated_to_doctor";
                     const pid = row.patientId;
                     return (
@@ -540,11 +503,6 @@ const DoctorNurseEscalations = () => {
           )}
         </Card.Body>
       </Card>
-      {!loading && filtered.length > 0 && (
-        <div className="px-3">
-          <PaginationBar page={page} totalPages={totalPages} totalItems={totalItems} pageSize={5} onPageChange={setPage} />
-        </div>
-      )}
 
       <Modal show={resolveModal != null} onHide={closeResolveModal} centered backdrop="static">
         <Modal.Header closeButton>

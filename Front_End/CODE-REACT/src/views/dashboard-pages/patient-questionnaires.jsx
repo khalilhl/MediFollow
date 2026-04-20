@@ -28,16 +28,10 @@ function QuestionForm({ item, onSubmitted }) {
         setErr(t("patientQuestionnaires.yesNoRequired"));
         return;
       }
-      if (x.type === "multiple_choice" && (answers[x.qid] === undefined || answers[x.qid] === "")) {
-        setErr(t("patientQuestionnaires.choiceRequired"));
-        return;
-      }
     }
     const list = (q.questions || []).map((x) => ({
       questionId: x.qid,
-      value:
-        answers[x.qid] ??
-        (x.type === "yes_no" ? false : x.type === "scale_10" ? 5 : x.type === "multiple_choice" ? "" : ""),
+      value: answers[x.qid] ?? (x.type === "yes_no" ? false : x.type === "scale_10" ? 5 : ""),
     }));
     setSaving(true);
     try {
@@ -103,21 +97,6 @@ function QuestionForm({ item, onSubmitted }) {
                       onChange={(e) => setVal(qu.qid, Number(e.target.value))}
                     />
                     <span className="badge bg-primary">{answers[qu.qid] ?? 5}/10</span>
-                  </div>
-                )}
-                {qu.type === "multiple_choice" && Array.isArray(qu.options) && qu.options.length > 0 && (
-                  <div className="d-flex flex-column gap-2">
-                    {qu.options.map((opt, oi) => (
-                      <Form.Check
-                        key={`${qu.qid}-mc-${oi}`}
-                        type="radio"
-                        name={qu.qid}
-                        id={`${qu.qid}-mc-${oi}`}
-                        label={opt}
-                        checked={answers[qu.qid] === opt}
-                        onChange={() => setVal(qu.qid, opt)}
-                      />
-                    ))}
                   </div>
                 )}
                 {qu.type === "text" && (

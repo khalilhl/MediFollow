@@ -1,13 +1,24 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Card from "../../components/Card";
 import { Button, Col, Container, Form, InputGroup, Row } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { doctorApi } from "../../services/api";
-import { HOSPITAL_DEPARTMENTS, hospitalDepartmentLabel } from "../../constants/hospitalDepartments";
-import { fetchMergedDepartmentNames } from "../../utils/mergedDepartmentNames";
+import { HOSPITAL_DEPARTMENTS } from "../../constants/hospitalDepartments";
 
 const generatePath = (path) => window.origin + import.meta.env.BASE_URL + path;
+
+/** Stable slug for editPatient.departments.* (same as edit-patient.jsx). */
+function departmentSlug(name) {
+  return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/-/g, "_")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "_")
+    .replace(/[^a-z0-9_]/g, "");
+}
 
 const SPECIALTIES = ["Surgery", "Gastroenterologist", "Endocrinologist", "Orthopaedic surgeon", "Cardiologist", "Family Physicians", "Gynaecology", "Eye Special", "Therapy Special", "Orthopedics Special", "Anesthesiologists", "General", "MD"];
 
@@ -44,11 +55,6 @@ const AddDoctor = () => {
   const [error, setError] = useState("");
   const [profilePreview, setProfilePreview] = useState(generatePath("/assets/images/user/11.png"));
   const [selectedCountry, setSelectedCountry] = useState(null);
-  const [deptOptions, setDeptOptions] = useState(HOSPITAL_DEPARTMENTS);
-
-  useEffect(() => {
-    fetchMergedDepartmentNames().then(setDeptOptions);
-  }, []);
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -88,7 +94,6 @@ const AddDoctor = () => {
         lastName: form.lname?.value,
         email: form.email?.value,
         password,
-        academicTitle: form.academicTitle?.value === "prof" ? "prof" : "dr",
         specialty: form.selectuserrole?.value,
         department: form.cname?.value,
         phone: (() => {
@@ -201,13 +206,6 @@ const AddDoctor = () => {
                       <Form.Label className="mb-0">{t("addDoctor.lastName")}</Form.Label>
                       <Form.Control type="text" className="my-2" name="lname" placeholder={t("addDoctor.placeholderLastName")} required />
                     </Col>
-                    <Col sm={12} className="form-group">
-                      <Form.Label className="mb-0">{t("addDoctor.academicTitleLabel")}</Form.Label>
-                      <Form.Control as="select" className="my-2" name="academicTitle" defaultValue="dr">
-                        <option value="dr">{t("addDoctor.academicTitleDr")}</option>
-                        <option value="prof">{t("addDoctor.academicTitleProf")}</option>
-                      </Form.Control>
-                    </Col>
                     <Col md={6} className="form-group">
                       <Form.Label className="mb-0">{t("addDoctor.address1")}</Form.Label>
                       <Form.Control type="text" className="my-2" name="add1" placeholder={t("addDoctor.placeholderAddress")} />
@@ -220,9 +218,9 @@ const AddDoctor = () => {
                       <Form.Label className="mb-0">{t("addDoctor.department")}</Form.Label>
                       <Form.Control as="select" className="my-2" name="cname" required>
                         <option value="">{t("addDoctor.selectDepartment")}</option>
-                        {deptOptions.map((d) => (
+                        {HOSPITAL_DEPARTMENTS.map((d) => (
                           <option key={d} value={d}>
-                            {hospitalDepartmentLabel(d, t)}
+                            {t(`editPatient.departments.${departmentSlug(d)}`)}
                           </option>
                         ))}
                       </Form.Control>

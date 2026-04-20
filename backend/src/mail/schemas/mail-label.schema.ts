@@ -3,11 +3,7 @@ import { Document, Schema as MongooseSchema, Types } from 'mongoose';
 
 @Schema({ timestamps: true })
 export class MailLabel extends Document {
-  @Prop({
-    type: String,
-    enum: ['patient', 'doctor', 'nurse', 'admin', 'superadmin', 'carecoordinator', 'auditor'],
-    required: true,
-  })
+  @Prop({ type: String, enum: ['patient', 'doctor', 'nurse'], required: true })
   ownerRole: string;
 
   @Prop({ type: MongooseSchema.Types.ObjectId, required: true })

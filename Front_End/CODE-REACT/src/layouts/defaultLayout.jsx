@@ -14,6 +14,7 @@ import { useSelector } from 'react-redux';
 import Header from "../components/partials/headerStyle/header";
 import Footer from "../components/partials/footerStyle/footer";
 import Sidebar from "../components/partials/sidebar/sidebar";
+import SettingOffCanvas from "../components/setting/SettingOffCanvas";
 
 
 const DefaultLayout = () => {
@@ -36,6 +37,7 @@ const DefaultLayout = () => {
 
         </main>
       </div>
+      <SettingOffCanvas />
 
     </>
   );

@@ -1,16 +1,13 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Alert, Col, Form, Row, Spinner } from "react-bootstrap";
 import Card from "../../components/Card";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { mailApi } from "../../services/api";
 
-/** Destinataires groupés (médecins / infirmiers / patients) pour l’admin et le personnel soignant. */
-function buildRecipientGroups(data, t) {
-  const groups = [];
-  if (!data) return groups;
-
-  const peerOpts = [];
+function buildRecipientOptions(data) {
+  const opts = [];
+  if (!data) return opts;
   if (Array.isArray(data.peers)) {
     data.peers.forEach((p) => {
       let label =
@@ -22,44 +19,27 @@ function buildRecipientGroups(data, t) {
       else if (p.email && !label.includes(String(p.email))) {
         label = `${label} (${p.email})`;
       }
-      peerOpts.push({
+      opts.push({
         value: `${p.role}:${p.id}`,
         label,
       });
     });
   }
-  if (peerOpts.length) {
-    groups.push({ key: "peers", label: t("emailPage.recipientGroupPeers"), options: peerOpts });
-  }
-
-  const mapList = (arr, role, labelFn) => {
-    const out = [];
-    if (!Array.isArray(arr)) return out;
+  const addList = (arr, role, labelFn) => {
+    if (!Array.isArray(arr)) return;
     arr.forEach((x) => {
       const id = x._id || x.id;
       if (!id) return;
-      out.push({
+      opts.push({
         value: `${role}:${id}`,
         label: labelFn(x),
       });
     });
-    return out;
   };
-
-  const docOpts = mapList(data.doctors, "doctor", (d) => `Dr. ${d.firstName || ""} ${d.lastName || ""}`.trim() || d.email);
-  if (docOpts.length) {
-    groups.push({ key: "doctors", label: t("emailPage.recipientGroupDoctors"), options: docOpts });
-  }
-  const nurseOpts = mapList(data.nurses, "nurse", (n) => `RN ${n.firstName || ""} ${n.lastName || ""}`.trim() || n.email);
-  if (nurseOpts.length) {
-    groups.push({ key: "nurses", label: t("emailPage.recipientGroupNurses"), options: nurseOpts });
-  }
-  const patientOpts = mapList(data.patients, "patient", (p) => `${p.firstName || ""} ${p.lastName || ""}`.trim() || p.email);
-  if (patientOpts.length) {
-    groups.push({ key: "patients", label: t("emailPage.recipientGroupPatients"), options: patientOpts });
-  }
-
-  return groups;
+  addList(data.doctors, "doctor", (d) => `Dr. ${d.firstName || ""} ${d.lastName || ""}`.trim() || d.email);
+  addList(data.nurses, "nurse", (n) => `RN ${n.firstName || ""} ${n.lastName || ""}`.trim() || n.email);
+  addList(data.patients, "patient", (p) => `${p.firstName || ""} ${p.lastName || ""}`.trim() || p.email);
+  return opts;
 }
 
 function parseToPeer(raw) {
@@ -76,7 +56,7 @@ const EmailCompose = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { draftMessageId } = useParams();
-  const [recipientGroups, setRecipientGroups] = useState([]);
+  const [options, setOptions] = useState([]);
   const [toValue, setToValue] = useState("");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
@@ -97,7 +77,7 @@ const EmailCompose = () => {
       try {
         const data = await mailApi.recipients();
         if (cancelled) return;
-        setRecipientGroups(buildRecipientGroups(data, t));
+        setOptions(buildRecipientOptions(data));
       } catch (e) {
         if (!cancelled) setError(e?.message || t("emailPage.loadError"));
       } finally {
@@ -108,11 +88,6 @@ const EmailCompose = () => {
       cancelled = true;
     };
   }, [t]);
-
-  const totalRecipientOptions = useMemo(
-    () => recipientGroups.reduce((n, g) => n + (g.options?.length || 0), 0),
-    [recipientGroups]
-  );
 
   const loadDraft = useCallback(async () => {
     if (!draftMessageId) {
@@ -283,7 +258,7 @@ const EmailCompose = () => {
                       <Col sm={10} className="mb-3">
                         {loading ? (
                           <Spinner animation="border" size="sm" />
-                        ) : totalRecipientOptions === 0 ? (
+                        ) : options.length === 0 ? (
                           <div className="text-muted small">{t("emailPage.noRecipients")}</div>
                         ) : (
                           <Form.Select
@@ -292,14 +267,10 @@ const EmailCompose = () => {
                             onChange={(e) => setToValue(e.target.value)}
                           >
                             <option value="">{t("emailPage.pickRecipientOptional")}</option>
-                            {recipientGroups.map((g) => (
-                              <optgroup key={g.key} label={g.label}>
-                                {g.options.map((o) => (
-                                  <option key={o.value} value={o.value}>
-                                    {o.label}
-                                  </option>
-                                ))}
-                              </optgroup>
+                            {options.map((o) => (
+                              <option key={o.value} value={o.value}>
+                                {o.label}
+                              </option>
                             ))}
                           </Form.Select>
                         )}

@@ -14,6 +14,7 @@ const AccountSetting = () => {
   const [loadingData, setLoadingData] = useState(true);
   const [error, setError] = useState("");
   const [accountSuccess, setAccountSuccess] = useState("");
+  const [socialSuccess, setSocialSuccess] = useState("");
   const [user, setUser] = useState(null);
 
   const languages = useMemo(
@@ -44,6 +45,7 @@ const AccountSetting = () => {
     e.preventDefault();
     setError("");
     setAccountSuccess("");
+    setSocialSuccess("");
     setLoading(true);
 
     const form = e.target;
@@ -63,6 +65,39 @@ const AccountSetting = () => {
       setUser((prev) => ({ ...prev, ...updated }));
       window.dispatchEvent(new CustomEvent("admin-updated"));
       setAccountSuccess(t("accountSettings.accountSaved"));
+    } catch (err) {
+      if (err.status === 401) {
+        window.location.href = generatePath("/auth/lock-screen");
+        return;
+      }
+      setError(err.message || t("accountSettings.updateError"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSocialSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setAccountSuccess("");
+    setSocialSuccess("");
+    setLoading(true);
+
+    const form = e.target;
+    const socialMedia = {
+      facebook: form.facebook?.value?.trim() || "",
+      twitter: form.twitter?.value?.trim() || "",
+      google: form.google?.value?.trim() || "",
+      instagram: form.instagram?.value?.trim() || "",
+      youtube: form.youtube?.value?.trim() || "",
+    };
+
+    try {
+      const updated = await authApi.updateMe({ socialMedia });
+      const stored = JSON.parse(localStorage.getItem("adminUser") || "{}");
+      localStorage.setItem("adminUser", JSON.stringify({ ...stored, ...updated }));
+      setUser((prev) => ({ ...prev, ...updated }));
+      setSocialSuccess(t("accountSettings.socialSaved"));
     } catch (err) {
       if (err.status === 401) {
         window.location.href = generatePath("/auth/lock-screen");
@@ -112,7 +147,7 @@ const AccountSetting = () => {
     <>
       <h1>{t("accountSettings.pageHeading")}</h1>
       <Row>
-        <Col lg={8} xl={7}>
+        <Col lg={6}>
           <Card>
             <Card.Header className="d-flex justify-content-between">
               <Card.Header.Title>
@@ -141,6 +176,79 @@ const AccountSetting = () => {
                     {languages.map(({ id, label }) => (
                       <Form.Check key={id} inline type="checkbox" id={id} name={id} defaultChecked={user?.languages?.includes(id)} label={label} />
                     ))}
+                  </Form.Group>
+                  <button type="submit" className="btn btn-primary" disabled={loading}>
+                    {loading ? t("accountSettings.saving") : t("accountSettings.submit")}
+                  </button>{" "}
+                  <button type="reset" className="btn btn-danger-subtle">
+                    {t("accountSettings.cancel")}
+                  </button>
+                </Form>
+              </div>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col lg={6}>
+          <Card>
+            <Card.Header className="d-flex justify-content-between">
+              <Card.Header.Title>
+                <h4 className="card-title">{t("accountSettings.cardSocial")}</h4>
+              </Card.Header.Title>
+            </Card.Header>
+            <Card.Body>
+              <div className="acc-edit">
+                <Form onSubmit={handleSocialSubmit}>
+                  {error && <div className="alert alert-danger py-2">{error}</div>}
+                  {socialSuccess && <div className="alert alert-success py-2">{socialSuccess}</div>}
+                  <Form.Group className="form-group mb-3">
+                    <Form.Label htmlFor="facebook">{t("accountSettings.facebook")}</Form.Label>
+                    <Form.Control
+                      type="text"
+                      id="facebook"
+                      name="facebook"
+                      defaultValue={user?.socialMedia?.facebook || ""}
+                      placeholder={t("accountSettings.placeholderFacebook")}
+                    />
+                  </Form.Group>
+                  <Form.Group className="form-group mb-3">
+                    <Form.Label htmlFor="twitter">{t("accountSettings.twitter")}</Form.Label>
+                    <Form.Control
+                      type="text"
+                      id="twitter"
+                      name="twitter"
+                      defaultValue={user?.socialMedia?.twitter || ""}
+                      placeholder={t("accountSettings.placeholderTwitter")}
+                    />
+                  </Form.Group>
+                  <Form.Group className="form-group mb-3">
+                    <Form.Label htmlFor="google">{t("accountSettings.googlePlus")}</Form.Label>
+                    <Form.Control
+                      type="text"
+                      id="google"
+                      name="google"
+                      defaultValue={user?.socialMedia?.google || ""}
+                      placeholder={t("accountSettings.placeholderGoogle")}
+                    />
+                  </Form.Group>
+                  <Form.Group className="form-group mb-3">
+                    <Form.Label htmlFor="instagram">{t("accountSettings.instagram")}</Form.Label>
+                    <Form.Control
+                      type="text"
+                      id="instagram"
+                      name="instagram"
+                      defaultValue={user?.socialMedia?.instagram || ""}
+                      placeholder={t("accountSettings.placeholderInstagram")}
+                    />
+                  </Form.Group>
+                  <Form.Group className="form-group mb-3">
+                    <Form.Label htmlFor="youtube">{t("accountSettings.youtube")}</Form.Label>
+                    <Form.Control
+                      type="text"
+                      id="youtube"
+                      name="youtube"
+                      defaultValue={user?.socialMedia?.youtube || ""}
+                      placeholder={t("accountSettings.placeholderYoutube")}
+                    />
                   </Form.Group>
                   <button type="submit" className="btn btn-primary" disabled={loading}>
                     {loading ? t("accountSettings.saving") : t("accountSettings.submit")}

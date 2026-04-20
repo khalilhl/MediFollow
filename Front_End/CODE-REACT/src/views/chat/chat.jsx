@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button, Col, Form, Modal, Nav, Row, Tab, Spinner } from "react-bootstrap";
 import user05 from "/assets/images/user/05.jpg";
@@ -10,7 +9,7 @@ import user09 from "/assets/images/user/09.jpg";
 import user10 from "/assets/images/user/10.jpg";
 import ChatData from "../../components/chat-data";
 import { chatApi } from "../../services/api";
-import { useVoiceCallBridge } from "../../context/VoiceCallBridgeContext";
+import VoiceCallLayer from "./VoiceCallLayer";
 import { buildVoiceCallContext } from "./voiceCallUtils";
 import {
     filterHiddenRows,
@@ -38,12 +37,6 @@ const imgUrl = (path) => {
 
 function getSession() {
     try {
-        if (localStorage.getItem("adminUser")) {
-            const u = JSON.parse(localStorage.getItem("adminUser"));
-            if (u?.role === "carecoordinator") {
-                return { id: String(u.id || u._id || ""), role: "carecoordinator" };
-            }
-        }
         if (localStorage.getItem("patientUser")) {
             const u = JSON.parse(localStorage.getItem("patientUser"));
             return { id: String(u.id || u._id || ""), role: "patient" };
@@ -82,7 +75,6 @@ function collectStaffMemberOptions(dc) {
     add(dc.nurses, "nurse");
     add(dc.doctorsAll, "doctor");
     add(dc.nursesAll, "nurse");
-    add(dc.coordinators, "carecoordinator");
     for (const p of dc.assignedPatients || []) {
         if (!p?.id) continue;
         const k = `patient:${p.id}`;
@@ -180,32 +172,6 @@ function buildSidebarRows(dc, session, groups = [], t) {
             });
         }
 
-        const coordDept = dc.coordinators || [];
-        if (coordDept.length) {
-            if (!dc.assignedDoctor && !dc.assignedNurse) pushSection(t("chat.sections.referents"));
-            for (const c of coordDept) {
-                pushItem({
-                    thread: "patientStaff",
-                    patientId: selfId,
-                    peerRole: "carecoordinator",
-                    peerId: c.id,
-                    title: c.displayName,
-                    subtitle: c.subtitle || t("chat.sections.peerCoordinatorDefault"),
-                    data: {
-                        title: c.displayName,
-                        userimg: imgUrl(c.profileImage),
-                        userdetailname: c.displayName,
-                        useraddress: c.department || departmentLabel,
-                        usersortname: c.firstName || "",
-                        usertelnumber: "—",
-                        userdob: "—",
-                        usergender: "—",
-                        userlanguage: "—",
-                    },
-                });
-            }
-        }
-
         const groupsPatient = Array.isArray(groups) ? groups : [];
         if (groupsPatient.length) {
             pushSection(t("chat.sections.groups"));
@@ -230,77 +196,6 @@ function buildSidebarRows(dc, session, groups = [], t) {
             }
         }
 
-        return { rows, departmentLabel };
-    }
-
-    if (session.role === "carecoordinator") {
-        const medSame = dc.doctors || [];
-        const nurSame = dc.nurses || [];
-        const plist = dc.assignedPatients || [];
-        if (plist.length) {
-            pushSection(t("chat.sections.patientsSameDept"));
-            for (const p of plist) {
-                pushItem({
-                    thread: "patient",
-                    patientId: p.id,
-                    title: p.displayName,
-                    subtitle: p.subtitle || t("chat.sections.patient"),
-                    data: {
-                        title: p.displayName,
-                        userimg: imgUrl(p.profileImage),
-                        userdetailname: p.displayName,
-                        useraddress: departmentLabel,
-                        usersortname: (p.displayName || "").split(" ")[0] || "",
-                        usertelnumber: "—",
-                        userdob: "—",
-                        usergender: "—",
-                        userlanguage: "—",
-                    },
-                });
-            }
-        }
-        pushSection(t("chat.sections.doctorsSameDept"));
-        for (const d of medSame) {
-            pushItem({
-                thread: "peer",
-                peerRole: "doctor",
-                peerId: d.id,
-                title: d.displayName,
-                subtitle: d.subtitle || t("chat.sections.peerDoctorDefault"),
-                data: {
-                    title: d.displayName,
-                    userimg: imgUrl(d.profileImage),
-                    userdetailname: d.displayName,
-                    useraddress: d.department || departmentLabel,
-                    usersortname: d.firstName || "",
-                    usertelnumber: "—",
-                    userdob: "—",
-                    usergender: "—",
-                    userlanguage: "—",
-                },
-            });
-        }
-        pushSection(t("chat.sections.nursesSameDept"));
-        for (const n of nurSame) {
-            pushItem({
-                thread: "peer",
-                peerRole: "nurse",
-                peerId: n.id,
-                title: n.displayName,
-                subtitle: n.subtitle || t("chat.sections.peerNurseDefault"),
-                data: {
-                    title: n.displayName,
-                    userimg: imgUrl(n.profileImage),
-                    userdetailname: n.displayName,
-                    useraddress: n.department || departmentLabel,
-                    usersortname: n.firstName || "",
-                    usertelnumber: "—",
-                    userdob: "—",
-                    usergender: "—",
-                    userlanguage: "—",
-                },
-            });
-        }
         return { rows, departmentLabel };
     }
 
@@ -400,31 +295,6 @@ function buildSidebarRows(dc, session, groups = [], t) {
                 },
             });
         }
-        const coordinatorsDept = dc.coordinators || [];
-        if (coordinatorsDept.length) {
-            pushSection(t("chat.sections.coordinators"));
-            for (const c of coordinatorsDept) {
-                if (String(c.id) === String(session.id)) continue;
-                pushItem({
-                    thread: "peer",
-                    peerRole: "carecoordinator",
-                    peerId: c.id,
-                    title: c.displayName,
-                    subtitle: c.subtitle || t("chat.sections.peerCoordinatorDefault"),
-                    data: {
-                        title: c.displayName,
-                        userimg: imgUrl(c.profileImage),
-                        userdetailname: c.displayName,
-                        useraddress: c.department || departmentLabel,
-                        usersortname: c.firstName || "",
-                        usertelnumber: "—",
-                        userdob: "—",
-                        usergender: "—",
-                        userlanguage: "—",
-                    },
-                });
-            }
-        }
         pushSection(t("chat.sections.allDoctors"));
         for (const d of doctorsAll) {
             if (idSameDoc.has(d.id)) continue;
@@ -505,7 +375,7 @@ function rowMatchesStaffSearch(def, rawQuery) {
 
 /** Filtre les lignes sidebar ; masque les sections vides. */
 function filterSidebarRowsForStaffSearch(rows, query, role) {
-    if (role !== "doctor" && role !== "nurse" && role !== "carecoordinator") return rows;
+    if (role !== "doctor" && role !== "nurse") return rows;
     if (!(query || "").trim()) return rows;
     const out = [];
     let i = 0;
@@ -642,10 +512,7 @@ const STATIC_USER_DATA = [
 
 const Chat = () => {
     const { t } = useTranslation();
-    const [searchParams] = useSearchParams();
     const session = useMemo(() => getSession(), []);
-    const deepLinkPeerSigRef = useRef("");
-    const deepLinkPatientSigRef = useRef("");
     const [sidebar, setSidebar] = useState(false);
     const [sidebarRows, setSidebarRows] = useState([]);
     const [pinnedKeys, setPinnedKeys] = useState([]);
@@ -666,7 +533,7 @@ const Chat = () => {
     const [selectedMemberKeys, setSelectedMemberKeys] = useState(() => new Set());
     const [createGroupError, setCreateGroupError] = useState("");
     const [creatingGroup, setCreatingGroup] = useState(false);
-    const { setPeerContext, setOnAfterCallLogged, voiceCallRef } = useVoiceCallBridge();
+    const voiceCallRef = useRef(null);
 
     const SidebarToggle = () => {
         if (window.innerWidth < 990) {
@@ -768,71 +635,6 @@ const Chat = () => {
         },
         [tabDefByKey, session.id, t],
     );
-
-    const handleAfterCallLogged = useCallback(() => {
-        loadThread(activeKey);
-    }, [activeKey, loadThread]);
-
-    useEffect(() => {
-        setPeerContext(voicePeerContext);
-        return () => setPeerContext(null);
-    }, [voicePeerContext, setPeerContext]);
-
-    useEffect(() => {
-        setOnAfterCallLogged(handleAfterCallLogged);
-        return () => setOnAfterCallLogged(null);
-    }, [handleAfterCallLogged, setOnAfterCallLogged]);
-
-    useEffect(() => {
-        const pr = searchParams.get("peerRole");
-        const pid = searchParams.get("peerId");
-        if (!pr || !pid) {
-            deepLinkPeerSigRef.current = "";
-        }
-    }, [searchParams]);
-
-    useEffect(() => {
-        const pp = searchParams.get("patientId");
-        if (!pp) {
-            deepLinkPatientSigRef.current = "";
-        }
-    }, [searchParams]);
-
-    useEffect(() => {
-        const pr = searchParams.get("peerRole");
-        const pid = searchParams.get("peerId");
-        if (!pr || !pid || !session.id) return;
-        const sig = `${pr}:${pid}`;
-        if (deepLinkPeerSigRef.current === sig) return;
-        const rows = displaySidebarRows.filter((r) => r.type === "item");
-        const found = rows.find(
-            (r) =>
-                r.def?.thread === "peer" &&
-                r.def.peerRole === pr &&
-                String(r.def.peerId) === String(pid),
-        );
-        if (found) {
-            deepLinkPeerSigRef.current = sig;
-            setActiveKey(found.eventKey);
-            loadThread(found.eventKey, found.def);
-        }
-    }, [searchParams, displaySidebarRows, session.id, loadThread]);
-
-    useEffect(() => {
-        const pp = searchParams.get("patientId");
-        if (!pp || !session.id) return;
-        const sig = `patient:${pp}`;
-        if (deepLinkPatientSigRef.current === sig) return;
-        const rows = displaySidebarRows.filter((r) => r.type === "item");
-        const found = rows.find(
-            (r) => r.def?.thread === "patient" && String(r.def.patientId) === String(pp),
-        );
-        if (found) {
-            deepLinkPatientSigRef.current = sig;
-            setActiveKey(found.eventKey);
-            loadThread(found.eventKey, found.def);
-        }
-    }, [searchParams, displaySidebarRows, session.id, loadThread]);
 
     useEffect(() => {
         if (!session.id) {
@@ -1348,6 +1150,12 @@ const Chat = () => {
 
     return (
         <>
+            <VoiceCallLayer
+                ref={voiceCallRef}
+                session={session}
+                peerContext={voicePeerContext}
+                onAfterCallLogged={() => loadThread(activeKey)}
+            />
             {loadError && (
                 <div className="alert alert-warning py-2 small mb-2" role="alert">
                     {loadError}

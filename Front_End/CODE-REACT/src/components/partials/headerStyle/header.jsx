@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
+import React, { useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { doctorApi, patientApi, nurseApi } from '../../../services/api'
 
 // Import From React Bootstrap
@@ -25,10 +25,6 @@ import PatientMedicationNotificationsBell from "../../PatientMedicationNotificat
 import LanguageSwitcher from "../../LanguageSwitcher"
 import { SvgFlagTn, SvgFlagDz } from "../../language-flag-svgs"
 import { useTranslation } from "react-i18next"
-import { DYSLEXIA_MODE_STORAGE_KEY, LARGE_TEXT_STORAGE_KEY } from "../../../constants/accessibility"
-import { getA11yReadablePageText } from "../../../utils/a11yReadPage"
-import { useHandGesture } from "../../../context/HandGestureContext"
-import { formatDoctorFormalName, normalizeDoctorAcademicTitle } from "../../../utils/doctorDisplayName"
 
 const generatePath = (path) => {
   const base = (import.meta.env.BASE_URL || "/").replace(/\/+$/, "") || "";
@@ -75,9 +71,8 @@ const getNursePhoto = (nurseUser) => {
 };
 
 const Header = () => {
-   const { t, i18n } = useTranslation();
+   const { t } = useTranslation();
    const navigate = useNavigate();
-   const location = useLocation();
    const pageLayout = useSelector(SettingSelector.page_layout)
    const [adminUser, setAdminUser] = useState(() => {
       try {
@@ -152,18 +147,7 @@ const Header = () => {
       const id = doctorUser?.id;
       if (id) {
          doctorApi.getById(id)
-            .then((doctor) =>
-               setDoctorUser((prev) =>
-                  prev
-                     ? {
-                          ...prev,
-                          ...doctor,
-                          id: doctor._id || doctor.id,
-                          academicTitle: normalizeDoctorAcademicTitle(doctor.academicTitle),
-                       }
-                     : prev
-               )
-            )
+            .then((doctor) => setDoctorUser((prev) => prev ? { ...prev, ...doctor, id: doctor._id || doctor.id } : prev))
             .catch(() => {});
       }
    }, [doctorUser?.id])
@@ -208,150 +192,6 @@ const Header = () => {
 
    const [open, setOpen] = useState(false)
    const [isScrolled, setIsScrolled] = useState(false);
-   const [sessionLargeText, setSessionLargeText] = useState(() => {
-      try {
-         if (typeof localStorage === "undefined") return false;
-         return localStorage.getItem(LARGE_TEXT_STORAGE_KEY) === "1";
-      } catch {
-         return false;
-      }
-   });
-
-   const [sessionDyslexia, setSessionDyslexia] = useState(() => {
-      try {
-         if (typeof localStorage === "undefined") return false;
-         return localStorage.getItem(DYSLEXIA_MODE_STORAGE_KEY) === "1";
-      } catch {
-         return false;
-      }
-   });
-
-   const isA11ySession = isPatient || isDoctor || isNurse || isAdmin;
-
-   useEffect(() => {
-      document.documentElement.classList.toggle("medifollow-dyslexia-mode", sessionDyslexia);
-      try {
-         localStorage.setItem(DYSLEXIA_MODE_STORAGE_KEY, sessionDyslexia ? "1" : "0");
-      } catch { /* ignore */ }
-   }, [sessionDyslexia]);
-
-   useEffect(() => {
-      const onStorage = (e) => {
-         if (e.key === DYSLEXIA_MODE_STORAGE_KEY && e.newValue != null) {
-            setSessionDyslexia(e.newValue === "1");
-         }
-      };
-      window.addEventListener("storage", onStorage);
-      return () => window.removeEventListener("storage", onStorage);
-   }, []);
-
-   useEffect(() => {
-      if (!isA11ySession) {
-         document.body.classList.remove(
-            "patient-a11y-large-text",
-            "doctor-a11y-large-text",
-            "nurse-a11y-large-text",
-            "admin-a11y-large-text",
-         );
-         return;
-      }
-      try {
-         setSessionLargeText(localStorage.getItem(LARGE_TEXT_STORAGE_KEY) === "1");
-      } catch {
-         setSessionLargeText(false);
-      }
-   }, [isA11ySession]);
-
-   useEffect(() => {
-      if (!isA11ySession) {
-         document.body.classList.remove(
-            "patient-a11y-large-text",
-            "doctor-a11y-large-text",
-            "nurse-a11y-large-text",
-            "admin-a11y-large-text",
-         );
-         return;
-      }
-      document.body.classList.remove(
-         "patient-a11y-large-text",
-         "doctor-a11y-large-text",
-         "nurse-a11y-large-text",
-         "admin-a11y-large-text",
-      );
-      if (sessionLargeText) {
-         if (isPatient) document.body.classList.add("patient-a11y-large-text");
-         if (isDoctor) document.body.classList.add("doctor-a11y-large-text");
-         if (isNurse) document.body.classList.add("nurse-a11y-large-text");
-         if (isAdmin) document.body.classList.add("admin-a11y-large-text");
-      }
-      try {
-         localStorage.setItem(LARGE_TEXT_STORAGE_KEY, sessionLargeText ? "1" : "0");
-      } catch { /* ignore */ }
-   }, [isPatient, isDoctor, isNurse, isAdmin, isA11ySession, sessionLargeText]);
-
-   useEffect(() => {
-      if (!isA11ySession) return;
-      const onStorage = (e) => {
-         if (e.key === LARGE_TEXT_STORAGE_KEY && e.newValue != null) {
-            setSessionLargeText(e.newValue === "1");
-         }
-      };
-      window.addEventListener("storage", onStorage);
-      return () => window.removeEventListener("storage", onStorage);
-   }, [isA11ySession]);
-
-   const ttsSupported = typeof window !== "undefined" && !!window.speechSynthesis;
-   const ttsUtteranceRef = useRef(null);
-   const [isReadingPage, setIsReadingPage] = useState(false);
-   const {
-      isActive: handActive,
-      startHandGesture,
-      stopHandGesture,
-      error: handError,
-      setError: setHandError,
-   } = useHandGesture();
-
-   const stopPageReading = useCallback(() => {
-      if (typeof window !== "undefined" && window.speechSynthesis) {
-         window.speechSynthesis.cancel();
-      }
-      ttsUtteranceRef.current = null;
-      setIsReadingPage(false);
-   }, []);
-
-   const readPageContent = useCallback(() => {
-      if (!ttsSupported) return;
-      stopPageReading();
-      const raw = getA11yReadablePageText().trim();
-      const text = raw || t("nav.a11yReadPageEmpty");
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = i18n.language?.startsWith("fr")
-         ? "fr-FR"
-         : i18n.language?.startsWith("ar")
-            ? "ar-SA"
-            : "en-US";
-      utterance.rate = 0.95;
-      utterance.pitch = 1;
-      utterance.onend = () => {
-         ttsUtteranceRef.current = null;
-         setIsReadingPage(false);
-      };
-      utterance.onerror = () => {
-         ttsUtteranceRef.current = null;
-         setIsReadingPage(false);
-      };
-      ttsUtteranceRef.current = utterance;
-      setIsReadingPage(true);
-      window.speechSynthesis.speak(utterance);
-   }, [ttsSupported, stopPageReading, t, i18n.language]);
-
-   useEffect(() => {
-      stopPageReading();
-   }, [location.pathname, stopPageReading]);
-
-   useEffect(() => {
-      return () => stopPageReading();
-   }, [stopPageReading]);
 
    useEffect(() => {
       const handleScrolld = () => {
@@ -426,92 +266,11 @@ const Header = () => {
       }
    }
 
-   const renderAccessibilityMenu = (wrapperClass, toggleId) => (
-      <div className={wrapperClass}>
-         <Dropdown align="end">
-            <Dropdown.Toggle
-               variant="outline-primary"
-               size="sm"
-               className="a11y-btn d-inline-flex align-items-center gap-1"
-               id={toggleId}
-            >
-               <i className="ri-accessibility-line" aria-hidden="true"></i>
-               <span className="d-none d-sm-inline">{t("nav.accessibilityMenuButton")}</span>
-            </Dropdown.Toggle>
-            <Dropdown.Menu align="end">
-               <Dropdown.Item
-                  as="button"
-                  type="button"
-                  data-eye-clickable
-                  onClick={(e) => {
-                     e.preventDefault();
-                     setSessionDyslexia((v) => !v);
-                  }}
-               >
-                  <i className="ri-book-read-line me-2" aria-hidden="true"></i>
-                  {sessionDyslexia ? t("signIn.dyslexiaModeDisable") : t("signIn.dyslexiaModeEnable")}
-               </Dropdown.Item>
-               {isA11ySession && (
-                  <>
-                     <Dropdown.Divider />
-                     <Dropdown.Item
-                        as="button"
-                        type="button"
-                        data-eye-clickable
-                        onClick={(e) => {
-                           e.preventDefault();
-                           setSessionLargeText((v) => !v);
-                        }}
-                     >
-                        <i className="ri-font-size me-2" aria-hidden="true"></i>
-                        {sessionLargeText ? t("signIn.largeTextDisable") : t("signIn.largeTextEnable")}
-                     </Dropdown.Item>
-                     {ttsSupported && (
-                        <Dropdown.Item
-                           as="button"
-                           type="button"
-                           data-eye-clickable
-                           onClick={(e) => {
-                              e.preventDefault();
-                              if (isReadingPage) stopPageReading();
-                              else readPageContent();
-                           }}
-                        >
-                           <i className={`me-2 ${isReadingPage ? "ri-volume-mute-line" : "ri-volume-up-line"}`} aria-hidden="true"></i>
-                           {isReadingPage ? t("signIn.stopReading") : t("signIn.readPage")}
-                        </Dropdown.Item>
-                     )}
-                     <Dropdown.Item
-                        as="button"
-                        type="button"
-                        data-eye-clickable
-                        aria-describedby="header-hand-nav-help"
-                        onClick={(e) => {
-                           e.preventDefault();
-                           if (handActive) stopHandGesture();
-                           else startHandGesture();
-                        }}
-                     >
-                        <i className={`me-2 ${handActive ? "ri-camera-off-line" : "ri-camera-line"}`} aria-hidden="true"></i>
-                        {handActive ? t("signIn.stopHandNav") : t("signIn.startHandNav")}
-                     </Dropdown.Item>
-                  </>
-               )}
-            </Dropdown.Menu>
-         </Dropdown>
-      </div>
-   );
-
    return (
       <>
          {/* <Navbar> */}
          <Navbar className={`nav navbar-expand-xl navbar-light iq-navbar pt-2 pb-2 px-2 iq-header ${isScrolled ? "fixed-header" : ""} ${pageLayout === 'container-fluid' ? "" : "container-box"}`} id="boxid">
             <Container fluid className="navbar-inner">
-               {isA11ySession && (
-                  <span id="header-hand-nav-help" className="visually-hidden">
-                     {t("nav.handNavHelp")}
-                  </span>
-               )}
                <Row className="flex-grow-1">
                   <Col lg={4} md={6} className="align-items-center d-flex">
                      <Nav.Item as="li" className="nav-item dropdown search-width pt-2 pt-lg-0">
@@ -547,7 +306,6 @@ const Header = () => {
                         <SvgFlagDz width={26} />
                      </span>
                      <LanguageSwitcher toggleClassName="nav-link d-none d-xl-block" />
-                     {renderAccessibilityMenu("d-none d-xl-flex align-items-center ms-1 flex-wrap", "accessibility-menu-xl")}
                      <Nav.Item as="li" className="nav-item iq-full-screen d-none d-xl-block"
                         id="fullscreen-item">
                         <a href="#" className="nav-link" id="btnFullscreen" onClick={toggleFullScreen}>
@@ -649,6 +407,88 @@ const Header = () => {
                         </Dropdown.Menu>
                      </Dropdown>
                      )}
+                     <Dropdown as="li" className="nav-item">
+                        <Dropdown.Toggle as="a" bsPrefix=' ' to="#" className="nav-link d-none d-xl-block"
+                           id="notification-drop" data-bs-toggle="dropdown">
+                           <i className="ri-mail-open-line"></i>
+                        </Dropdown.Toggle>
+                        <Dropdown.Menu as="div" className="p-0 sub-drop dropdown-menu dropdown-menu-end"
+                           aria-labelledby="notification-drop">
+                           <div className="m-0 -none card">
+                              <div
+                                 className="py-3 card-header d-flex justify-content-between bg-primary mb-0 rounded-top-3">
+                                 <div className="header-title w-100">
+                                    <h5
+                                       className="mb-0 text-white d-flex justify-content-between">All
+                                       Messages <small
+                                          className="badge text-bg-light  pt-1">4</small></h5>
+                                 </div>
+                              </div>
+                              <div className="p-0 card-body">
+                                 <a href="#" className="iq-sub-card">
+                                    <div className="d-flex align-items-center">
+                                       <img className="p-1 avatar-40 "
+                                          src={user01} alt
+                                          loading="lazy" />
+                                       <div className="ms-3 flex-grow-1 text-start">
+                                          <h6 className="mb-0 ">Emma Watson Bni</h6>
+                                          <div className="d-flex justify-content-between">
+                                             <p className="mb-0">Jond Bini</p>
+                                             <small className="float-end font-size-12">Just
+                                                Now</small>
+                                          </div>
+                                       </div>
+                                    </div>
+                                 </a>
+                                 <a href="#" className="iq-sub-card">
+                                    <div className="d-flex align-items-center">
+                                       <img className="p-1 avatar-40 "
+                                          src={user02} alt
+                                          loading="lazy" />
+                                       <div className="ms-3 flex-grow-1 text-start">
+                                          <h6 className="mb-0 ">New customer is join</h6>
+                                          <div className="d-flex justify-content-between">
+                                             <p className="mb-0">Jond Bini</p>
+                                             <small className="float-end font-size-12">5 days
+                                                ago</small>
+                                          </div>
+                                       </div>
+                                    </div>
+                                 </a>
+                                 <a href="#" className="iq-sub-card">
+                                    <div className="d-flex align-items-center">
+                                       <img className="p-1 avatar-40 "
+                                          src={user03} alt
+                                          loading="lazy" />
+                                       <div className="ms-3 flex-grow-1 text-start">
+                                          <h6 className="mb-0 ">Two customer is left</h6>
+                                          <div className="d-flex justify-content-between">
+                                             <p className="mb-0">Jond Bini</p>
+                                             <small className="float-end font-size-12">2 days
+                                                ago</small>
+                                          </div>
+                                       </div>
+                                    </div>
+                                 </a>
+                                 <a href="#" className="iq-sub-card">
+                                    <div className="d-flex align-items-center">
+                                       <img className="p-1 avatar-40 "
+                                          src={user04} alt
+                                          loading="lazy" />
+                                       <div className="ms-3 flex-grow-1 text-start">
+                                          <h6 className="mb-0 ">New Mail from Fenny</h6>
+                                          <div className="d-flex justify-content-between">
+                                             <p className="mb-0">Jond Bini</p>
+                                             <small className="float-end font-size-12">3 days
+                                                ago</small>
+                                          </div>
+                                       </div>
+                                    </div>
+                                 </a>
+                              </div>
+                           </div>
+                        </Dropdown.Menu>
+                     </Dropdown>
                      <Nav.Item as="li" className="nav-item d-block d-xl-none" onClick={handleSidebar}>
                         <a className="wrapper-menu" data-toggle="sidebar" data-active="true">
                            <div className="main-circle "><i className="ri-more-fill"></i></div>
@@ -675,7 +515,7 @@ const Header = () => {
                               className="img-fluid rounded" alt={t("nav.userAvatarAlt")} />
                            <div className="caption d-none d-lg-block ms-3">
                               <h6 className="mb-0 line-height">
-                                 {isDoctor ? formatDoctorFormalName(doctorUser, t) || doctorUser?.email : isPatient ? `${patientUser?.firstName || ''} ${patientUser?.lastName || ''}`.trim() || patientUser?.email : isNurse ? `${nurseUser?.firstName || ''} ${nurseUser?.lastName || ''}`.trim() || nurseUser?.email : (adminUser?.name || adminUser?.email || "Admin")}
+                                 {isDoctor ? `Dr. ${doctorUser?.firstName || ''} ${doctorUser?.lastName || ''}`.trim() || doctorUser?.email : isPatient ? `${patientUser?.firstName || ''} ${patientUser?.lastName || ''}`.trim() || patientUser?.email : isNurse ? `${nurseUser?.firstName || ''} ${nurseUser?.lastName || ''}`.trim() || nurseUser?.email : (adminUser?.name || adminUser?.email || "Admin")}
                               </h6>
                               <span className="font-size-12">{t("nav.connected")}</span>
                            </div>{" "}
@@ -686,8 +526,8 @@ const Header = () => {
                               <div
                                  className="py-3 card-header d-flex justify-content-between bg-primary mb-0 rounded-top-3">
                                  <div className="header-title">
-                                    <h5 className="mb-0 text-white">{t("nav.userAccountMenu")}</h5>
-                                    <span className="text-white small">{t("nav.userAccountMenuSubtitle")}</span>
+                                    <h5 className="mb-0 text-white">{t("nav.allNotifications")}</h5>
+                                    <span className="text-white ">{t("nav.available")}</span>
                                  </div>
                               </div>
                               <div className="p-0 card-body">
@@ -850,7 +690,7 @@ const Header = () => {
                                        className="btn btn-primary-subtle w-100"
                                        onClick={handleSignOut}
                                     >
-                                       {t("sidebar.logout")}
+                                       {t("nav.signOut")}
                                        <i className="ri-login-box-line ms-2"></i>
                                     </button>
                                  </div>
@@ -860,21 +700,6 @@ const Header = () => {
                      </Dropdown>
                   </Col>
                </Row>
-               {isA11ySession && handError && (
-                  <Row className="w-100">
-                     <Col xs={12}>
-                        <div className="alert alert-warning py-1 px-2 small mb-0 mt-1" role="alert">
-                           {handError}
-                           <button
-                              type="button"
-                              className="btn-close btn-sm float-end"
-                              onClick={() => setHandError("")}
-                              aria-label={t("signIn.closeAria")}
-                           />
-                        </div>
-                     </Col>
-                  </Row>
-               )}
 
             </Container>
 
@@ -882,9 +707,8 @@ const Header = () => {
             <Navbar.Collapse id="navbarSupportedContent">
                <Row className="flex-grow-1 pt-4 pb-4 px-2">
 
-                  <Col md={12} className="d-flex justify-content-end align-items-center flex-wrap gap-2">
+                  <Col md={12} className="d-flex justify-content-end align-items-center">
                      <LanguageSwitcher toggleClassName="nav-link d-block d-xl-none" />{" "}
-                     {renderAccessibilityMenu("d-flex d-xl-none align-items-center flex-wrap gap-1 justify-content-end", "accessibility-menu-collapsed")}
                      <li className="nav-item dropdown">
                      </li>
                      <Nav.Item className="iq-full-screen iq-full-screen2 d-block d-xl-none"
@@ -980,6 +804,81 @@ const Header = () => {
                         </Dropdown.Menu>
                      </Dropdown>
                      )}{" "}
+                     <Dropdown as="li" className="nav-item">
+                        <Dropdown.Toggle as="a" bsPrefix=' ' to="#" className="nav-link d-block d-xl-none"
+                           id="notification-drop">
+                           <i className="ri-mail-open-line"></i>
+                        </Dropdown.Toggle>
+                        <Dropdown.Menu as="div" className="p-0 sub-drop dropdown-menu-end"
+                           aria-labelledby="notification-drop">
+                           <div className="m-0 -none card">
+                              <div
+                                 className="py-3 card-header d-flex justify-content-between bg-primary mb-0">
+                                 <div className="header-title">
+                                    <h5 className="mb-0 text-white">{t("nav.allNotifications")}</h5>
+                                 </div>
+                              </div>
+                              <div className="p-0 card-body">
+                                 <Link to="#" className="iq-sub-card">
+                                    <div className="d-flex align-items-center">
+                                       <img
+                                          className="p-1 avatar-40 rounded-pill bg-primary-subtle"
+                                          src={user01} alt
+                                          loading="lazy" />
+                                       <div className="ms-3 flex-grow-1 text-start">
+                                          <h6 className="mb-0 ">Emma Watson Bni</h6>
+                                          <p className="mb-0">95 MB</p>
+                                       </div>
+                                       <small className="float-end font-size-12">Just
+                                          Now</small>
+                                    </div>
+                                 </Link>
+                                 <Link to="#" className="iq-sub-card">
+                                    <div className="d-flex align-items-center">
+                                       <img
+                                          className="p-1 avatar-40 rounded-pill bg-primary-subtle"
+                                          src={user02} alt
+                                          loading="lazy" />
+                                       <div className="ms-3 flex-grow-1 text-start">
+                                          <h6 className="mb-0 ">New customer is join</h6>
+                                          <p className="mb-0">Cyst Bni</p>
+                                       </div>
+                                       <small className="float-end font-size-12">5 days
+                                          ago</small>
+                                    </div>
+                                 </Link>
+                                 <Link to="#" className="iq-sub-card">
+                                    <div className="d-flex align-items-center">
+                                       <img
+                                          className="p-1 avatar-40 rounded-pill bg-primary-subtle"
+                                          src={user03} alt
+                                          loading="lazy" />
+                                       <div className="ms-3 flex-grow-1 text-start">
+                                          <h6 className="mb-0 ">Two customer is left</h6>
+                                          <p className="mb-0">Cyst Bni</p>
+                                       </div>
+                                       <small className="float-end font-size-12">2 days
+                                          ago</small>
+                                    </div>
+                                 </Link>
+                                 <Link to="#" className="iq-sub-card">
+                                    <div className="d-flex align-items-center">
+                                       <img
+                                          className="p-1 avatar-40 rounded-pill bg-primary-subtle"
+                                          src={user04} alt
+                                          loading="lazy" />
+                                       <div className="ms-3 flex-grow-1 text-start">
+                                          <h6 className="mb-0 ">New Mail from Fenny</h6>
+                                          <p className="mb-0">Cyst Bni</p>
+                                       </div>
+                                       <small className="float-end font-size-12">3 days
+                                          ago</small>
+                                    </div>
+                                 </Link>
+                              </div>
+                           </div>
+                        </Dropdown.Menu>
+                     </Dropdown>
 
                   </Col>
                </Row>

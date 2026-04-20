@@ -7,30 +7,15 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { MailMessage, MailSenderRole } from './schemas/mail-message.schema';
+import { MailMessage } from './schemas/mail-message.schema';
 import { MailUserState, MailFolder } from './schemas/mail-user-state.schema';
 import { MailLabel } from './schemas/mail-label.schema';
 import { MailPolicyService, MailPeer } from './mail-policy.service';
 import { EmailService } from '../auth/email.service';
 import { NotificationService } from '../notification/notification.service';
-import { User } from '../auth/schemas/user.schema';
 import { Patient } from '../patient/schemas/patient.schema';
 import { Doctor } from '../doctor/schemas/doctor.schema';
 import { Nurse } from '../nurse/schemas/nurse.schema';
-
-const INTERNAL_MAIL_SENDER_ROLES = [
-  'patient',
-  'doctor',
-  'nurse',
-  'admin',
-  'superadmin',
-  'carecoordinator',
-  'auditor',
-] as const;
-
-function canUseInternalMail(role: string): boolean {
-  return (INTERNAL_MAIL_SENDER_ROLES as readonly string[]).includes(role);
-}
 
 const MAIL_QUOTA_BYTES = 15 * 1024 * 1024 * 1024; // 15 Go
 
@@ -60,7 +45,6 @@ export class MailService {
     @InjectModel(MailMessage.name) private messageModel: Model<MailMessage>,
     @InjectModel(MailUserState.name) private stateModel: Model<MailUserState>,
     @InjectModel(MailLabel.name) private labelModel: Model<MailLabel>,
-    @InjectModel(User.name) private userModel: Model<User>,
     @InjectModel(Patient.name) private patientModel: Model<Patient>,
     @InjectModel(Doctor.name) private doctorModel: Model<Doctor>,
     @InjectModel(Nurse.name) private nurseModel: Model<Nurse>,
@@ -110,7 +94,7 @@ export class MailService {
     senderRole: string,
     senderId: string,
   ): Promise<void> {
-    const fromDisplay = await this.lookupPersonName(senderRole, senderId);
+    const fromDisplay = await this.lookupPersonName(senderRole as 'patient' | 'doctor' | 'nurse', senderId);
     for (const r of recipients) {
       const email = await this.lookupUserEmail(r.role, r.id);
       if (!email) {
@@ -138,7 +122,10 @@ export class MailService {
   ): Promise<void> {
     if (!recipientStates.length) return;
     try {
-      const senderName = await this.lookupPersonName(senderRole, senderId);
+      const senderName = await this.lookupPersonName(
+        senderRole as 'patient' | 'doctor' | 'nurse',
+        senderId,
+      );
       await this.notificationService.notifyNewInternalMail({
         messageId: String(messageId),
         subject,
@@ -241,7 +228,7 @@ export class MailService {
   ) {
     const ur = String(user.role);
     const id = uid(user);
-    if (!canUseInternalMail(ur)) {
+    if (!['patient', 'doctor', 'nurse'].includes(ur)) {
       throw new ForbiddenException('Messagerie réservée aux patients et au personnel soignant');
     }
 
@@ -260,7 +247,7 @@ export class MailService {
     }));
 
     const msg = await this.messageModel.create({
-      senderRole: ur as MailSenderRole,
+      senderRole: ur as 'patient' | 'doctor' | 'nurse',
       senderId: this.oid(id),
       recipients: recipientsOid,
       subject,
@@ -311,7 +298,7 @@ export class MailService {
   ) {
     const ur = String(user.role);
     const id = uid(user);
-    if (!canUseInternalMail(ur)) throw new ForbiddenException();
+    if (!['patient', 'doctor', 'nurse'].includes(ur)) throw new ForbiddenException();
 
     const subject = String(body.subject || '').slice(0, 500);
     const text = String(body.body || '');
@@ -325,7 +312,7 @@ export class MailService {
     }));
 
     const msg = await this.messageModel.create({
-      senderRole: ur as MailSenderRole,
+      senderRole: ur as 'patient' | 'doctor' | 'nurse',
       senderId: this.oid(id),
       recipients: recipientsOid,
       subject,
@@ -582,14 +569,6 @@ export class MailService {
   private async lookupPersonName(role?: string, id?: string): Promise<string> {
     if (!role || !id) return '';
     const sid = String(id);
-    if (['admin', 'superadmin', 'carecoordinator', 'auditor'].includes(String(role))) {
-      const u = await this.userModel.findById(sid).select('name firstName lastName email').lean().exec();
-      if (!u) return sid;
-      const n =
-        String((u as any).name || '').trim() ||
-        `${(u as any).firstName || ''} ${(u as any).lastName || ''}`.trim();
-      return n || (u as any).email || sid;
-    }
     if (role === 'doctor') {
       const d = await this.doctorModel.findById(sid).select('firstName lastName email').lean().exec();
       if (!d) return sid;
@@ -828,16 +807,8 @@ export class MailService {
   async getAllowedRecipients(user: JwtUser) {
     const ur = String(user.role);
     const id = uid(user);
-    /** Annuaire complet : tous les médecins, infirmiers et patients (sélection par l’administrateur). */
-    if (['admin', 'superadmin', 'carecoordinator', 'auditor'].includes(ur)) {
-      const doctors = await this.doctorModel.find().select('_id firstName lastName email').lean().exec();
-      const nurses = await this.nurseModel.find().select('_id firstName lastName email').lean().exec();
-      const patients = await this.patientModel.find().select('_id firstName lastName email').lean().exec();
-      return {
-        doctors: doctors.map((d: any) => ({ id: String(d._id), ...d })),
-        nurses: nurses.map((n: any) => ({ id: String(n._id), ...n })),
-        patients: patients.map((p: any) => ({ id: String(p._id), ...p })),
-      };
+    if (ur === 'admin' || ur === 'superadmin') {
+      return { peers: [], doctors: [], nurses: [], patients: [] };
     }
     if (ur === 'patient') {
       const p = await this.patientModel.findById(this.oid(id)).select('doctorId nurseId').lean().exec();

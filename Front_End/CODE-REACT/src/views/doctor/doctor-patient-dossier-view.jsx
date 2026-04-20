@@ -3,8 +3,6 @@ import { useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Alert, Badge, Button, Card, Col, Form, Modal, Row, Spinner, Table } from "react-bootstrap";
 import { healthLogApi, medicationApi, appointmentApi, questionnaireApi } from "../../services/api";
-import BrainMriAnalysisPage from "../../components/brain-mri-analysis-page";
-import { normalizeMongoId } from "../../utils/mongoId";
 import VitalMetricTile, { hrStatus, bpStatus, o2Status, tempStatus, weightStatus } from "../../components/VitalMetricTile";
 import {
   localDateStringYMD,
@@ -533,23 +531,6 @@ export default function DoctorPatientDossierView({ patient }) {
               </Alert>
             ) : (
               <>
-                {latestLog.location && (
-                  <Alert variant="danger" className="py-2 mb-3 rounded-3 border-0 d-flex align-items-center justify-content-between shadow-sm">
-                    <div>
-                      <i className="ri-map-pin-2-fill me-2 fs-5 align-middle" />
-                      <strong className="align-middle">{t("doctorPatientDossier.sosLocationLabel", "SOS: Critical Location Recorded")}</strong>
-                    </div>
-                    <a
-                      href={`https://maps.google.com/?q=${latestLog.location.lat},${latestLog.location.lng}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn btn-sm btn-danger"
-                    >
-                      <i className="ri-external-link-line me-1" /> {t("doctorPatientDossier.viewOnMap", "View Map")}
-                    </a>
-                  </Alert>
-                )}
-
                 {hasAnyAlert && (
                   <div className="mb-3">
                     {doctorAlerts.map((a, i) => (
@@ -933,18 +914,6 @@ export default function DoctorPatientDossierView({ patient }) {
                 </Table>
               </div>
             )}
-          </SectionCard>
-
-          <SectionCard
-            sectionId="dossier-section-brain-mri"
-            icon="ri-brain-line"
-            title={t("doctorPatientDossier.sectionBrainMri")}
-          >
-            <BrainMriAnalysisPage
-              variant="doctor"
-              patientId={normalizeMongoId(patient?._id ?? patient?.id)}
-              embedded
-            />
           </SectionCard>
 
           <SectionCard icon="ri-draft-line" title={t("doctorPatientDossier.sectionProtocol")}>

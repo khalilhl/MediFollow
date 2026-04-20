@@ -1,11 +1,6 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { Model } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import * as SimpleWebAuthnServer from '@simplewebauthn/server';
@@ -18,7 +13,6 @@ import { EmailService } from './email.service';
 import { PasskeyCredential } from './schemas/passkey-credential.schema';
 import { PasskeyChallenge } from './schemas/passkey-challenge.schema';
 import { FaceLoginProfile } from './schemas/face-login-profile.schema';
-import { DepartmentCatalog } from '../department/schemas/department-catalog.schema';
 
 const {
   generateAuthenticationOptions,
@@ -38,36 +32,9 @@ export class AuthService {
     @InjectModel(PasskeyCredential.name) private passkeyCredentialModel: Model<PasskeyCredential>,
     @InjectModel(PasskeyChallenge.name) private passkeyChallengeModel: Model<PasskeyChallenge>,
     @InjectModel(FaceLoginProfile.name) private faceLoginProfileModel: Model<FaceLoginProfile>,
-    @InjectModel(DepartmentCatalog.name) private departmentCatalogModel: Model<DepartmentCatalog>,
     private jwtService: JwtService,
     private emailService: EmailService,
   ) {}
-
-  private async releaseAdminCatalogAssignments(adminId: Types.ObjectId | string) {
-    const oid = new Types.ObjectId(String(adminId));
-    await this.departmentCatalogModel
-      .updateMany({ assignedAdminId: oid }, { $unset: { assignedAdminId: 1, assignedSuperAdminId: 1 } })
-      .exec();
-  }
-
-  /** Après création / mise à jour d’un admin avec département : une entrée catalogue par nom (créée si absente). */
-  private async syncAdminCatalogEntry(adminId: Types.ObjectId | string, deptName: string) {
-    const name = deptName.trim();
-    if (!name) return;
-    const oid = new Types.ObjectId(String(adminId));
-    await this.releaseAdminCatalogAssignments(adminId);
-    await this.departmentCatalogModel
-      .updateOne(
-        { name },
-        {
-          $set: { assignedAdminId: oid },
-          $unset: { assignedSuperAdminId: 1 },
-          $setOnInsert: { name },
-        },
-        { upsert: true },
-      )
-      .exec();
-  }
 
   private getWebAuthnConfig() {
     const expectedOrigin = process.env.PASSKEY_ORIGIN || process.env.FRONTEND_ORIGIN || 'http://localhost:5173';
@@ -172,7 +139,6 @@ export class AuthService {
           role: 'doctor',
           specialty: raw.specialty,
           profileImage: raw.profileImage,
-          academicTitle: raw.academicTitle === 'prof' ? 'prof' : 'dr',
         },
       };
     }
@@ -552,7 +518,7 @@ export class AuthService {
     if (!isMatch) throw new UnauthorizedException('Invalid email or password');
     const d = doctor.toObject();
     const payload = { sub: d._id, email: d.email, role: 'doctor' };
-    const result = {
+    return {
       access_token: this.jwtService.sign(payload),
       user: {
         id: d._id,
@@ -562,10 +528,8 @@ export class AuthService {
         role: 'doctor',
         specialty: d.specialty,
         profileImage: d.profileImage,
-        academicTitle: d.academicTitle === 'prof' ? 'prof' : 'dr',
       },
     };
-    return result;
   }
 
   async loginPatient(email: string, password: string) {
@@ -575,7 +539,7 @@ export class AuthService {
     if (!isMatch) throw new UnauthorizedException('Email ou mot de passe incorrect');
     const p = patient.toObject();
     const payload = { sub: p._id, email: p.email, role: 'patient' };
-    const result = {
+    return {
       access_token: this.jwtService.sign(payload),
       user: {
         id: p._id,
@@ -596,7 +560,6 @@ export class AuthService {
         height: (p as any).height,
       },
     };
-    return result;
   }
 
 
@@ -607,7 +570,7 @@ export class AuthService {
     if (!isMatch) throw new UnauthorizedException('Email ou mot de passe incorrect');
     const n = nurse.toObject();
     const payload = { sub: n._id, email: n.email, role: 'nurse' };
-    const result = {
+    return {
       access_token: this.jwtService.sign(payload),
       user: {
         id: n._id,
@@ -620,7 +583,6 @@ export class AuthService {
         profileImage: n.profileImage,
       },
     };
-    return result;
   }
 
   async validateUser(payload: any) {
@@ -637,7 +599,6 @@ export class AuthService {
         role: 'doctor',
         specialty: d.specialty,
         profileImage: d.profileImage,
-        academicTitle: d.academicTitle === 'prof' ? 'prof' : 'dr',
       };
     }
     if (payload.role === 'patient') {
@@ -678,11 +639,7 @@ export class AuthService {
       id: u._id,
       email: u.email,
       name: u.name,
-      firstName: u.firstName,
-      lastName: u.lastName,
       role: u.role,
-      department: u.department,
-      specialty: u.specialty,
       profileImage: u.profileImage,
       alternateEmail: u.alternateEmail,
       languages: u.languages || [],
@@ -734,92 +691,16 @@ export class AuthService {
     };
   }
 
-  async createAdmin(
-    email: string,
-    password: string,
-    name?: string,
-    department?: string,
-    firstName?: string,
-    lastName?: string,
-    phone?: string,
-  ) {
-    const dept = department?.trim() || undefined;
-    const displayName =
-      (name?.trim() || `${firstName?.trim() || ''} ${lastName?.trim() || ''}`.trim()) || 'Admin';
-
-    const existing = await this.userModel.findOne({ email }).exec();
-
-    if (dept) {
-      const cat = await this.departmentCatalogModel.findOne({ name: dept }).exec();
-      if (
-        cat?.assignedAdminId &&
-        (!existing || String(cat.assignedAdminId) !== String(existing._id))
-      ) {
-        throw new ConflictException(
-          'Un administrateur est déjà assigné à ce département dans le catalogue. Retirez l’assignation ou choisissez un autre département.',
-        );
-      }
-    }
-    if (existing?.role === 'superadmin') {
-      throw new BadRequestException('Cet email est déjà utilisé par un super administrateur');
-    }
+  async createAdmin(email: string, password: string, name?: string) {
     const hashed = await bcrypt.hash(password, 10);
-    const data: Record<string, unknown> = {
-      email,
-      password: hashed,
-      role: 'admin',
-      name: displayName,
-      isActive: true,
-      department: dept || '',
-      firstName: firstName?.trim() || undefined,
-      lastName: lastName?.trim() || undefined,
-      phone: phone?.trim() || undefined,
-    };
-    let userId: Types.ObjectId;
+    const data = { email, password: hashed, role: 'admin', name: name || 'Admin', isActive: true };
+    const existing = await this.userModel.findOne({ email }).exec();
     if (existing) {
-      await this.userModel.updateOne({ email }, { $set: data }).exec();
-      const u = await this.userModel.findOne({ email }).exec();
-      if (!u) throw new BadRequestException('Échec mise à jour administrateur');
-      userId = u._id as Types.ObjectId;
-    } else {
-      const user = await this.userModel.create(data);
-      userId = user._id as Types.ObjectId;
+      await this.userModel.updateOne({ email }, { $set: { password: hashed, role: 'admin', name: data.name, isActive: true } }).exec();
+      return { id: existing._id, email: existing.email, name: data.name, role: 'admin' };
     }
-    if (dept) {
-      await this.syncAdminCatalogEntry(userId, dept);
-    }
-    const final = await this.userModel.findById(userId).exec();
-    return {
-      id: final!._id,
-      email: final!.email,
-      name: final!.name,
-      role: 'admin',
-      department: final!.department || '',
-    };
-  }
-
-  /** Crée un admin et envoie les identifiants par e-mail (SMTP configuré dans .env). */
-  async createAdminWithCredentialsEmail(
-    email: string,
-    password: string,
-    name?: string,
-    department?: string,
-    firstName?: string,
-    lastName?: string,
-    phone?: string,
-  ) {
-    const result = await this.createAdmin(email, password, name, department, firstName, lastName, phone);
-    let credentialsEmailSent = false;
-    try {
-      credentialsEmailSent = await this.emailService.sendAdminCredentials(
-        result.email,
-        password,
-        name?.trim() || result.name || 'Administrateur',
-      );
-    } catch (e) {
-      console.error('[Auth] Échec envoi e-mail identifiants admin:', (e as Error)?.message || e);
-    }
-    return { ...result, credentialsEmailSent };
+    const user = await this.userModel.create(data);
+    return { id: user._id, email: user.email, name: user.name, role: user.role };
   }
 
   async createSuperAdmin(email: string, password: string, name?: string) {
@@ -877,9 +758,6 @@ export class AuthService {
   async deleteUser(id: string) {
     const user = await this.userModel.findById(id).exec();
     if (!user) throw new UnauthorizedException('Utilisateur non trouvé');
-    if (user.role === 'admin') {
-      await this.releaseAdminCatalogAssignments(user._id);
-    }
     await this.userModel.deleteOne({ _id: id }).exec();
     return { message: 'Utilisateur supprimé avec succès' };
   }
@@ -928,31 +806,6 @@ export class AuthService {
     return { id: user._id, email: user.email, name: user.name, role: user.role };
   }
 
-  async createUserWithRoleAndCredentialsEmail(data: any, role: string) {
-    const plainPassword = data.password as string;
-    const result = await this.createUserWithRole(data, role);
-    const displayName =
-      data.name || `${data.firstName || ''} ${data.lastName || ''}`.trim() || role;
-    const roleTitle =
-      role === 'auditor'
-        ? 'Auditeur'
-        : role === 'carecoordinator'
-          ? 'Coordinateur de soins'
-          : role;
-    let credentialsEmailSent = false;
-    try {
-      credentialsEmailSent = await this.emailService.sendPlatformStaffCredentials(
-        result.email,
-        plainPassword,
-        displayName,
-        roleTitle,
-      );
-    } catch (e) {
-      console.error('[Auth] Échec envoi e-mail compte plateforme:', (e as Error)?.message || e);
-    }
-    return { ...result, credentialsEmailSent };
-  }
-
   async updateUser(id: string, data: any) {
     const user = await this.userModel.findById(id).exec();
     if (!user) throw new UnauthorizedException('User not found');
@@ -990,25 +843,6 @@ export class AuthService {
     ).select('-password').exec();
 
     if (!updated) throw new UnauthorizedException('User not found');
-
-    if (updated.role === 'admin' && data.department !== undefined) {
-      const dept = String(data.department ?? '').trim();
-      if (dept) {
-        const cat = await this.departmentCatalogModel.findOne({ name: dept }).exec();
-        if (
-          cat?.assignedAdminId &&
-          String(cat.assignedAdminId) !== String(updated._id)
-        ) {
-          throw new ConflictException(
-            'Un administrateur est déjà assigné à ce département dans le catalogue. Retirez l’assignation ou choisissez un autre département.',
-          );
-        }
-        await this.syncAdminCatalogEntry(updated._id, dept);
-      } else {
-        await this.releaseAdminCatalogAssignments(updated._id);
-      }
-    }
-
     return {
       id: updated._id,
       email: updated.email,

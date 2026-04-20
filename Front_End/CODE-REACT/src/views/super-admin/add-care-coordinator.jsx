@@ -1,13 +1,23 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Card from "../../components/Card";
 import { Button, Col, Container, Form, Row } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { superAdminApi } from "../../services/api";
-import { hospitalDepartmentLabel } from "../../constants/hospitalDepartments";
-import { fetchAvailableCoordinatorDepartments } from "../../utils/mergedDepartmentNames";
 
 const generatePath = (path) => window.origin + import.meta.env.BASE_URL + path;
+
+const SPECIALTIES = ["Coordination des soins", "Suivi post-opératoire", "Maladies chroniques", "Pédiatrie", "Gériatrie", "Oncologie", "Autre"];
+
+const SPECIALTY_I18N = {
+  "Coordination des soins": "specCareCoordination",
+  "Suivi post-opératoire": "specPostOp",
+  "Maladies chroniques": "specChronic",
+  Pédiatrie: "specPediatrics",
+  Gériatrie: "specGeriatrics",
+  Oncologie: "specOncology",
+  Autre: "specOther",
+};
 
 const AddCareCoordinator = () => {
   const { t } = useTranslation();
@@ -15,31 +25,6 @@ const AddCareCoordinator = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [profilePreview, setProfilePreview] = useState(generatePath("/assets/images/user/11.png"));
-  const [deptOptions, setDeptOptions] = useState([]);
-  const [deptLoading, setDeptLoading] = useState(true);
-  const [deptLoadError, setDeptLoadError] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    setDeptLoading(true);
-    setDeptLoadError(false);
-    fetchAvailableCoordinatorDepartments()
-      .then((names) => {
-        if (!cancelled) setDeptOptions(names);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setDeptOptions([]);
-          setDeptLoadError(true);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setDeptLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -68,18 +53,11 @@ const AddCareCoordinator = () => {
       return;
     }
     const profileImage = profilePreview.startsWith("data:") ? profilePreview : null;
-    const dept = form.department?.value?.trim() || "";
-    if (!dept) {
-      setError(t("addCareCoordinator.departmentRequired"));
-      setLoading(false);
-      return;
-    }
     try {
       await superAdminApi.createCareCoordinator({
         firstName: form.fname?.value, lastName: form.lname?.value,
         email: form.email?.value, password,
-        department: dept,
-        specialty: dept,
+        specialty: form.specialty?.value, department: form.department?.value,
         phone: form.phone?.value, address: form.address?.value,
         city: form.city?.value, country: form.country?.value,
         profileImage,
@@ -152,30 +130,19 @@ const AddCareCoordinator = () => {
                   </Col>
                   <Col md={6}>
                     <Form.Group>
-                      <Form.Label>{t("addCareCoordinator.labelDepartment")}</Form.Label>
-                      <Form.Select
-                        name="department"
-                        required
-                        disabled={deptLoading || deptOptions.length === 0}
-                      >
-                        <option value="">
-                          {deptLoading
-                            ? t("addCareCoordinator.departmentLoading")
-                            : deptOptions.length === 0
-                              ? t("addCareCoordinator.departmentEmptyOption")
-                              : t("addCareCoordinator.selectDepartment")}
-                        </option>
-                        {deptOptions.map((s) => (
-                          <option key={s} value={s}>
-                            {hospitalDepartmentLabel(s, t)}
-                          </option>
+                      <Form.Label>{t("addCareCoordinator.labelSpecialty")}</Form.Label>
+                      <Form.Select name="specialty">
+                        <option value="">{t("addCareCoordinator.selectSpecialty")}</option>
+                        {SPECIALTIES.map((s) => (
+                          <option key={s} value={s}>{t(`addCareCoordinator.${SPECIALTY_I18N[s]}`)}</option>
                         ))}
                       </Form.Select>
-                      <Form.Text className="text-muted">
-                        {deptLoadError
-                          ? t("addCareCoordinator.departmentLoadError")
-                          : t("addCareCoordinator.departmentHelp")}
-                      </Form.Text>
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label>{t("addCareCoordinator.labelDepartment")}</Form.Label>
+                      <Form.Control type="text" name="department" placeholder={t("addCareCoordinator.placeholderDepartment")} />
                     </Form.Group>
                   </Col>
                   <Col md={6}>

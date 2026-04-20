@@ -6,7 +6,11 @@ import { departmentApi, questionnaireApi } from "../../services/api";
 
 function defaultQuestionRows(t) {
   const ts = Date.now();
-  return [{ uid: `r-${ts}-a`, label: t("adminQuestionnaireBank.defaultQ1"), type: "scale_10" }];
+  return [
+    { uid: `r-${ts}-a`, label: t("adminQuestionnaireBank.defaultQ1"), type: "scale_10" },
+    { uid: `r-${ts}-b`, label: t("adminQuestionnaireBank.defaultQ2"), type: "yes_no" },
+    { uid: `r-${ts}-c`, label: t("adminQuestionnaireBank.defaultQ3"), type: "text" },
+  ];
 }
 
 function defaultMilestoneRows() {
@@ -41,7 +45,6 @@ const AdminQuestionnaireBank = () => {
   const questionTypeOptions = useMemo(
     () => [
       { value: "scale_10", label: t("adminQuestionnaireBank.typeScale10") },
-      { value: "multiple_choice", label: t("adminQuestionnaireBank.typeMultipleChoice") },
       { value: "yes_no", label: t("adminQuestionnaireBank.typeYesNo") },
       { value: "text", label: t("adminQuestionnaireBank.typeText") },
     ],
@@ -82,62 +85,28 @@ const AdminQuestionnaireBank = () => {
     [templates, pDept]
   );
 
-  const templateTitleError = useMemo(() => {
-    const trimmed = String(tTitle).trim();
-    if (!trimmed) return null;
-    if (!/\p{L}/u.test(trimmed)) return t("adminQuestionnaireBank.msgInvalidTitle");
-    return null;
-  }, [tTitle, t]);
-
   const buildQuestionsPayload = () => {
     const rows = tQuestionRows.filter((r) => String(r.label || "").trim());
     if (!rows.length) return null;
-    return rows.map((r, i) => {
-      const base = {
-        qid: `q${i + 1}`,
-        label: String(r.label).trim(),
-        type: r.type,
-        order: i,
-      };
-      if (r.type === "multiple_choice") {
-        const opts = String(r.optionsText || "")
-          .split(/\r?\n/)
-          .map((s) => s.trim())
-          .filter(Boolean);
-        return { ...base, options: opts };
-      }
-      return base;
-    });
+    return rows.map((r, i) => ({
+      qid: `q${i + 1}`,
+      label: String(r.label).trim(),
+      type: r.type,
+      order: i,
+    }));
   };
 
   const handleCreateTemplate = async (e) => {
     e.preventDefault();
     setMsg("");
-    const titleTrimmed = String(tTitle).trim();
-    if (!titleTrimmed) {
-      setMsg(t("adminQuestionnaireBank.msgNeedTitle"));
-      return;
-    }
-    if (!/\p{L}/u.test(titleTrimmed)) {
-      setMsg(t("adminQuestionnaireBank.msgInvalidTitle"));
-      return;
-    }
     const questions = buildQuestionsPayload();
     if (!questions) {
       setMsg(t("adminQuestionnaireBank.msgNeedQuestion"));
       return;
     }
-    const badMc = questions.some(
-      (q) =>
-        q.type === "multiple_choice" && (!Array.isArray(q.options) || q.options.length < 2)
-    );
-    if (badMc) {
-      setMsg(t("adminQuestionnaireBank.msgNeedChoiceOptions"));
-      return;
-    }
     try {
       await questionnaireApi.adminCreateTemplate({
-        title: titleTrimmed,
+        title: tTitle,
         department: tDept,
         description: tDesc || undefined,
         questions,
@@ -161,16 +130,7 @@ const AdminQuestionnaireBank = () => {
   };
 
   const updateQuestionRow = (uid, field, value) => {
-    setTQuestionRows((rows) =>
-      rows.map((r) => {
-        if (r.uid !== uid) return r;
-        const next = { ...r, [field]: value };
-        if (field === "type" && value === "multiple_choice" && !String(r.optionsText || "").trim()) {
-          next.optionsText = t("adminQuestionnaireBank.defaultChoiceLines");
-        }
-        return next;
-      })
-    );
+    setTQuestionRows((rows) => rows.map((r) => (r.uid === uid ? { ...r, [field]: value } : r)));
   };
 
   const moveQuestionRow = (uid, dir) => {
@@ -292,15 +252,7 @@ const AdminQuestionnaireBank = () => {
                     <Form onSubmit={handleCreateTemplate}>
                       <Form.Group className="mb-2">
                         <Form.Label>{t("adminQuestionnaireBank.fieldTitle")}</Form.Label>
-                        <Form.Control
-                          value={tTitle}
-                          onChange={(e) => setTTitle(e.target.value)}
-                          required
-                          isInvalid={!!templateTitleError}
-                          placeholder={t("adminQuestionnaireBank.placeholderTitle")}
-                          aria-invalid={!!templateTitleError}
-                        />
-                        <Form.Control.Feedback type="invalid">{templateTitleError}</Form.Control.Feedback>
+                        <Form.Control value={tTitle} onChange={(e) => setTTitle(e.target.value)} required placeholder={t("adminQuestionnaireBank.placeholderTitle")} />
                       </Form.Group>
                       <Form.Group className="mb-2">
                         <Form.Label>{t("adminQuestionnaireBank.fieldDepartment")}</Form.Label>
@@ -351,7 +303,7 @@ const AdminQuestionnaireBank = () => {
                               placeholder={t("adminQuestionnaireBank.labelPlaceholder")}
                             />
                           </Form.Group>
-                          <Form.Group className="mb-2">
+                          <Form.Group className="mb-0">
                             <Form.Label className="small">{t("adminQuestionnaireBank.responseType")}</Form.Label>
                             <Form.Select value={row.type} onChange={(e) => updateQuestionRow(row.uid, "type", e.target.value)}>
                               {questionTypeOptions.map((opt) => (
@@ -361,19 +313,6 @@ const AdminQuestionnaireBank = () => {
                               ))}
                             </Form.Select>
                           </Form.Group>
-                          {row.type === "multiple_choice" && (
-                            <Form.Group className="mb-0">
-                              <Form.Label className="small">{t("adminQuestionnaireBank.choicesLabel")}</Form.Label>
-                              <Form.Control
-                                as="textarea"
-                                rows={4}
-                                value={row.optionsText ?? ""}
-                                onChange={(e) => updateQuestionRow(row.uid, "optionsText", e.target.value)}
-                                placeholder={t("adminQuestionnaireBank.choicesPlaceholder")}
-                              />
-                              <Form.Text className="text-muted">{t("adminQuestionnaireBank.choicesHelp")}</Form.Text>
-                            </Form.Group>
-                          )}
                         </div>
                       ))}
 
@@ -394,6 +333,7 @@ const AdminQuestionnaireBank = () => {
                           <tr>
                             <th>{t("adminQuestionnaireBank.thTitle")}</th>
                             <th>{t("adminQuestionnaireBank.thDepartment")}</th>
+                            <th>{t("adminQuestionnaireBank.thId")}</th>
                             <th />
                           </tr>
                         </thead>
@@ -402,6 +342,9 @@ const AdminQuestionnaireBank = () => {
                             <tr key={tpl._id}>
                               <td className="fw-medium">{tpl.title}</td>
                               <td>{tpl.department}</td>
+                              <td>
+                                <code className="small text-break">{tpl._id}</code>
+                              </td>
                               <td className="text-end">
                                 <Button variant="outline-danger" size="sm" onClick={() => delTemplate(tpl._id)}>
                                   {t("adminQuestionnaireBank.delete")}

@@ -6,113 +6,30 @@ import { Patient } from '../patient/schemas/patient.schema';
 import { Nurse } from '../nurse/schemas/nurse.schema';
 import { NotificationService } from '../notification/notification.service';
 import { ChatService } from '../chat/chat.service';
-import { SmsService } from '../auth/sms.service';
 
-function num(v: unknown): number | null {
-  if (v === '' || v == null || v === undefined) return null;
-  const n = Number(v);
-  return Number.isNaN(n) ? null : n;
-}
-
-/** Dérive les ids `symptoms` à partir du subjectif structuré (photo 5). */
-function deriveSymptomsFromStructured(s: any): string[] {
-  if (!s || typeof s !== 'object') return [];
-  const out: string[] = [];
-  if ((num(s.fatigue) ?? 0) > 0) out.push('fatigue');
-  if ((num(s.chestPain) ?? 0) > 0) out.push('chestPain');
-  if ((num(s.shortBreath) ?? 0) > 0) out.push('shortBreath');
-  if ((num(s.nausea) ?? 0) > 0) out.push('nausea');
-  if (s.feltFever) out.push('fever');
-  if (s.palpitations) out.push('palpitations');
-  if (s.cough) out.push('cough');
-  if (s.dizzinessConfusion) out.push('dizziness');
-  return out;
-}
-
-function symptomStructuredIsActive(s: any): boolean {
-  if (!s || typeof s !== 'object') return false;
-  return (
-    (num(s.fatigue) ?? 0) > 0 ||
-    (num(s.chestPain) ?? 0) > 0 ||
-    (num(s.shortBreath) ?? 0) > 0 ||
-    (num(s.nausea) ?? 0) > 0 ||
-    !!s.feltFever ||
-    !!s.palpitations ||
-    !!s.cough ||
-    !!s.dizzinessConfusion
-  );
-}
-
-/** Dictionnaire vitaux / symptômes (seuils critiques document projet). */
-const computeRiskScore = (
-  data: any,
-  opts?: { previousWeightKg?: number | null },
-): { score: number; flagged: boolean } => {
+const computeRiskScore = (data: any): { score: number; flagged: boolean } => {
   let score = 0;
 
-  const hr = num(data.vitals?.heartRate);
-  if (hr != null && (hr < 50 || hr > 120)) score += 20;
+  const hr = data.vitals?.heartRate;
+  if (hr && (hr < 50 || hr > 110)) score += 20;
 
-  const sys = num(data.vitals?.bloodPressureSystolic);
-  const dia = num(data.vitals?.bloodPressureDiastolic);
-  if (sys != null && dia != null) {
-    if ((sys >= 180 && dia >= 120) || sys < 90 || dia < 60) score += 25;
-  } else {
-    if (sys != null && (sys >= 180 || sys < 90)) score += 15;
-    if (dia != null && (dia >= 120 || dia < 60)) score += 15;
-  }
+  const sys = data.vitals?.bloodPressureSystolic;
+  if (sys && (sys < 90 || sys > 160)) score += 20;
 
-  const o2 = num(data.vitals?.oxygenSaturation);
-  if (o2 != null) {
-    if (o2 < 90) score += 25;
-    else if (o2 < 95) score += 10;
-  }
+  const o2 = data.vitals?.oxygenSaturation;
+  if (o2 && o2 < 94) score += 25;
 
-  const temp = num(data.vitals?.temperature);
-  if (temp != null && (temp >= 38.5 || temp < 35)) score += 15;
+  const temp = data.vitals?.temperature;
+  if (temp && (temp < 36 || temp > 38.5)) score += 15;
 
-  const rr = num(data.vitals?.respiratoryRate);
-  if (rr != null && (rr > 30 || rr < 8)) score += 20;
+  const highRiskSymptoms = ['shortness of breath', 'chest pain', 'fainting', 'severe headache'];
+  const symptomHits = (data.symptoms || []).filter((s: string) =>
+    highRiskSymptoms.some((h) => s.toLowerCase().includes(h.toLowerCase())),
+  ).length;
+  score += symptomHits * 15;
 
-  const newW = num(data.vitals?.weight);
-  const prevW = num(opts?.previousWeightKg);
-  if (newW != null && prevW != null && prevW > 0) {
-    const delta = Math.abs(newW - prevW) / prevW;
-    if (delta >= 0.05) score += 15;
-  }
-
-  const s = data.symptomStructured;
-  if (symptomStructuredIsActive(s)) {
-    const fatigue = num(s.fatigue) ?? 0;
-    if (fatigue >= 3) score += 8;
-    if (fatigue >= 5) score += 5;
-    const chestPain = num(s.chestPain) ?? 0;
-    if (chestPain >= 3) score += 20;
-    if (chestPain >= 7) score += 10;
-    const shortBreath = num(s.shortBreath) ?? 0;
-    if (shortBreath >= 2) score += 15;
-    if (shortBreath >= 4) score += 5;
-    const nausea = num(s.nausea) ?? 0;
-    if (nausea >= 3) score += 8;
-    if (s.feltFever) score += 10;
-    if (s.palpitations) score += 10;
-    if (s.cough) score += 8;
-    if (s.dizzinessConfusion) score += 12;
-  } else {
-    const ids = new Set((data.symptoms || []).map((x: string) => String(x).toLowerCase()));
-    if ([...ids].some((id) => id === 'shortbreath' || String(id).includes('shortness'))) score += 15;
-    if ([...ids].some((id) => id === 'chestpain' || String(id).includes('chest pain'))) score += 20;
-    if (ids.has('fatigue')) score += 5;
-    if (ids.has('fever')) score += 10;
-    if (ids.has('palpitations')) score += 10;
-    if (ids.has('nausea')) score += 5;
-    if (ids.has('dizziness')) score += 8;
-    if (ids.has('cough')) score += 8;
-  }
-
-  const pain = num(data.painLevel) ?? 0;
-  if (pain >= 7) score += 15;
-  else if (pain >= 5) score += 8;
+  if (data.painLevel >= 7) score += 15;
+  else if (data.painLevel >= 5) score += 8;
 
   if (data.mood === 'poor') score += 10;
 
@@ -138,23 +55,9 @@ function buildVitalAlertMessageFr(patientName: string, log: any): string {
   }
   if (v.oxygenSaturation != null) lines.push(`• SpO₂ : ${v.oxygenSaturation} %`);
   if (v.temperature != null && v.temperature !== '') lines.push(`• Température : ${v.temperature} °C`);
-  if (v.respiratoryRate != null && v.respiratoryRate !== '') lines.push(`• Respiration : ${v.respiratoryRate} /min`);
   if (v.weight != null && v.weight !== '') lines.push(`• Poids : ${v.weight} kg`);
   const sym = Array.isArray(log.symptoms) ? log.symptoms : [];
   if (sym.length) lines.push('', `Symptômes déclarés : ${sym.join(', ')}`);
-  const ss = log.symptomStructured;
-  if (ss && typeof ss === 'object' && symptomStructuredIsActive(ss)) {
-    const parts: string[] = [];
-    if ((num(ss.fatigue) ?? 0) > 0) parts.push(`fatigue ${ss.fatigue}/5`);
-    if ((num(ss.chestPain) ?? 0) > 0) parts.push(`douleur thoracique ${ss.chestPain}/10`);
-    if ((num(ss.shortBreath) ?? 0) > 0) parts.push(`essoufflement ${ss.shortBreath}/5`);
-    if ((num(ss.nausea) ?? 0) > 0) parts.push(`nausée ${ss.nausea}/5`);
-    if (ss.feltFever) parts.push('fièvre ressentie');
-    if (ss.palpitations) parts.push('palpitations');
-    if (ss.cough) parts.push('toux');
-    if (ss.dizzinessConfusion) parts.push('vertiges / confusion');
-    if (parts.length) lines.push('', `Subjectif (scores) : ${parts.join(' · ')}`);
-  }
   lines.push(`Douleur : ${log.painLevel ?? 0}/10`, `Ressenti : ${log.mood || '—'}`);
   lines.push(
     '',
@@ -195,7 +98,6 @@ export class HealthLogService {
     @InjectModel(Nurse.name) private nurseModel: Model<Nurse>,
     private notificationService: NotificationService,
     private chatService: ChatService,
-    private smsService: SmsService,
   ) {}
 
   private toPatientObjectId(patientId: string) {
@@ -223,38 +125,14 @@ export class HealthLogService {
     let recordedAt = data.recordedAt ? new Date(data.recordedAt) : new Date();
     if (Number.isNaN(recordedAt.getTime())) recordedAt = new Date();
 
-    const prevLog = await this.healthLogModel
-      .findOne({ patientId: pid })
-      .sort({ recordedAt: -1 })
-      .lean()
-      .exec();
-    const previousWeightKg =
-      prevLog?.vitals?.weight != null && (prevLog.vitals as any).weight !== ''
-        ? Number((prevLog.vitals as any).weight)
-        : null;
+    const { score, flagged } = computeRiskScore(data);
 
-    const structured =
-      data.symptomStructured && typeof data.symptomStructured === 'object' ? data.symptomStructured : {};
-    const derived = deriveSymptomsFromStructured(structured);
-    const symptoms =
-      derived.length > 0 ? derived : Array.isArray(data.symptoms) ? data.symptoms : [];
-
-    const mergedForScore = { ...data, symptomStructured: structured, symptoms };
-    const { score, flagged } = computeRiskScore(mergedForScore, { previousWeightKg });
-
-    const location =
-      data.location && typeof data.location === 'object' &&
-      typeof data.location.lat === 'number' && typeof data.location.lng === 'number'
-        ? { lat: data.location.lat, lng: data.location.lng }
-        : undefined;
-
-    const payload: any = {
+    const payload = {
       patientId: pid,
       date,
       recordedAt,
       vitals: data.vitals || {},
-      symptomStructured: structured,
-      symptoms,
+      symptoms: data.symptoms || [],
       painLevel: data.painLevel ?? 0,
       mood: data.mood || 'good',
       notes: data.notes || '',
@@ -262,18 +140,9 @@ export class HealthLogService {
       flagged,
       escalationStatus: 'none' as const,
     };
-    if (location) payload.location = location;
 
     const doc = await this.healthLogModel.create(payload);
     const docObj = doc.toObject ? doc.toObject() : doc;
-
-    // ── Determine if any single vital is critically dangerous (for SOS SMS) ──
-    const v = data.vitals || {};
-    const sosCritical =
-      (num(v.oxygenSaturation) != null && num(v.oxygenSaturation) < 95) ||
-      (num(v.heartRate) != null && (num(v.heartRate) > 120 || num(v.heartRate) < 50)) ||
-      (num(v.bloodPressureSystolic) != null && (num(v.bloodPressureSystolic) >= 180 || num(v.bloodPressureSystolic) < 90)) ||
-      (num(v.temperature) != null && (num(v.temperature) >= 38.5 || num(v.temperature) < 35));
 
     if (flagged) {
       const patient = await this.patientModel
@@ -308,39 +177,6 @@ export class HealthLogService {
         });
       } catch (e) {
         console.error('[HealthLog] Alerte / messagerie:', e);
-      }
-    }
-
-    // ── SOS SMS dispatch (Twilio) — independent of flagged status ─────
-    if (sosCritical) {
-      const patient = await this.patientModel
-        .findById(pid)
-        .select('firstName lastName doctorId')
-        .lean()
-        .exec();
-      const patientName =
-        `${(patient as any)?.firstName || ''} ${(patient as any)?.lastName || ''}`.trim() || 'Patient';
-
-      // Look up the assigned doctor's name
-      let doctorName = 'Unassigned';
-      const doctorId = (patient as any)?.doctorId ? String((patient as any).doctorId) : '';
-      if (doctorId) {
-        try {
-          const { Model } = require('mongoose');
-          const doctorDoc = await this.patientModel.db
-            .collection('doctors')
-            .findOne({ _id: new Types.ObjectId(doctorId) }, { projection: { firstName: 1, lastName: 1 } });
-          if (doctorDoc) {
-            doctorName = `${doctorDoc.firstName || ''} ${doctorDoc.lastName || ''}`.trim() || 'Doctor';
-          }
-        } catch (_) { /* fallback to Unassigned */ }
-      }
-
-      try {
-        console.log('[HealthLog] Critical vital detected! Sending SOS SMS...');
-        await this.smsService.sendSOSAlert(patientName, doctorName, data.vitals || {}, location);
-      } catch (e) {
-        console.error('[HealthLog] SOS Dispatch error (non-blocking):', e);
       }
     }
 
@@ -553,48 +389,6 @@ export class HealthLogService {
   }
 
   /** Liste des alertes vitales ouvertes pour l’infirmier connecté. */
-  /**
-   * Super admin : nombre d'alertes vitales encore ouvertes (tous services) + derniers relevés.
-   */
-  async getPlatformOpenVitalsSummary() {
-    const match = {
-      flagged: true,
-      escalationStatus: { $in: ['alert_sent', 'escalated_to_doctor'] },
-    };
-    const [openCount, recent] = await Promise.all([
-      this.healthLogModel.countDocuments(match).exec(),
-      this.healthLogModel
-        .find(match)
-        .sort({ createdAt: -1 })
-        .limit(5)
-        .select('patientId recordedAt riskScore escalationStatus')
-        .lean()
-        .exec(),
-    ]);
-    const pids = [...new Set(recent.map((r: { patientId?: unknown }) => String(r.patientId)).filter(Boolean))];
-    const oids = pids.filter((id) => Types.ObjectId.isValid(id)).map((id) => new Types.ObjectId(id));
-    const patients = oids.length
-      ? await this.patientModel.find({ _id: { $in: oids } }).select('firstName lastName').lean().exec()
-      : [];
-    const nameById = new Map(
-      (patients as { _id: unknown; firstName?: string; lastName?: string }[]).map((p) => [
-        String(p._id),
-        `${p.firstName || ''} ${p.lastName || ''}`.trim() || 'Patient',
-      ]),
-    );
-    return {
-      openCount,
-      recent: recent.map((l: Record<string, unknown>) => ({
-        id: String(l._id),
-        patientId: String(l.patientId),
-        patientName: nameById.get(String(l.patientId)) || 'Patient',
-        recordedAt: l.recordedAt,
-        riskScore: l.riskScore,
-        escalationStatus: l.escalationStatus,
-      })),
-    };
-  }
-
   async listOpenAlertsForNurse(user: JwtLike) {
     if (String(user.role) !== 'nurse') throw new ForbiddenException();
     const uid = this.uid(user);

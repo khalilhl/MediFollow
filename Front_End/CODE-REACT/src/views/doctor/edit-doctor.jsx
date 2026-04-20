@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import Card from "../../components/Card";
 import { Button, Col, Container, Form, Row } from "react-bootstrap";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { doctorApi } from "../../services/api";
-import { HOSPITAL_DEPARTMENTS, hospitalDepartmentLabel } from "../../constants/hospitalDepartments";
-import { fetchMergedDepartmentNames, mergeDepartmentOptionsForValue } from "../../utils/mergedDepartmentNames";
+import { HOSPITAL_DEPARTMENTS } from "../../constants/hospitalDepartments";
 
 const generatePath = (path) => window.origin + import.meta.env.BASE_URL + path;
 
@@ -50,7 +49,6 @@ const EditDoctor = () => {
         setFormData({
           fname: data.firstName || "",
           lname: data.lastName || "",
-          academicTitle: data.academicTitle === "prof" ? "prof" : "dr",
           email: data.email || "",
           selectuserrole: data.specialty || "",
           cname: data.department || "",
@@ -74,16 +72,6 @@ const EditDoctor = () => {
   }, [id]);
 
   const [formData, setFormData] = useState({});
-  const [deptOptions, setDeptOptions] = useState(HOSPITAL_DEPARTMENTS);
-
-  useEffect(() => {
-    fetchMergedDepartmentNames().then(setDeptOptions);
-  }, []);
-
-  const departmentSelectOptions = useMemo(
-    () => mergeDepartmentOptionsForValue(deptOptions, formData.cname),
-    [deptOptions, formData.cname],
-  );
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -122,7 +110,6 @@ const EditDoctor = () => {
       firstName: form.fname?.value,
       lastName: form.lname?.value,
       email: form.email?.value,
-      academicTitle: form.academicTitle?.value === "prof" ? "prof" : "dr",
       specialty: form.selectuserrole?.value,
       department: form.cname?.value,
       phone: form.mobno?.value,
@@ -140,31 +127,6 @@ const EditDoctor = () => {
 
     try {
       await doctorApi.update(id, payload);
-      try {
-        const docRaw = localStorage.getItem("doctorUser");
-        if (docRaw) {
-          const u = JSON.parse(docRaw);
-          const myId = u?.id ?? u?._id;
-          if (String(myId) === String(id)) {
-            localStorage.setItem(
-              "doctorUser",
-              JSON.stringify({
-                ...u,
-                firstName: payload.firstName,
-                lastName: payload.lastName,
-                email: payload.email,
-                academicTitle: payload.academicTitle,
-                specialty: payload.specialty,
-                department: payload.department,
-                profileImage: payload.profileImage,
-              })
-            );
-            window.dispatchEvent(new Event("doctor-updated"));
-          }
-        }
-      } catch {
-        /* ignore */
-      }
       navigate("/doctor/doctor-list");
     } catch (err) {
       if (err.status === 401) {
@@ -279,13 +241,6 @@ const EditDoctor = () => {
                       <Form.Label className="mb-0">{t("editDoctor.labelLastName")}</Form.Label>
                       <Form.Control type="text" className="my-2" name="lname" placeholder={t("editDoctor.placeholderLastName")} required defaultValue={formData.lname} />
                     </Col>
-                    <Col sm={12} className="form-group">
-                      <Form.Label className="mb-0">{t("editDoctor.academicTitleLabel")}</Form.Label>
-                      <Form.Control as="select" className="my-2" name="academicTitle" defaultValue={formData.academicTitle || "dr"}>
-                        <option value="dr">{t("editDoctor.academicTitleDr")}</option>
-                        <option value="prof">{t("editDoctor.academicTitleProf")}</option>
-                      </Form.Control>
-                    </Col>
                     <Col md={6} className="form-group">
                       <Form.Label className="mb-0">{t("editDoctor.labelAddress1")}</Form.Label>
                       <Form.Control type="text" className="my-2" name="add1" placeholder={t("editDoctor.placeholderAddress")} defaultValue={formData.add1} />
@@ -298,8 +253,8 @@ const EditDoctor = () => {
                       <Form.Label className="mb-0">{t("editDoctor.labelDepartment")}</Form.Label>
                       <Form.Control as="select" className="my-2" name="cname" defaultValue={formData.cname}>
                         <option value="">{t("editDoctor.selectDepartment")}</option>
-                        {departmentSelectOptions.map((d) => (
-                          <option key={d} value={d}>{hospitalDepartmentLabel(d, t)}</option>
+                        {HOSPITAL_DEPARTMENTS.map((d) => (
+                          <option key={d} value={d}>{d}</option>
                         ))}
                       </Form.Control>
                     </Col>

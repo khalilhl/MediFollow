@@ -2,7 +2,6 @@ import {
   BadRequestException,
   Body,
   Controller,
-  ForbiddenException,
   Get,
   Param,
   Patch,
@@ -56,16 +55,6 @@ export class HealthLogController {
   @Get('doctor/nurse-escalations')
   async doctorNurseEscalations(@Request() req: any, @Query('status') status?: string) {
     return this.healthLogService.listDoctorNurseEscalations(req.user, status);
-  }
-
-  /** Synthèse alertes vitales ouvertes (plateforme) — super administrateur uniquement. */
-  @UseGuards(JwtAuthGuard)
-  @Get('platform/open-vitals-summary')
-  async platformOpenVitalsSummary(@Request() req: { user?: { role?: string } }) {
-    if (req.user?.role !== 'superadmin') {
-      throw new ForbiddenException('Accès réservé au super administrateur');
-    }
-    return this.healthLogService.getPlatformOpenVitalsSummary();
   }
 
   // GET endpoints do NOT require auth — patientId is in the URL

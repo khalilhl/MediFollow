@@ -47,9 +47,6 @@ export class Appointment extends Document {
 
   @Prop()
   notes: string;
-
-  @Prop({ default: false })
-  isVideoCall: boolean;
 }
 
 export const AppointmentSchema = SchemaFactory.createForClass(Appointment);

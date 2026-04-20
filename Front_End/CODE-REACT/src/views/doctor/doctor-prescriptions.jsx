@@ -1,14 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Button, Card, Col, Container, Form, InputGroup, Row, Spinner, Table } from "react-bootstrap";
+import { Button, Card, Col, Container, Form, Row, Spinner, Table } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { patientApi, medicationApi, medicalCertificateApi } from "../../services/api";
+import { patientApi, medicationApi } from "../../services/api";
 import MedicationNameAutocomplete from "../../components/MedicationNameAutocomplete";
 import DosageAutocomplete from "../../components/DosageAutocomplete";
 import { formatMedicationFrequencyDisplay } from "../../utils/medicationFrequencyLabel";
 import { formatYmdForLocale } from "../../utils/localeDateDisplay";
-import PaginationBar from "../../components/PaginationBar";
-import { usePagination } from "../../hooks/usePagination";
 
 /** Canonical values (English) — aligned with backend medication-slots.util.ts */
 const FREQUENCY_OPTIONS = [
@@ -52,19 +50,12 @@ const DoctorPrescriptions = () => {
   const [patients, setPatients] = useState([]);
   const [loadingPatients, setLoadingPatients] = useState(true);
   const [selectedPatientId, setSelectedPatientId] = useState("");
-  const [searchPatient, setSearchPatient] = useState("");
   const [medications, setMedications] = useState([]);
   const [loadingMeds, setLoadingMeds] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   /** Plusieurs lignes de médicaments pour une seule ordonnance */
   const [lines, setLines] = useState(() => [emptyMedicationLine()]);
-  const [medicalCertificates, setMedicalCertificates] = useState([]);
-  const [loadingCertificates, setLoadingCertificates] = useState(false);
-  const [creatingCertificate, setCreatingCertificate] = useState(false);
-  /** Après « Enregistrer l’ordonnance » : certificat PDF généré automatiquement */
-  const [certificateAutoSuccess, setCertificateAutoSuccess] = useState("");
-  const [certificateAutoWarning, setCertificateAutoWarning] = useState("");
 
   useEffect(() => {
     if (!doctorId) return;
@@ -119,49 +110,6 @@ const DoctorPrescriptions = () => {
     setLines([emptyMedicationLine()]);
   }, [selectedPatientId]);
 
-  useEffect(() => {
-    if (!selectedPatientId) {
-      setMedicalCertificates([]);
-      setCertificateAutoSuccess("");
-      setCertificateAutoWarning("");
-      return;
-    }
-    setCertificateAutoSuccess("");
-    setCertificateAutoWarning("");
-    let cancelled = false;
-    (async () => {
-      setLoadingCertificates(true);
-      try {
-        const list = await medicalCertificateApi.listForDoctorPatient(selectedPatientId);
-        if (!cancelled) setMedicalCertificates(Array.isArray(list) ? list : []);
-      } catch {
-        if (!cancelled) setMedicalCertificates([]);
-      } finally {
-        if (!cancelled) setLoadingCertificates(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedPatientId]);
-
-  const handleCreateMedicalCertificate = async () => {
-    if (!selectedPatientId) return;
-    setCreatingCertificate(true);
-    setError("");
-    setCertificateAutoSuccess("");
-    setCertificateAutoWarning("");
-    try {
-      await medicalCertificateApi.createFromPatientMedications(selectedPatientId);
-      const list = await medicalCertificateApi.listForDoctorPatient(selectedPatientId);
-      setMedicalCertificates(Array.isArray(list) ? list : []);
-    } catch (e) {
-      setError(e?.message || t("doctorPrescriptions.certificateCreateError"));
-    } finally {
-      setCreatingCertificate(false);
-    }
-  };
-
   const updateLine = (id, patch) => {
     setLines((prev) => prev.map((row) => (row.id === id ? { ...row, ...patch } : row)));
   };
@@ -179,17 +127,6 @@ const DoctorPrescriptions = () => {
     [patients, selectedPatientId],
   );
 
-  const filteredPatients = useMemo(() => {
-    if (!searchPatient.trim()) return patients;
-    const q = searchPatient.trim().toLowerCase();
-    return patients.filter((p) =>
-      `${p.firstName || ""} ${p.lastName || ""}`.toLowerCase().includes(q) ||
-      (p.email || "").toLowerCase().includes(q)
-    );
-  }, [patients, searchPatient]);
-
-  const { page: medPage, setPage: setMedPage, totalPages: medTotalPages, paginated: paginatedMeds, totalItems: medTotalItems } = usePagination(medications, 5);
-
   const handleAddMedication = async (e) => {
     e.preventDefault();
     if (!selectedPatientId) return;
@@ -200,8 +137,6 @@ const DoctorPrescriptions = () => {
     }
     setSaving(true);
     setError("");
-    setCertificateAutoSuccess("");
-    setCertificateAutoWarning("");
     try {
       for (const row of toSave) {
         await medicationApi.create({
@@ -217,17 +152,6 @@ const DoctorPrescriptions = () => {
       const meds = await medicationApi.getByPatient(selectedPatientId);
       setMedications(Array.isArray(meds) ? meds : []);
       setLines([emptyMedicationLine()]);
-      try {
-        await medicalCertificateApi.createFromPatientMedications(selectedPatientId);
-        const certs = await medicalCertificateApi.listForDoctorPatient(selectedPatientId);
-        setMedicalCertificates(Array.isArray(certs) ? certs : []);
-        setCertificateAutoSuccess(t("doctorPrescriptions.certificateAutoSuccess"));
-        setCertificateAutoWarning("");
-      } catch (certErr) {
-        const reason = certErr?.message || t("doctorPrescriptions.certificateCreateError");
-        setCertificateAutoSuccess("");
-        setCertificateAutoWarning(t("doctorPrescriptions.certificateAutoSkipped", { reason }));
-      }
     } catch (err) {
       setError(err.message || t("doctorPrescriptions.saveError"));
     } finally {
@@ -262,16 +186,6 @@ const DoctorPrescriptions = () => {
           {error}
         </div>
       )}
-      {certificateAutoSuccess && (
-        <div className="alert alert-success mb-3" role="status">
-          {certificateAutoSuccess}
-        </div>
-      )}
-      {certificateAutoWarning && (
-        <div className="alert alert-warning mb-3" role="status">
-          {certificateAutoWarning}
-        </div>
-      )}
 
       <Row className="g-4">
         <Col lg={5}>
@@ -292,37 +206,18 @@ const DoctorPrescriptions = () => {
               ) : (
                 <Form.Group>
                   <Form.Label>{t("doctorPrescriptions.selectPatientLabel")}</Form.Label>
-                  <InputGroup className="mb-2">
-                    <InputGroup.Text><i className="ri-search-line" /></InputGroup.Text>
-                    <Form.Control
-                      type="text"
-                      placeholder="Search patient by name..."
-                      value={searchPatient}
-                      onChange={(e) => setSearchPatient(e.target.value)}
-                    />
-                    {searchPatient && (
-                      <Button variant="outline-secondary" size="sm" onClick={() => setSearchPatient("")}>
-                        <i className="ri-close-line" />
-                      </Button>
-                    )}
-                  </InputGroup>
                   <Form.Select
                     value={selectedPatientId}
                     onChange={(e) => setSelectedPatientId(e.target.value)}
                     aria-label={t("doctorPrescriptions.selectPatientPlaceholder")}
                   >
                     <option value="">{t("doctorPrescriptions.patientPlaceholderOption")}</option>
-                    {filteredPatients.map((p) => (
+                    {patients.map((p) => (
                       <option key={p._id || p.id} value={String(p._id || p.id)}>
                         {p.firstName} {p.lastName} — {p.email}
                       </option>
                     ))}
                   </Form.Select>
-                  {searchPatient && (
-                    <div className="mt-1 small text-muted">
-                      {filteredPatients.length} / {patients.length} patients
-                    </div>
-                  )}
                 </Form.Group>
               )}
             </Card.Body>
@@ -444,7 +339,6 @@ const DoctorPrescriptions = () => {
                     {t("doctorPrescriptions.addAnotherMedication")}
                   </Button>
 
-                  <p className="text-muted small mb-2">{t("doctorPrescriptions.certificateSaveHint")}</p>
                   <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 pt-1 border-top">
                     <span className="text-muted small">
                       {t("doctorPrescriptions.prescribedBy", {
@@ -483,127 +377,32 @@ const DoctorPrescriptions = () => {
             ) : medications.length === 0 ? (
               <p className="text-muted small text-center py-4 mb-0">{t("doctorPrescriptions.emptyMedicationsList")}</p>
             ) : (
-              <>
-                <div className="table-responsive">
-                  <Table hover className="mb-0 align-middle">
-                    <thead className="table-light">
-                      <tr>
-                        <th className="ps-4">{t("doctorPrescriptions.tableMedication")}</th>
-                        <th>{t("doctorPrescriptions.tableDosage")}</th>
-                        <th>{t("doctorPrescriptions.tableFrequency")}</th>
-                        <th>{t("doctorPrescriptions.tablePrescribedBy")}</th>
-                        <th className="pe-4">{t("doctorPrescriptions.tablePeriod")}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {paginatedMeds.map((m) => (
-                        <tr key={m._id}>
-                          <td className="ps-4 fw-semibold">{m.name}</td>
-                          <td className="small">{m.dosage || "—"}</td>
-                          <td className="small">{formatMedicationFrequencyDisplay(m.frequency, t)}</td>
-                          <td className="small text-primary">{m.prescribedBy || "—"}</td>
-                          <td className="pe-4 small text-muted">
-                            {m.startDate
-                              ? formatYmdForLocale(String(m.startDate).slice(0, 10), dateLocaleTag)
-                              : "—"}{" "}
-                            →{" "}
-                            {m.endDate
-                              ? formatYmdForLocale(String(m.endDate).slice(0, 10), dateLocaleTag)
-                              : "—"}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </Table>
-                </div>
-                <div className="px-3">
-                  <PaginationBar page={medPage} totalPages={medTotalPages} totalItems={medTotalItems} pageSize={5} onPageChange={setMedPage} />
-                </div>
-              </>
-            )}
-          </Card.Body>
-        </Card>
-      )}
-
-      {selectedPatientId && (
-        <Card className="border-0 shadow-sm mt-4">
-          <Card.Header className="bg-white border-bottom py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
-            <Card.Title className="h6 mb-0">
-              <i className="ri-file-pdf-line text-danger me-2" aria-hidden />
-              {t("doctorPrescriptions.medicalCertificatesTitle")}
-            </Card.Title>
-            <Button
-              type="button"
-              variant="outline-danger"
-              size="sm"
-              disabled={creatingCertificate || loadingMeds || medications.length === 0}
-              onClick={handleCreateMedicalCertificate}
-            >
-              {creatingCertificate ? (
-                <>
-                  <Spinner animation="border" size="sm" className="me-1" />
-                  {t("doctorPrescriptions.certificateCreating")}
-                </>
-              ) : (
-                <>
-                  <i className="ri-add-line me-1" aria-hidden />
-                  {t("doctorPrescriptions.certificateGenerate")}
-                </>
-              )}
-            </Button>
-          </Card.Header>
-          <Card.Body>
-            <p className="text-muted small mb-3">{t("doctorPrescriptions.medicalCertificatesLead")}</p>
-            {medications.length === 0 && (
-              <p className="text-muted small mb-0">{t("doctorPrescriptions.certificateNeedMedications")}</p>
-            )}
-            {loadingCertificates ? (
-              <div className="text-center py-3">
-                <Spinner animation="border" size="sm" variant="primary" />
-              </div>
-            ) : medicalCertificates.length === 0 ? (
-              <p className="text-muted small mb-0">{t("doctorPrescriptions.medicalCertificatesEmpty")}</p>
-            ) : (
               <div className="table-responsive">
-                <Table hover size="sm" className="mb-0 align-middle">
+                <Table hover className="mb-0 align-middle">
                   <thead className="table-light">
                     <tr>
-                      <th>{t("doctorPrescriptions.certificateColDate")}</th>
-                      <th>{t("doctorPrescriptions.certificateColMeds")}</th>
-                      <th className="text-end">{t("doctorPrescriptions.certificateColPdf")}</th>
+                      <th className="ps-4">{t("doctorPrescriptions.tableMedication")}</th>
+                      <th>{t("doctorPrescriptions.tableDosage")}</th>
+                      <th>{t("doctorPrescriptions.tableFrequency")}</th>
+                      <th>{t("doctorPrescriptions.tablePrescribedBy")}</th>
+                      <th className="pe-4">{t("doctorPrescriptions.tablePeriod")}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {medicalCertificates.map((c) => (
-                      <tr key={String(c._id)}>
-                        <td className="small text-muted">
-                          {c.issuedAt ? String(c.issuedAt).slice(0, 10) : "—"}
-                        </td>
-                        <td className="small">{Array.isArray(c.items) ? c.items.length : 0}</td>
-                        <td className="text-end">
-                          <Button
-                            type="button"
-                            variant="outline-primary"
-                            size="sm"
-                            onClick={() => {
-                              const certId = String(c._id ?? c.id ?? "").trim();
-                              if (!certId) return;
-                              medicalCertificateApi
-                                .downloadPdfDoctor(
-                                  certId,
-                                  `medical-certificate-${String(c.issuedAt || "").slice(0, 10)}.pdf`,
-                                )
-                                .catch((err) => {
-                                  console.error(err);
-                                  window.alert(
-                                    err?.message || t("doctorPrescriptions.certificateDownloadError"),
-                                  );
-                                });
-                            }}
-                          >
-                            <i className="ri-download-2-line me-1" aria-hidden />
-                            PDF
-                          </Button>
+                    {medications.map((m) => (
+                      <tr key={m._id}>
+                        <td className="ps-4 fw-semibold">{m.name}</td>
+                        <td className="small">{m.dosage || "—"}</td>
+                        <td className="small">{formatMedicationFrequencyDisplay(m.frequency, t)}</td>
+                        <td className="small text-primary">{m.prescribedBy || "—"}</td>
+                        <td className="pe-4 small text-muted">
+                          {m.startDate
+                            ? formatYmdForLocale(String(m.startDate).slice(0, 10), dateLocaleTag)
+                            : "—"}{" "}
+                          →{" "}
+                          {m.endDate
+                            ? formatYmdForLocale(String(m.endDate).slice(0, 10), dateLocaleTag)
+                            : "—"}
                         </td>
                       </tr>
                     ))}

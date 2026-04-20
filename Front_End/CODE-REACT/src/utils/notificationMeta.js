@@ -109,13 +109,6 @@ export function staffNotifMeta(n, role) {
       iconWrapClass: "rounded-3 bg-primary-subtle text-primary border",
     };
   }
-  if (t === "video_meeting_invite") {
-    return {
-      href: "/video-meeting",
-      icon: "ri-vidicon-line",
-      iconWrapClass: "rounded-3 bg-info-subtle text-info border border-info",
-    };
-  }
   if (isAppointmentNotifType(t) || isVirtualId(id)) {
     const isReminder = t === "appointment_reminder_24h";
     return {
@@ -155,7 +148,6 @@ export function staffDefaultTitle(n, t) {
   ) {
     return t("notifications.staffTitle.messaging");
   }
-  if (ty === "video_meeting_invite") return "Video Meeting Invitation";
   if (ty === "mail_inbox") return t("notifications.staffTitle.internalMail");
   if (ty === "lab_analysis_anomaly") return t("notifications.staffTitle.labAnalysisAnomaly");
   return t("notifications.staffTitle.patientAlert");
@@ -173,8 +165,7 @@ export function staffNotifCategory(n) {
     t === "chat_message_sent" ||
     t === "chat_call_log" ||
     t === "chat_voice_invite" ||
-    t === "mail_inbox" ||
-    t === "video_meeting_invite"
+    t === "mail_inbox"
   ) {
     return "messagerie";
   }
@@ -190,7 +181,6 @@ export function patientApiCategory(n) {
     n.type === "chat_message_sent" ||
     n.type === "chat_call_log" ||
     n.type === "chat_voice_invite" ||
-    n.type === "video_meeting_invite" ||
     n.type === "mail_inbox";
   const isAppt =
     n.type === "appointment_reminder_24h" || n.type === "appointment_new" || isVirt;

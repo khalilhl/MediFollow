@@ -1,4 +1,3 @@
-import 'reflect-metadata';
 import * as dns from 'dns';
 // Utiliser Google DNS pour résoudre les enregistrements SRV (bloqués par certains FAI)
 dns.setDefaultResultOrder('ipv4first');
@@ -19,7 +18,6 @@ async function bootstrap() {
   const mediaDir = join(process.cwd(), 'uploads', 'chat');
   mkdirSync(mediaDir, { recursive: true });
   mkdirSync(join(process.cwd(), 'uploads', 'lab-analysis'), { recursive: true });
-  mkdirSync(join(process.cwd(), 'uploads', 'brain-mri'), { recursive: true });
   app.useStaticAssets(mediaDir, { prefix: '/api/chat/media/' });
   app.use(json({ limit: '10mb' }));
   app.use(urlencoded({ extended: true, limit: '10mb' }));
@@ -38,8 +36,8 @@ async function bootstrap() {
       const authService = app.get(AuthService);
       await authService.createAdmin('25k01a2003c@gmail.com', 'Admin123!', 'Admin MediFollow');
       console.log('Admin prêt: 25k01a2003c@gmail.com / Admin123!');
-      await authService.createSuperAdmin('codecraftmedi@gmail.com', 'SuperAdmin123!', 'Super Admin MediFollow');
-      console.log('Super Admin prêt: codecraftmedi@gmail.com / SuperAdmin123!');
+      await authService.createSuperAdmin('khalilhlila2@gmail.com', 'SuperAdmin123!', 'Super Admin MediFollow');
+      console.log('Super Admin prêt: khalilhlila2@gmail.com / SuperAdmin123!');
     } catch (e) {
       // Ignorer si erreur
     }

@@ -54,10 +54,6 @@ export class Doctor extends Document {
   @Prop({ default: 'doctor' })
   role: string;
 
-  /** Affichage du nom : Dr. (médecin) ou Pr. (professeur). */
-  @Prop({ type: String, enum: ['dr', 'prof'], default: 'dr' })
-  academicTitle: string;
-
   @Prop({ default: true })
   isActive: boolean;
 }

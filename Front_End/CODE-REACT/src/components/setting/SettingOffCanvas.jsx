@@ -22,6 +22,9 @@ import PageStyle from './sections/page-style';
 
 import { copyToClipboard } from "../../utilities/dom";
 
+import Scrollbar from "smooth-scrollbar";
+
+
 const SettingOffCanvas = memo(() => {
 
     const [show, setShow] = useState(false);
@@ -53,7 +56,9 @@ const SettingOffCanvas = memo(() => {
         return () => {
             document.body.removeEventListener("click", onClick);
         };
-    }, [show]);
+    })
+
+
 
     const copyConfig = (e) => {
         copyToClipboard(settingObj, true);
@@ -70,7 +75,20 @@ const SettingOffCanvas = memo(() => {
         }
     };
 
-    /* smooth-scrollbar retiré : init sur querySelector('.my-scrollbar') + DOM sous Offcanvas = conflits React. */
+    useEffect(() => {
+        const scrollbarElement = document.querySelector('.my-scrollbar');
+
+        if (scrollbarElement) {
+            Scrollbar.init(scrollbarElement);
+        }
+
+        return () => {
+            // Cleanup the scrollbar instance
+            if (scrollbarElement) {
+                Scrollbar.destroy(scrollbarElement);
+            }
+        };
+    }, [])
 
     return (
         <Fragment>
@@ -138,14 +156,10 @@ const SettingOffCanvas = memo(() => {
                     </div>
 
                 </Offcanvas.Header>
-                <Offcanvas.Body
-                    id=""
-                    className="my-scrollbar"
-                    style={{ height: "auto", maxHeight: "100vh", overflowY: "auto", overflowX: "hidden" }}
-                >
+                <Offcanvas.Body id="" className='my-scrollbar' style={{ height: "auto" }}>
                     <Row>
                         <Col lg={12}>
-                            <div className="my-scrollbar-inner" style={{ height: "auto" }}>
+                            <div className="my-scrollbar" style={{ height: 'auto' }}>
                                 <div className="text-center mb-4">
                                     <h5 className="d-inline-block">Style Setting</h5>
                                 </div>

@@ -4,7 +4,6 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import Card from "../../components/Card";
 import { departmentApi, patientApi } from "../../services/api";
-import { useDepartmentSectionPaths } from "../../utils/departmentSectionPaths";
 
 const initials = (first, last) => {
   const a = (first || "").trim().charAt(0);
@@ -15,7 +14,6 @@ const initials = (first, last) => {
 
 const AdminDepartmentDetail = () => {
   const { t, i18n } = useTranslation();
-  const { listPath, dashboardPath } = useDepartmentSectionPaths();
   const { departmentName } = useParams();
   const navigate = useNavigate();
   const name = departmentName ? decodeURIComponent(departmentName) : "";
@@ -152,12 +150,12 @@ const AdminDepartmentDetail = () => {
         <nav aria-label={t("adminDepartmentDetail.breadcrumbNavLabel")} className="mb-3">
           <ol className="breadcrumb mb-0 small">
             <li className="breadcrumb-item">
-              <Link to={dashboardPath} className="text-decoration-none text-muted">
+              <Link to="/admin/dashboard" className="text-decoration-none text-muted">
                 {t("adminDepartmentDetail.breadcrumbDashboard")}
               </Link>
             </li>
             <li className="breadcrumb-item">
-              <Link to={listPath} className="text-decoration-none text-muted">
+              <Link to="/admin/departments" className="text-decoration-none text-muted">
                 {t("adminDepartmentDetail.breadcrumbDepartments")}
               </Link>
             </li>
@@ -175,7 +173,7 @@ const AdminDepartmentDetail = () => {
                   <div className="d-flex align-items-start gap-3 min-w-0">
                     <Button
                       as={Link}
-                      to={listPath}
+                      to="/admin/departments"
                       variant="outline-secondary"
                       className="rounded-circle flex-shrink-0 d-flex align-items-center justify-content-center p-0"
                       style={{ width: 44, height: 44 }}

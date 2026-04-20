@@ -3,18 +3,6 @@ import { Row, Col, Card, Form, Button, Alert, Spinner } from "react-bootstrap";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { superAdminApi } from "../../services/api";
-import { fetchCatalogDepartmentNamesOnly, mergeDepartmentOptionsForValue } from "../../utils/mergedDepartmentNames";
-import { hospitalDepartmentLabel } from "../../constants/hospitalDepartments";
-import {
-  validateEditPlatformStaffForm,
-  MAX_PROFILE_IMAGE_BYTES,
-} from "../../utils/editPlatformStaffValidation";
-import EditPlatformStaffValidationAlert from "../../components/super-admin/edit-platform-staff-validation-alert";
-import EditPlatformStaffProfileSection from "../../components/super-admin/edit-platform-staff-profile-section";
-
-const generatePath = (path) => window.origin + import.meta.env.BASE_URL + path;
-const DEFAULT_AVATAR = generatePath("/assets/images/user/11.png");
-const PROFILE_INPUT_ID = "edit-auditor-profile-pic";
 
 const EditAuditor = () => {
   const { t } = useTranslation();
@@ -24,12 +12,9 @@ const EditAuditor = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [validationKeys, setValidationKeys] = useState([]);
-  const [deptOptions, setDeptOptions] = useState([]);
-  const [profilePreview, setProfilePreview] = useState(DEFAULT_AVATAR);
   const [form, setForm] = useState({
     firstName: "", lastName: "", email: "", phone: "",
-    department: "", address: "", city: "", country: "",
+    department: "", specialty: "", address: "", city: "", country: "",
     password: "", confirmPassword: "",
   });
 
@@ -38,18 +23,13 @@ const EditAuditor = () => {
       try {
         const data = await superAdminApi.getAuditorById(id);
         const u = data?.data || data;
-        const catalogOnly = await fetchCatalogDepartmentNamesOnly();
-        setDeptOptions(mergeDepartmentOptionsForValue(catalogOnly, u.department));
-        const pic = u.profileImage && String(u.profileImage).trim();
-        setProfilePreview(
-          pic && (pic.startsWith("data:") || pic.startsWith("http") || pic.startsWith("/")) ? pic : DEFAULT_AVATAR,
-        );
         setForm({
           firstName: u.firstName || u.name?.split(" ")[0] || "",
           lastName: u.lastName || u.name?.split(" ").slice(1).join(" ") || "",
           email: u.email || "",
           phone: u.phone || "",
           department: u.department || "",
+          specialty: u.specialty || "",
           address: u.address || "",
           city: u.city || "",
           country: u.country || "",
@@ -66,44 +46,29 @@ const EditAuditor = () => {
   }, [id, t]);
 
   const handleChange = (e) => {
-    setValidationKeys([]);
-    setError("");
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  };
-
-  const handleFileChange = (e) => {
-    const file = e.target.files?.[0];
-    setValidationKeys([]);
-    setError("");
-    if (!file) return;
-    if (file.size > MAX_PROFILE_IMAGE_BYTES) {
-      setValidationKeys(["imageTooLarge"]);
-      e.target.value = "";
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => setProfilePreview(reader.result);
-    reader.readAsDataURL(file);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    const keys = validateEditPlatformStaffForm(form, { requireDepartment: true });
-    if (keys.length) {
-      setValidationKeys(keys);
-      return;
+
+    if (form.password || form.confirmPassword) {
+      if (form.password !== form.confirmPassword) {
+        setError(t("editAuditor.passwordMismatch"));
+        return;
+      }
+      if (form.password.length < 6) {
+        setError(t("editAuditor.passwordMin"));
+        return;
+      }
     }
-    setValidationKeys([]);
 
     setSaving(true);
     try {
       const payload = { ...form };
       delete payload.confirmPassword;
       if (!payload.password) delete payload.password;
-      if (profilePreview.startsWith("data:")) {
-        payload.profileImage = profilePreview;
-      }
       await superAdminApi.updateAuditor(id, payload);
       setSuccess(t("editAuditor.updateSuccess"));
       setTimeout(() => navigate("/super-admin/auditors"), 1500);
@@ -134,36 +99,27 @@ const EditAuditor = () => {
             </h5>
           </Card.Header>
           <Card.Body className="p-4">
-            <EditPlatformStaffValidationAlert keys={validationKeys} />
             {error && <Alert variant="danger">{error}</Alert>}
             {success && <Alert variant="success">{success}</Alert>}
 
-            <Form onSubmit={handleSubmit} noValidate>
-              <EditPlatformStaffProfileSection
-                inputId={PROFILE_INPUT_ID}
-                profilePreview={profilePreview}
-                onFileChange={handleFileChange}
-                title={t("editAuditor.profilePhoto")}
-                hint={t("editAuditor.photoHint")}
-                changeLabel={t("editAuditor.changePhoto")}
-              />
+            <Form onSubmit={handleSubmit}>
               <Row className="g-3">
                 <Col md={6}>
                   <Form.Group>
                     <Form.Label>{t("editAuditor.labelFirstName")}</Form.Label>
-                    <Form.Control name="firstName" value={form.firstName} onChange={handleChange} />
+                    <Form.Control name="firstName" value={form.firstName} onChange={handleChange} required />
                   </Form.Group>
                 </Col>
                 <Col md={6}>
                   <Form.Group>
                     <Form.Label>{t("editAuditor.labelLastName")}</Form.Label>
-                    <Form.Control name="lastName" value={form.lastName} onChange={handleChange} />
+                    <Form.Control name="lastName" value={form.lastName} onChange={handleChange} required />
                   </Form.Group>
                 </Col>
                 <Col md={6}>
                   <Form.Group>
                     <Form.Label>{t("editAuditor.labelEmail")}</Form.Label>
-                    <Form.Control type="email" name="email" value={form.email} onChange={handleChange} autoComplete="email" />
+                    <Form.Control type="email" name="email" value={form.email} onChange={handleChange} required />
                   </Form.Group>
                 </Col>
                 <Col md={6}>
@@ -175,23 +131,13 @@ const EditAuditor = () => {
                 <Col md={6}>
                   <Form.Group>
                     <Form.Label>{t("editAuditor.labelDepartment")}</Form.Label>
-                    <Form.Control
-                      as="select"
-                      name="department"
-                      value={form.department}
-                      onChange={handleChange}
-                      autoComplete="off"
-                    >
-                      <option value="">{t("editAuditor.selectDepartment")}</option>
-                      {deptOptions.map((d) => (
-                        <option key={d} value={d}>
-                          {hospitalDepartmentLabel(d, t)}
-                        </option>
-                      ))}
-                    </Form.Control>
-                    {deptOptions.length === 0 && (
-                      <Form.Text className="text-muted">{t("addAuditor.catalogOnlyEmptyHint")}</Form.Text>
-                    )}
+                    <Form.Control name="department" value={form.department} onChange={handleChange} />
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label>{t("editAuditor.labelSpecialty")}</Form.Label>
+                    <Form.Control name="specialty" value={form.specialty} onChange={handleChange} />
                   </Form.Group>
                 </Col>
                 <Col md={12}>
@@ -229,7 +175,7 @@ const EditAuditor = () => {
                       value={form.password}
                       onChange={handleChange}
                       placeholder={t("editAuditor.placeholderPassword")}
-                      autoComplete="new-password"
+                      minLength={6}
                     />
                   </Form.Group>
                 </Col>
@@ -242,7 +188,7 @@ const EditAuditor = () => {
                       value={form.confirmPassword}
                       onChange={handleChange}
                       placeholder={t("editAuditor.placeholderConfirmPassword")}
-                      autoComplete="new-password"
+                      minLength={6}
                     />
                   </Form.Group>
                 </Col>

@@ -216,6 +216,63 @@ export class NotificationService {
     await sendTo(p.doctorId, 'doctor');
   }
 
+  /**
+   * Patient : envoi d’une image IRM en attente d’analyse par le médecin (pas d’inférence côté patient).
+   */
+  async notifyCareTeamBrainMriPendingReview(params: {
+    patientId: Types.ObjectId;
+    recordId: string;
+  }) {
+    const patient = await this.patientModel
+      .findById(params.patientId)
+      .select('firstName lastName email doctorId nurseId')
+      .lean()
+      .exec();
+    if (!patient) return;
+
+    const p = patient as {
+      firstName?: string;
+      lastName?: string;
+      email?: string;
+      doctorId?: string;
+      nurseId?: string;
+    };
+    const patientName =
+      `${p.firstName || ''} ${p.lastName || ''}`.trim() || p.email || 'Patient';
+    const title = `IRM cérébrale à analyser — ${patientName}`;
+    const body = `${patientName} a transmis une image IRM à analyser depuis son espace patient. Ouvrez le dossier patient pour lancer l’analyse assistée.`;
+
+    const meta: Record<string, unknown> = {
+      kind: 'brain_mri_pending',
+      patientName,
+      recordId: params.recordId,
+    };
+
+    const notifiedRecipientIds = new Set<string>();
+
+    const sendTo = async (recipientId: string | undefined, recipientRole: 'doctor' | 'nurse') => {
+      if (recipientId == null || !String(recipientId).trim()) return;
+      const rid = String(recipientId);
+      if (notifiedRecipientIds.has(rid)) return;
+      notifiedRecipientIds.add(rid);
+
+      await this.notificationModel.create({
+        recipientId: rid,
+        recipientRole,
+        type: 'brain_mri_pending_review',
+        title,
+        body,
+        patientId: params.patientId,
+        patientName,
+        read: false,
+        meta,
+      });
+    };
+
+    await sendTo(p.nurseId, 'nurse');
+    await sendTo(p.doctorId, 'doctor');
+  }
+
   /** Escalade infirmier → médecin (messagerie + notification médecin). */
   async notifyDoctorVitalEscalation(params: {
     doctorId: string;

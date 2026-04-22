@@ -2484,7 +2484,8 @@
       "messaging": "Messaging",
       "internalMail": "Internal mail",
       "patientAlert": "Patient alert",
-      "labAnalysisAnomaly": "Lab report — possible anomaly"
+      "labAnalysisAnomaly": "Lab report — possible anomaly",
+      "brainMriPending": "MRI — image to review"
     },
     "pageTitle": "Notifications",
     "pageSubtitle": "Review your alerts, messages, and appointments. Filter by status or type.",
@@ -2563,7 +2564,9 @@
       "mailInboxTitle": "New message from {{sender}}",
       "mailInboxBodyFallback": "(No subject)",
       "prescriptionPdfTitle": "New prescription — {{doctor}}",
-      "prescriptionPdfBody": "Your doctor sent you a prescription ({{count}} line(s)). Download the PDF."
+      "prescriptionPdfBody": "Your doctor sent you a prescription ({{count}} line(s)). Download the PDF.",
+      "brainMriPendingTitle": "MRI to review — {{name}}",
+      "brainMriPendingBody": "A brain MRI image was sent from the patient portal. Open the patient record to run assisted analysis."
     }
   },
   "patientProfile": {
@@ -3120,15 +3123,22 @@
     "historySubtitlePatient": "Analyses recorded for the patient shown.",
     "historyColFile": "File",
     "historyColPatient": "Patient record",
-    "historyPatientLinked": "Yes"
+    "historyPatientLinked": "Yes",
+    "historyPending": "Pending review",
+    "historyAnalyzePending": "Run analysis",
+    "historyColActions": "Action"
   },
   "patientBrainMri": {
     "title": "Brain MRI — assisted review (your space)",
-    "subtitle": "Upload a brain MRI slice for an AI-assisted screening score. Your referring physician and assigned nurse are notified when you run an analysis—this does not replace radiology or an in-person visit.",
-    "disclaimer": "Decision-support tool only. Not a diagnosis. Emergency? Call emergency services. Your care team receives a notification after each analysis you run.",
+    "subtitle": "Send an image to your physician for analysis, or run an immediate analysis on this device.",
+    "disclaimer": "Decision-support tool only. Not a diagnosis. Emergency? Call emergency services. Sending to your doctor does not replace a visit or a formal radiology report.",
     "loginPrompt": "Sign in as a patient to use this page.",
     "signIn": "Sign in",
-    "careTeamNotified": "Your care team (referring physician and nurse, if assigned) has been notified of this analysis."
+    "careTeamNotified": "Your care team (referring physician and nurse, if assigned) has been notified of this analysis.",
+    "sendToDoctor": "Send to my doctor for analysis",
+    "sendingImage": "Sending…",
+    "imageSentToTeam": "Image sent. Your physician (and nurse, if assigned) will be notified and can run the analysis from your record.",
+    "analyzeOnDevice": "Analyze now on this device"
   },
   "patientAppointmentRequest": {
     "backToDashboard": "Back to dashboard",

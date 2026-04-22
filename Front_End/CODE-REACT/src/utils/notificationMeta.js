@@ -134,6 +134,21 @@ export function staffNotifMeta(n, role) {
       iconWrapClass: "rounded-3 bg-warning-subtle text-warning-emphasis border border-warning-subtle",
     };
   }
+  if (t === "brain_mri_pending_review" || t === "brain_mri_patient_analysis") {
+    const pid = patientIdFromDoc(n.patientId);
+    if (role === "doctor" && pid) {
+      return {
+        href: `/doctor/my-patients/${pid}#dossier-section-brain-mri`,
+        icon: "ri-brain-line",
+        iconWrapClass: "rounded-3 bg-info-subtle text-info border border-info",
+      };
+    }
+    return {
+      href: patientLink(role, n.patientId),
+      icon: "ri-brain-line",
+      iconWrapClass: "rounded-3 bg-info-subtle text-info border border-info",
+    };
+  }
   return {
     href: patientLink(role, n.patientId),
     icon: "ri-alarm-warning-fill",
@@ -161,6 +176,7 @@ export function staffDefaultTitle(n, t) {
   if (ty === "video_meeting_invite") return "Video Meeting Invitation";
   if (ty === "mail_inbox") return t("notifications.staffTitle.internalMail");
   if (ty === "lab_analysis_anomaly") return t("notifications.staffTitle.labAnalysisAnomaly");
+  if (ty === "brain_mri_pending_review") return t("notifications.staffTitle.brainMriPending");
   return t("notifications.staffTitle.patientAlert");
 }
 

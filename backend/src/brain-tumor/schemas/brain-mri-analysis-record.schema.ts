@@ -21,14 +21,25 @@ export class BrainMriAnalysisRecord {
   @Prop({ type: String, enum: ['doctor', 'patient'], required: true })
   source: 'doctor' | 'patient';
 
-  /** Médecin ayant lancé l’analyse (si source = doctor). */
+  /**
+   * `pending` : image envoyée par le patient, en attente d’inférence par le médecin.
+   * `completed` : analyse terminée (rétrocompat : documents sans champ = traités comme complétés côté API).
+   */
+  @Prop({ type: String, enum: ['pending', 'completed'], default: 'completed' })
+  analysisStatus: 'pending' | 'completed';
+
+  /** Médecin ayant lancé l’analyse (si source = doctor, ou médecin ayant finalisé un dossier pending). */
   @Prop({ type: String, default: '' })
   createdByDoctorId: string;
 
   @Prop({ type: String, default: '' })
   originalFilename: string;
 
-  /** Chemin relatif sous uploads/brain-mri/ (ex. patientId/uuid.png). */
+  /** Image brute patient (avant analyse) — chemin relatif sous uploads/brain-mri/. */
+  @Prop({ type: String, default: '' })
+  originalImageRelativePath: string;
+
+  /** Chemin relatif sous uploads/brain-mri/ (ex. patientId/uuid.png) — overlay après prédiction. */
   @Prop({ type: String, default: '' })
   overlayRelativePath: string;
 }

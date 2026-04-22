@@ -48,6 +48,67 @@ export class BrainTumorController {
     return this.brainTumorService.listRecordsForDoctor(uid, Number.isFinite(n) ? n : 30);
   }
 
+  /**
+   * Patient : enregistre l’image et notifie l’équipe — l’inférence est lancée plus tard par le médecin.
+   */
+  @UseGuards(JwtAuthGuard)
+  @Post('patient/submit-image')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: upload,
+      limits: { fileSize: 16 * 1024 * 1024 },
+      fileFilter: (_req, file, cb) => {
+        if (imageMime.has(file.mimetype)) cb(null, true);
+        else cb(new BadRequestException('Image requise (JPEG, PNG, WebP, etc.).') as never, false);
+      },
+    }),
+  )
+  async submitPatientImage(
+    @Req() req: { user?: JwtReqUser },
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    if (String(req.user?.role) !== 'patient') {
+      throw new ForbiddenException();
+    }
+    const pid = String(req.user?.id || '').trim();
+    if (!pid) {
+      throw new BadRequestException('Session patient invalide.');
+    }
+    if (!file?.buffer?.length) {
+      throw new BadRequestException('Fichier image manquant.');
+    }
+    const saved = await this.brainTumorService.submitPatientImageForDoctorReview(pid, file.buffer, {
+      mimetype: file.mimetype,
+      originalname: file.originalname,
+    });
+    try {
+      await this.notificationService.notifyCareTeamBrainMriPendingReview({
+        patientId: new Types.ObjectId(pid),
+        recordId: saved.id,
+      });
+    } catch (e) {
+      console.error('[brain-tumor] notifyCareTeamBrainMriPendingReview:', e);
+    }
+    return { recordId: saved.id, ok: true };
+  }
+
+  /** Médecin : lance l’inférence pour un envoi patient « en attente ». */
+  @UseGuards(JwtAuthGuard)
+  @Post('doctor/analyze-pending/:recordId')
+  async analyzePending(
+    @Req() req: { user?: JwtReqUser },
+    @Param('recordId') recordId: string,
+  ) {
+    if (String(req.user?.role) !== 'doctor') {
+      throw new ForbiddenException();
+    }
+    const doctorId = String(req.user?.id || '').trim();
+    if (!doctorId) {
+      throw new BadRequestException('Session médecin invalide.');
+    }
+    return this.brainTumorService.completePendingAnalysisByDoctor(doctorId, String(recordId || '').trim());
+  }
+
   /** Historique (query) — préféré pour éviter tout souci de routage avec les segments dynamiques. */
   @UseGuards(JwtAuthGuard)
   @Get('records')

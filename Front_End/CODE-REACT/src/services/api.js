@@ -1204,6 +1204,15 @@ export const brainTumorApi = {
     fd.append("file", file);
     return api.postMultipartWithPatientToken("/brain-tumor/predict", fd);
   },
+  /** Patient : envoie l’image au médecin (enregistrement « pending », notification équipe). */
+  submitPatientImageForDoctor: (file) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return api.postMultipartWithPatientToken("/brain-tumor/patient/submit-image", fd);
+  },
+  /** Médecin : inférence sur un envoi patient en attente (JWT + patient assigné). */
+  analyzePendingAsDoctor: (recordId) =>
+    api.postWithDoctorToken(`/brain-tumor/doctor/analyze-pending/${encodeURIComponent(String(recordId))}`, {}),
   listRecords: (patientId, limit) => {
     const q = new URLSearchParams();
     q.set("patientId", String(patientId));

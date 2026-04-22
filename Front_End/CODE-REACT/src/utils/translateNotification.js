@@ -109,6 +109,14 @@ export function translateNotificationDisplay(n, t, i18n) {
     return { title, body };
   }
 
+  if (meta.kind === "brain_mri_pending") {
+    const title = t("notifications.content.brainMriPendingTitle", {
+      name: String(meta.patientName || n.patientName || "").trim() || t("notifications.medDefaultName"),
+    });
+    const body = t("notifications.content.brainMriPendingBody");
+    return { title, body };
+  }
+
   // --- Regex fallbacks (anciennes notifs sans meta) ---
   let m;
 

@@ -157,6 +157,21 @@ export class BrainTumorService {
     }
   }
 
+  private mimeFromExt(ext: string): string | undefined {
+    const e = String(ext || '').toLowerCase();
+    const map: Record<string, string> = {
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.png': 'image/png',
+      '.webp': 'image/webp',
+      '.bmp': 'image/bmp',
+      '.tif': 'image/tiff',
+      '.tiff': 'image/tiff',
+      '.gif': 'image/gif',
+    };
+    return map[e];
+  }
+
   /** Suffixe fichier temporaire (OpenCV lit selon le contenu ; l’extension évite les soucis Windows). */
   private tempSuffix(meta?: BrainTumorUploadMeta): string {
     const orig = meta?.originalname;
@@ -328,8 +343,10 @@ export class BrainTumorService {
         probability: result.probability,
         labelText: result.labelText || '',
         source: 'patient',
+        analysisStatus: 'completed',
         createdByDoctorId: '',
         originalFilename: opts.originalname ? String(opts.originalname).slice(0, 500) : '',
+        originalImageRelativePath: '',
         overlayRelativePath: rel,
       });
       return { id: String(doc._id) };
@@ -365,11 +382,104 @@ export class BrainTumorService {
       probability: result.probability,
       labelText: result.labelText || '',
       source: 'doctor',
+      analysisStatus: 'completed',
       createdByDoctorId: docId,
       originalFilename: opts.originalname ? String(opts.originalname).slice(0, 500) : '',
+      originalImageRelativePath: '',
       overlayRelativePath: rel,
     });
     return { id: String(doc._id) };
+  }
+
+  /**
+   * Patient : enregistre l’image brute et crée un relevé « en attente » pour que le médecin lance l’inférence.
+   */
+  async submitPatientImageForDoctorReview(
+    patientId: string,
+    buffer: Buffer,
+    meta?: BrainTumorUploadMeta,
+  ): Promise<{ id: string }> {
+    if (!patientId || !Types.ObjectId.isValid(patientId)) {
+      throw new BadRequestException('Identifiant patient invalide.');
+    }
+    const pid = String(patientId);
+    const ext = this.tempSuffix(meta);
+    const rel = `${pid}/original-${randomUUID()}${ext}`;
+    const abs = path.join(this.brainMriUploadDir, rel);
+    await fs.mkdir(path.dirname(abs), { recursive: true });
+    await fs.writeFile(abs, buffer);
+
+    const doc = await this.brainMriRecordModel.create({
+      patientId: new Types.ObjectId(pid),
+      prediction: 0,
+      probability: 0,
+      labelText: '',
+      source: 'patient',
+      analysisStatus: 'pending',
+      createdByDoctorId: '',
+      originalFilename: meta?.originalname ? String(meta.originalname).slice(0, 500) : '',
+      originalImageRelativePath: rel,
+      overlayRelativePath: '',
+    });
+    return { id: String(doc._id) };
+  }
+
+  /**
+   * Médecin : finalise une analyse « pending » (image envoyée par le patient).
+   */
+  async completePendingAnalysisByDoctor(
+    doctorId: string,
+    recordId: string,
+  ): Promise<BrainTumorPredictResult & { recordId: string }> {
+    if (!Types.ObjectId.isValid(recordId)) {
+      throw new BadRequestException('Identifiant d’enregistrement invalide.');
+    }
+    const rec = await this.brainMriRecordModel.findById(recordId).exec();
+    if (!rec) throw new NotFoundException('Analyse introuvable.');
+    if (rec.analysisStatus !== 'pending') {
+      throw new BadRequestException('Cet enregistrement n’est pas en attente d’analyse.');
+    }
+    if (!rec.patientId) {
+      throw new BadRequestException('Dossier patient manquant.');
+    }
+    const pid = String(rec.patientId);
+    await this.assertDoctorAssignedToPatient(doctorId, pid);
+
+    const origRel = String(rec.originalImageRelativePath || '').trim();
+    if (!origRel) {
+      throw new BadRequestException('Image source introuvable pour cet enregistrement.');
+    }
+    const srcAbs = path.join(this.brainMriUploadDir, origRel);
+    let fileBuf: Buffer;
+    try {
+      fileBuf = await fs.readFile(srcAbs);
+    } catch {
+      throw new NotFoundException('Fichier image patient introuvable sur le serveur.');
+    }
+
+    const result = await this.predictFromBuffer(fileBuf, {
+      mimetype: this.mimeFromExt(path.extname(origRel)),
+      originalname: rec.originalFilename,
+    });
+
+    const overlayRel = `${pid}/${randomUUID()}.png`;
+    const overlayAbs = path.join(this.brainMriUploadDir, overlayRel);
+    await fs.mkdir(path.dirname(overlayAbs), { recursive: true });
+    try {
+      await fs.writeFile(overlayAbs, Buffer.from(result.overlayPngBase64, 'base64'));
+    } catch (e) {
+      console.warn('[brain-tumor] overlay write failed:', e);
+    }
+
+    rec.prediction = result.prediction;
+    rec.probability = result.probability;
+    rec.labelText = result.labelText || '';
+    rec.analysisStatus = 'completed';
+    rec.createdByDoctorId = String(doctorId).trim();
+    rec.overlayRelativePath = overlayRel;
+    await rec.save();
+
+    return { ...result, recordId: String(rec._id) };
   }
 
   /** Analyses lancées par ce médecin (avec ou sans dossier patient). */
@@ -392,6 +502,7 @@ export class BrainTumorService {
       probability: r.probability,
       labelText: r.labelText,
       source: r.source,
+      analysisStatus: r.analysisStatus === 'pending' ? 'pending' : 'completed',
       createdByDoctorId: r.createdByDoctorId || '',
       originalFilename: r.originalFilename || '',
       createdAt: (r as { createdAt?: Date }).createdAt,
@@ -417,6 +528,7 @@ export class BrainTumorService {
       probability: r.probability,
       labelText: r.labelText,
       source: r.source,
+      analysisStatus: r.analysisStatus === 'pending' ? 'pending' : 'completed',
       createdByDoctorId: r.createdByDoctorId || '',
       originalFilename: r.originalFilename || '',
       createdAt: (r as { createdAt?: Date }).createdAt,

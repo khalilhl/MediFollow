@@ -2484,7 +2484,8 @@
       "messaging": "Messagerie",
       "internalMail": "Messagerie interne",
       "patientAlert": "Alerte patient",
-      "labAnalysisAnomaly": "Bilan labo — anomalie possible"
+      "labAnalysisAnomaly": "Bilan labo — anomalie possible",
+      "brainMriPending": "IRM — image à analyser"
     },
     "pageTitle": "Notifications",
     "pageSubtitle": "Consultez vos alertes, messages et rendez-vous. Filtrez par statut ou par type.",
@@ -2563,7 +2564,9 @@
       "mailInboxTitle": "Nouveau message de {{sender}}",
       "mailInboxBodyFallback": "(Sans objet)",
       "prescriptionPdfTitle": "Nouvelle ordonnance — {{doctor}}",
-      "prescriptionPdfBody": "Votre médecin vous a transmis une ordonnance ({{count}} ligne(s)). Téléchargez le PDF."
+      "prescriptionPdfBody": "Votre médecin vous a transmis une ordonnance ({{count}} ligne(s)). Téléchargez le PDF.",
+      "brainMriPendingTitle": "IRM à analyser — {{name}}",
+      "brainMriPendingBody": "Une image IRM a été envoyée depuis l’espace patient. Ouvrez le dossier pour lancer l’analyse assistée."
     }
   },
   "patientProfile": {
@@ -3120,15 +3123,22 @@
     "historySubtitlePatient": "Analyses enregistrées pour le patient affiché.",
     "historyColFile": "Fichier",
     "historyColPatient": "Dossier",
-    "historyPatientLinked": "Oui"
+    "historyPatientLinked": "Oui",
+    "historyPending": "En attente d’analyse",
+    "historyAnalyzePending": "Lancer l’analyse",
+    "historyColActions": "Action"
   },
   "patientBrainMri": {
     "title": "IRM cérébrale — aide à la lecture (espace patient)",
-    "subtitle": "Importez une coupe IRM pour un score d’aide au dépistage. Votre médecin référent et votre infirmier assigné sont notifiés à chaque analyse — cela ne remplace ni la radiologie ni une consultation.",
-    "disclaimer": "Outil d’aide à la décision uniquement, pas un diagnostic. Urgence vitale : appelez le 15. L’équipe soignante reçoit une notification après chaque analyse lancée depuis cet écran.",
+    "subtitle": "Transmettez une image à votre médecin pour analyse, ou lancez une analyse immédiate sur cet appareil.",
+    "disclaimer": "Outil d’aide à la décision uniquement, pas un diagnostic. Urgence vitale : appelez le 15. L’envoi au médecin ne remplace pas une consultation ni un compte-rendu radiologique.",
     "loginPrompt": "Connectez-vous en tant que patient pour accéder à cette page.",
     "signIn": "Connexion",
-    "careTeamNotified": "Votre équipe soignante (médecin référent et infirmier si assigné) a été informée de cette analyse."
+    "careTeamNotified": "Votre équipe soignante (médecin référent et infirmier si assigné) a été informée de cette analyse.",
+    "sendToDoctor": "Envoyer à mon médecin pour analyse",
+    "sendingImage": "Envoi en cours…",
+    "imageSentToTeam": "Image envoyée. Votre médecin (et votre infirmier si assigné) sera notifié et pourra lancer l’analyse depuis votre dossier.",
+    "analyzeOnDevice": "Analyser maintenant sur cet appareil"
   },
   "patientAppointmentRequest": {
     "backToDashboard": "Retour au tableau de bord",

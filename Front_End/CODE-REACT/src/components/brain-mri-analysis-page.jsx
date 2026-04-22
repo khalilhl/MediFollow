@@ -65,6 +65,9 @@ const BrainMriAnalysisPage = ({ variant = "doctor", patientId: patientIdProp, em
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
   const [careTeamNotified, setCareTeamNotified] = useState(false);
+  const [pendingSent, setPendingSent] = useState(false);
+  const [sendLoading, setSendLoading] = useState(false);
+  const [analyzePendingId, setAnalyzePendingId] = useState("");
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState("");
@@ -114,6 +117,7 @@ const BrainMriAnalysisPage = ({ variant = "doctor", patientId: patientIdProp, em
     setError("");
     setResult(null);
     setCareTeamNotified(false);
+    setPendingSent(false);
     if (!f) {
       setFile(null);
       setPreviewUrl((prev) => {
@@ -143,6 +147,7 @@ const BrainMriAnalysisPage = ({ variant = "doctor", patientId: patientIdProp, em
     setError("");
     setResult(null);
     setCareTeamNotified(false);
+    setPendingSent(false);
     try {
       const savePid = isPatient ? undefined : normalizedPropPid || undefined;
       const data = isPatient
@@ -157,6 +162,47 @@ const BrainMriAnalysisPage = ({ variant = "doctor", patientId: patientIdProp, em
       setLoading(false);
     }
   };
+
+  const onSendToDoctor = async () => {
+    if (!file || !isPatient) return;
+    setSendLoading(true);
+    setError("");
+    setPendingSent(false);
+    try {
+      await brainTumorApi.submitPatientImageForDoctor(file);
+      setPendingSent(true);
+      setFile(null);
+      setPreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return "";
+      });
+      void loadHistory();
+    } catch (e) {
+      setError(e.message || t("doctorBrainMri.error"));
+    } finally {
+      setSendLoading(false);
+    }
+  };
+
+  const onAnalyzePendingRow = useCallback(
+    async (recordId) => {
+      if (!recordId) return;
+      setAnalyzePendingId(recordId);
+      setError("");
+      setResult(null);
+      setCareTeamNotified(false);
+      try {
+        const data = await brainTumorApi.analyzePendingAsDoctor(recordId);
+        setResult(data);
+        void loadHistory();
+      } catch (e) {
+        setError(e?.message || t("doctorBrainMri.error"));
+      } finally {
+        setAnalyzePendingId("");
+      }
+    },
+    [loadHistory, t],
+  );
 
   const overlaySrc =
     result?.overlayPngBase64 != null ? `data:image/png;base64,${result.overlayPngBase64}` : null;
@@ -215,7 +261,7 @@ const BrainMriAnalysisPage = ({ variant = "doctor", patientId: patientIdProp, em
                         type="file"
                         accept="image/*"
                         onChange={onPick}
-                        disabled={loading}
+                        disabled={loading || (isPatient && sendLoading)}
                         className="form-control-sm"
                       />
                       {file && (
@@ -242,26 +288,76 @@ const BrainMriAnalysisPage = ({ variant = "doctor", patientId: patientIdProp, em
                     )}
 
                     <div className="d-grid gap-2 mt-4">
-                      <Button
-                        variant="primary"
-                        size="lg"
-                        className="fw-semibold"
-                        onClick={onAnalyze}
-                        disabled={!file || loading}
-                      >
-                        {loading ? (
-                          <>
-                            <Spinner animation="border" size="sm" className="me-2" role="status" />
-                            {t("doctorBrainMri.analyzing")}
-                          </>
-                        ) : (
-                          <>
-                            <i className="ri-radar-line me-2" aria-hidden />
-                            {t("doctorBrainMri.analyze")}
-                          </>
-                        )}
-                      </Button>
+                      {isPatient ? (
+                        <>
+                          <Button
+                            variant="primary"
+                            size="lg"
+                            className="fw-semibold"
+                            onClick={onSendToDoctor}
+                            disabled={!file || loading || sendLoading}
+                          >
+                            {sendLoading ? (
+                              <>
+                                <Spinner animation="border" size="sm" className="me-2" role="status" />
+                                {t("patientBrainMri.sendingImage")}
+                              </>
+                            ) : (
+                              <>
+                                <i className="ri-send-plane-fill me-2" aria-hidden />
+                                {t("patientBrainMri.sendToDoctor")}
+                              </>
+                            )}
+                          </Button>
+                          <Button
+                            variant="outline-primary"
+                            size="lg"
+                            className="fw-semibold"
+                            onClick={onAnalyze}
+                            disabled={!file || loading || sendLoading}
+                          >
+                            {loading ? (
+                              <>
+                                <Spinner animation="border" size="sm" className="me-2" role="status" />
+                                {t("doctorBrainMri.analyzing")}
+                              </>
+                            ) : (
+                              <>
+                                <i className="ri-radar-line me-2" aria-hidden />
+                                {t("patientBrainMri.analyzeOnDevice")}
+                              </>
+                            )}
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          variant="primary"
+                          size="lg"
+                          className="fw-semibold"
+                          onClick={onAnalyze}
+                          disabled={!file || loading}
+                        >
+                          {loading ? (
+                            <>
+                              <Spinner animation="border" size="sm" className="me-2" role="status" />
+                              {t("doctorBrainMri.analyzing")}
+                            </>
+                          ) : (
+                            <>
+                              <i className="ri-radar-line me-2" aria-hidden />
+                              {t("doctorBrainMri.analyze")}
+                            </>
+                          )}
+                        </Button>
+                      )}
                     </div>
+
+                    {isPatient && pendingSent && (
+                      <Alert variant="success" className="mt-3 mb-0 small">
+                        <i className="ri-checkbox-circle-line me-2" aria-hidden />
+                        {t("patientBrainMri.imageSentToTeam")}
+                      </Alert>
+                    )}
 
                     {error && (
                       <Alert variant="danger" className="mt-3 mb-0 small">
@@ -328,27 +424,40 @@ const BrainMriAnalysisPage = ({ variant = "doctor", patientId: patientIdProp, em
                           <div className="small text-muted">{t("doctorBrainMri.probabilityCaption")}</div>
                         </div>
 
-                        {overlaySrc && (
-                          <Row className="g-3">
-                            <Col md={6}>
-                              <div className="small fw-semibold text-secondary text-uppercase mb-2">
-                                {t("doctorBrainMri.previewOriginal")}
-                              </div>
-                              <div className="dbm-preview-box">
-                                <img src={previewUrl} alt="" />
-                              </div>
-                            </Col>
-                            <Col md={6}>
-                              <div className="small fw-semibold text-secondary text-uppercase mb-2">
-                                {t("doctorBrainMri.heatmapTitle")}
-                              </div>
-                              <div className="dbm-preview-box">
-                                <img src={overlaySrc} alt="" />
-                              </div>
-                              <p className="dbm-heatmap-caption mb-0">{t("doctorBrainMri.heatmapCaption")}</p>
-                            </Col>
-                          </Row>
-                        )}
+                        {overlaySrc &&
+                          (previewUrl ? (
+                            <Row className="g-3">
+                              <Col md={6}>
+                                <div className="small fw-semibold text-secondary text-uppercase mb-2">
+                                  {t("doctorBrainMri.previewOriginal")}
+                                </div>
+                                <div className="dbm-preview-box">
+                                  <img src={previewUrl} alt="" />
+                                </div>
+                              </Col>
+                              <Col md={6}>
+                                <div className="small fw-semibold text-secondary text-uppercase mb-2">
+                                  {t("doctorBrainMri.heatmapTitle")}
+                                </div>
+                                <div className="dbm-preview-box">
+                                  <img src={overlaySrc} alt="" />
+                                </div>
+                                <p className="dbm-heatmap-caption mb-0">{t("doctorBrainMri.heatmapCaption")}</p>
+                              </Col>
+                            </Row>
+                          ) : (
+                            <Row className="g-3">
+                              <Col md={12}>
+                                <div className="small fw-semibold text-secondary text-uppercase mb-2">
+                                  {t("doctorBrainMri.heatmapTitle")}
+                                </div>
+                                <div className="dbm-preview-box">
+                                  <img src={overlaySrc} alt="" />
+                                </div>
+                                <p className="dbm-heatmap-caption mb-0">{t("doctorBrainMri.heatmapCaption")}</p>
+                              </Col>
+                            </Row>
+                          ))}
 
                         <p className="dbm-footnote mb-0">{t("doctorBrainMri.clinicalNote")}</p>
                       </>
@@ -395,10 +504,14 @@ const BrainMriAnalysisPage = ({ variant = "doctor", patientId: patientIdProp, em
                               <th>{t("doctorBrainMri.historyColPatient")}</th>
                             )}
                             <th>{t("doctorBrainMri.historyColSource")}</th>
+                            {doctorUsesPatientContext && !isPatient && (
+                              <th className="text-end">{t("doctorBrainMri.historyColActions")}</th>
+                            )}
                           </tr>
                         </thead>
                         <tbody>
                           {history.map((row) => {
+                            const isPending = String(row.analysisStatus) === "pending";
                             const tum = Number(row.prediction) === 1;
                             const pct = Math.min(100, Math.max(0, Math.round(Number(row.probability) * 1000) / 10));
                             const fname = row.originalFilename ? String(row.originalFilename) : "";
@@ -412,11 +525,17 @@ const BrainMriAnalysisPage = ({ variant = "doctor", patientId: patientIdProp, em
                                   </td>
                                 )}
                                 <td>
-                                  <Badge pill bg={tum ? "warning" : "success"} text={tum ? "dark" : "white"}>
-                                    {tum ? t("doctorBrainMri.tumor") : t("doctorBrainMri.normal")}
-                                  </Badge>
+                                  {isPending ? (
+                                    <Badge pill bg="secondary">
+                                      {t("doctorBrainMri.historyPending")}
+                                    </Badge>
+                                  ) : (
+                                    <Badge pill bg={tum ? "warning" : "success"} text={tum ? "dark" : "white"}>
+                                      {tum ? t("doctorBrainMri.tumor") : t("doctorBrainMri.normal")}
+                                    </Badge>
+                                  )}
                                 </td>
-                                <td className="small tabular-nums">{pct}%</td>
+                                <td className="small tabular-nums">{isPending ? "—" : `${pct}%`}</td>
                                 {!doctorUsesPatientContext && !isPatient && (
                                   <td className="small">
                                     {hasPatient ? t("doctorBrainMri.historyPatientLinked") : "—"}
@@ -427,6 +546,29 @@ const BrainMriAnalysisPage = ({ variant = "doctor", patientId: patientIdProp, em
                                     ? t("doctorBrainMri.historySourcePatient")
                                     : t("doctorBrainMri.historySourceDoctor")}
                                 </td>
+                                {doctorUsesPatientContext && !isPatient && (
+                                  <td className="small text-end">
+                                    {isPending ? (
+                                      <Button
+                                        variant="primary"
+                                        size="sm"
+                                        disabled={!!analyzePendingId}
+                                        onClick={() => void onAnalyzePendingRow(String(row.id))}
+                                      >
+                                        {analyzePendingId === String(row.id) ? (
+                                          <>
+                                            <Spinner animation="border" size="sm" className="me-1" role="status" />
+                                            {t("doctorBrainMri.analyzing")}
+                                          </>
+                                        ) : (
+                                          t("doctorBrainMri.historyAnalyzePending")
+                                        )}
+                                      </Button>
+                                    ) : (
+                                      "—"
+                                    )}
+                                  </td>
+                                )}
                               </tr>
                             );
                           })}

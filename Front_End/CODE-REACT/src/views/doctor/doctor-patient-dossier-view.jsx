@@ -174,14 +174,37 @@ function formatAppointmentStatus(status, t) {
 function SectionCard({ icon, title, children, className = "", sectionId }) {
   return (
     <Card id={sectionId || undefined} className={`dossier-section-card mb-4 ${className}`}>
-      <Card.Header className="py-3 px-4 d-flex align-items-center gap-3">
+      <Card.Header className="dossier-section-card__header py-3 px-4 d-flex align-items-center gap-3">
         <div className="dossier-section-icon d-flex align-items-center justify-content-center flex-shrink-0">
-          <i className={`${icon} fs-5`} />
+          <i className={`${icon} fs-5`} aria-hidden />
         </div>
-        <span className="fw-bold text-dark mb-0">{title}</span>
+        <span className="dossier-section-card__title mb-0">{title}</span>
       </Card.Header>
-      <Card.Body className="px-4 pb-4 pt-1">{children}</Card.Body>
+      <Card.Body className="dossier-section-card__body px-4 pb-4 pt-3">{children}</Card.Body>
     </Card>
+  );
+}
+
+function DossierQuickNav() {
+  const { t } = useTranslation();
+  const links = [
+    { href: "#dossier-section-vitals", label: t("doctorPatientDossier.quickNavVitals") },
+    { href: "#dossier-section-medicaments", label: t("doctorPatientDossier.quickNavTreatments") },
+    { href: "#dossier-section-checkin", label: t("doctorPatientDossier.quickNavHistory") },
+    { href: "#dossier-section-brain-mri", label: t("doctorPatientDossier.quickNavMri") },
+    { href: "#dossier-section-protocol", label: t("doctorPatientDossier.quickNavProtocol") },
+    { href: "#dossier-section-rdv", label: t("doctorPatientDossier.quickNavAppointments") },
+  ];
+  return (
+    <nav className="dossier-quick-nav mb-4" aria-label={t("doctorPatientDossier.quickNavAria")}>
+      <div className="dossier-quick-nav__scroll">
+        {links.map(({ href, label }) => (
+          <a key={href} href={href} className="dossier-quick-nav__link">
+            {label}
+          </a>
+        ))}
+      </div>
+    </nav>
   );
 }
 
@@ -525,7 +548,12 @@ export default function DoctorPatientDossierView({ patient }) {
 
       {!detailLoading && !detailError && (
         <>
-          <SectionCard icon="ri-heart-pulse-fill" title={t("doctorPatientDossier.sectionLatestVitals")}>
+          <DossierQuickNav />
+          <SectionCard
+            sectionId="dossier-section-vitals"
+            icon="ri-heart-pulse-fill"
+            title={t("doctorPatientDossier.sectionLatestVitals")}
+          >
             {!latestLog ? (
               <Alert variant="light" className="border text-muted mb-0 rounded-3">
                 <i className="ri-inbox-line me-2" />
@@ -804,7 +832,7 @@ export default function DoctorPatientDossierView({ patient }) {
               </p>
             ) : (
               <div className="dossier-table-wrap">
-                <Table responsive size="sm" hover className="align-middle bg-white mb-0">
+                <Table responsive hover className="dossier-data-table align-middle bg-white mb-0">
                   <thead>
                     <tr>
                       <th>{t("doctorPatientDossier.med")}</th>
@@ -846,8 +874,8 @@ export default function DoctorPatientDossierView({ patient }) {
           </SectionCard>
 
           {sortedMedications.length > 0 && (
-            <SectionCard icon="ri-history-line" title={t("doctorPatientDossier.sectionIntakeHistory")}>
-              <p className="text-muted small mb-4">{t("doctorPatientDossier.intakeLead")}</p>
+            <SectionCard sectionId="dossier-section-intake" icon="ri-history-line" title={t("doctorPatientDossier.sectionIntakeHistory")}>
+              <p className="dossier-lead text-muted mb-4">{t("doctorPatientDossier.intakeLead")}</p>
               {sortedMedications.map((m) => {
                 const mid = m._id || m.id;
                 const intakeByDay = getIntakeHistoryByDate(m);
@@ -891,12 +919,12 @@ export default function DoctorPatientDossierView({ patient }) {
             </SectionCard>
           )}
 
-          <SectionCard icon="ri-file-list-3-line" title={t("doctorPatientDossier.sectionCheckInHistory")}>
+          <SectionCard sectionId="dossier-section-checkin" icon="ri-file-list-3-line" title={t("doctorPatientDossier.sectionCheckInHistory")}>
             {recentCheckIns.length === 0 ? (
               <p className="text-muted small mb-0">{t("doctorPatientDossier.noOtherReadings")}</p>
             ) : (
               <div className="dossier-table-wrap">
-                <Table responsive size="sm" className="align-middle bg-white mb-0">
+                <Table responsive className="dossier-data-table align-middle bg-white mb-0">
                   <thead>
                     <tr>
                       <th>{t("doctorPatientDossier.thDateTime")}</th>
@@ -961,22 +989,22 @@ export default function DoctorPatientDossierView({ patient }) {
             )}
             {!qsLoading && (
               <>
-                <p className="text-muted small mb-3">
+                <p className="dossier-lead text-muted mb-4">
                   {t("doctorPatientDossier.protocolIntro1")} {t("doctorPatientDossier.protocolIntro2")}
                 </p>
-                <Row className="g-3 mb-4">
+                <Row className="g-3 mb-4 dossier-protocol-form">
                   <Col md={4}>
-                    <label className="small text-muted d-block mb-1">{t("doctorPatientDossier.dischargeDateLabel")}</label>
+                    <label className="form-label dossier-form-label text-muted">{t("doctorPatientDossier.dischargeDateLabel")}</label>
                     <input
                       type="date"
-                      className="form-control form-control-sm"
+                      className="form-control"
                       value={dischargeInput}
                       onChange={(e) => setDischargeInput(e.target.value)}
                     />
                   </Col>
                   <Col md={5}>
-                    <label className="small text-muted d-block mb-1">{t("doctorPatientDossier.protocolLabel")}</label>
-                    <select className="form-select form-select-sm" value={protocolPick} onChange={(e) => setProtocolPick(e.target.value)}>
+                    <label className="form-label dossier-form-label text-muted">{t("doctorPatientDossier.protocolLabel")}</label>
+                    <select className="form-select" value={protocolPick} onChange={(e) => setProtocolPick(e.target.value)}>
                       <option value="">{t("doctorPatientDossier.chooseOption")}</option>
                       {qsProtocols.map((p) => (
                         <option key={p._id} value={p._id}>
@@ -986,15 +1014,15 @@ export default function DoctorPatientDossierView({ patient }) {
                     </select>
                   </Col>
                   <Col md={3} className="d-flex align-items-end">
-                    <button type="button" className="btn btn-primary btn-sm w-100" disabled={qsBusy || !protocolPick || !dischargeInput} onClick={assignProtocol}>
+                    <button type="button" className="btn btn-primary w-100 fw-semibold" disabled={qsBusy || !protocolPick || !dischargeInput} onClick={assignProtocol}>
                       {t("doctorPatientDossier.assignProtocol")}
                     </button>
                   </Col>
                 </Row>
-                <Row className="g-3 mb-4 pb-3 border-bottom border-light">
+                <Row className="g-3 mb-4 pb-4 border-bottom dossier-protocol-divider">
                   <Col md={5}>
-                    <label className="small text-muted d-block mb-1">{t("doctorPatientDossier.addonLabel")}</label>
-                    <select className="form-select form-select-sm" value={addonPick} onChange={(e) => setAddonPick(e.target.value)}>
+                    <label className="form-label dossier-form-label text-muted">{t("doctorPatientDossier.addonLabel")}</label>
+                    <select className="form-select" value={addonPick} onChange={(e) => setAddonPick(e.target.value)}>
                       <option value="">{t("doctorPatientDossier.optionalOption")}</option>
                       {qsTemplates.map((tpl) => (
                         <option key={tpl._id} value={tpl._id}>
@@ -1004,11 +1032,11 @@ export default function DoctorPatientDossierView({ patient }) {
                     </select>
                   </Col>
                   <Col md={4}>
-                    <label className="small text-muted d-block mb-1">{t("doctorPatientDossier.dueDateLabel")}</label>
-                    <input type="date" className="form-control form-control-sm" value={addonDue} onChange={(e) => setAddonDue(e.target.value)} />
+                    <label className="form-label dossier-form-label text-muted">{t("doctorPatientDossier.dueDateLabel")}</label>
+                    <input type="date" className="form-control" value={addonDue} onChange={(e) => setAddonDue(e.target.value)} />
                   </Col>
                   <Col md={3} className="d-flex align-items-end">
-                    <button type="button" className="btn btn-outline-primary btn-sm w-100" disabled={qsBusy || !addonPick} onClick={addAddon}>
+                    <button type="button" className="btn btn-outline-primary w-100 fw-semibold" disabled={qsBusy || !addonPick} onClick={addAddon}>
                       {t("doctorPatientDossier.add")}
                     </button>
                   </Col>
@@ -1128,7 +1156,7 @@ export default function DoctorPatientDossierView({ patient }) {
                       {t("doctorPatientDossier.submittedOn", { date: formatDateTime(qsModalData.submittedAt, dateLocale) })}
                     </p>
                   )}
-                  <Table bordered size="sm" className="mb-0 bg-white">
+                  <Table bordered className="dossier-data-table mb-0 bg-white">
                     <tbody>
                       {(qsModalData.rows || []).map((r) => (
                         <tr key={r.questionId}>

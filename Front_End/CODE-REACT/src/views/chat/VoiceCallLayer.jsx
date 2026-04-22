@@ -18,7 +18,7 @@ import {
     getSelfDisplayName,
 } from "./voiceCallUtils";
 import { startIncomingRingtone, startOutgoingRingback } from "./callRingtone";
-import { detectDominantExpression } from "../../services/face-emotions";
+import { isCallEmotionFeatureEnabled } from "../../services/emotion-feature-flags";
 
 /** Libellés face-api.js / FER (7 classes). */
 const EMOTION_EMOJI = {
@@ -279,7 +279,7 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
             mediaMode === "video" &&
             !camOff &&
             (phase === "connected" || (phase === "outgoing" && role === "patient"));
-        if (!isAnalyzing || !role) {
+        if (!isAnalyzing || !role || !isCallEmotionFeatureEnabled()) {
             setPatientEmotion(null);
             return undefined;
         }
@@ -292,12 +292,18 @@ const VoiceCallLayer = forwardRef(function VoiceCallLayer({ session, peerContext
 
         let cancelled = false;
         let timerId = 0;
+        /** @type {((videoEl: HTMLVideoElement) => Promise<{ label: string; confidence: number } | null>) | null} */
+        let detectDominantExpressionFn = null;
 
         const tick = async () => {
             const el = pickVideoEl();
             if (!el || cancelled) return;
             try {
-                const res = await detectDominantExpression(el);
+                if (!detectDominantExpressionFn) {
+                    const mod = await import("../../services/face-emotions");
+                    detectDominantExpressionFn = mod.detectDominantExpression;
+                }
+                const res = await detectDominantExpressionFn(el);
                 if (cancelled) return;
                 /* 7 classes softmax : le max est souvent < 0,35 ; 0,32 masquait tout le badge */
                 if (res && res.confidence >= 0.12) {

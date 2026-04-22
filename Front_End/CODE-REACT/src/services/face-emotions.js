@@ -1,5 +1,8 @@
+import "@tensorflow/tfjs-backend-cpu";
+import "@tensorflow/tfjs-backend-webgl";
 import * as tf from "@tensorflow/tfjs";
 import * as faceapi from "face-api.js";
+import { isCallEmotionFeatureEnabled } from "./emotion-feature-flags.js";
 
 /**
  * face-api.js dépend de @tensorflow/tfjs-core 1.7 ; le modèle d’émotion utilise @tensorflow/tfjs 4.x.
@@ -7,13 +10,10 @@ import * as faceapi from "face-api.js";
  *
  * En build prod (Vercel), le backend WebGL + minification peut provoquer « m is not a function » dans runKernelFunc.
  * On initialise donc TF.js explicitement (CPU d’abord, plus stable avec face-api).
+ * Les backends sont importés en effet de bord pour l’enregistrement des noyaux en build bundlé.
  */
 const DEFAULT_MODEL_URL =
   import.meta.env.VITE_FACE_MODEL_URL || "https://justadudewhohacks.github.io/face-api.js/models";
-
-const EMOTION_DISABLED =
-  import.meta.env.VITE_DISABLE_CALL_EMOTION === "1" ||
-  import.meta.env.VITE_DISABLE_CALL_EMOTION === "true";
 
 let tfBackendInitPromise = null;
 
@@ -225,7 +225,7 @@ async function predictWithFaceApi(videoElement) {
  */
 export const detectDominantExpression = async (videoElement) => {
   if (!videoElement || videoElement.readyState < 2) return null;
-  if (EMOTION_DISABLED) return null;
+  if (!isCallEmotionFeatureEnabled()) return null;
 
   await ensureTfjsBackend();
 

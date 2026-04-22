@@ -42,6 +42,27 @@ function tfjsCoreDualResolve() {
   };
 }
 
+/**
+ * Remplace le <link rel="stylesheet"> du chunk CSS d’entrée (index-*.css) par preload + onload,
+ * pour éviter le blocage du rendu signalé par Lighthouse (chemin critique / LCP).
+ */
+function asyncEntryCssPlugin() {
+  return {
+    name: "async-entry-css",
+    enforce: "post",
+    transformIndexHtml(html) {
+      return html.replace(
+        /<link\s+rel="stylesheet"\s+([^>]*?)href="([^"]*assets\/index-[^"]+\.css)"([^>]*)>/gi,
+        (_, _before, href, _after) => {
+          const cross = /crossorigin/i.test(`${_before}${_after}`) ? " crossorigin" : "";
+          return `<link rel="preload" as="style"${cross} href="${href}" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet"${cross} href="${href}"></noscript>`;
+        },
+      );
+    },
+  };
+}
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
@@ -58,7 +79,7 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
-    plugins: [tfjsCoreDualResolve(), react()],
+    plugins: [tfjsCoreDualResolve(), react(), asyncEntryCssPlugin()],
     css: {
       preprocessorOptions: {
         scss: {

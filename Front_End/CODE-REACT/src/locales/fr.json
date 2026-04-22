@@ -3130,7 +3130,7 @@
   },
   "patientBrainMri": {
     "title": "IRM cérébrale — aide à la lecture (espace patient)",
-    "subtitle": "Transmettez une image à votre médecin pour analyse, ou lancez une analyse immédiate sur cet appareil.",
+    "subtitle": "Transmettez une image à votre médecin pour qu’il lance l’analyse assistée depuis votre dossier.",
     "disclaimer": "Outil d’aide à la décision uniquement, pas un diagnostic. Urgence vitale : appelez le 15. L’envoi au médecin ne remplace pas une consultation ni un compte-rendu radiologique.",
     "loginPrompt": "Connectez-vous en tant que patient pour accéder à cette page.",
     "signIn": "Connexion",

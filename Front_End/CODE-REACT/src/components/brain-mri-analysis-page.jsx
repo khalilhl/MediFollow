@@ -142,19 +142,16 @@ const BrainMriAnalysisPage = ({ variant = "doctor", patientId: patientIdProp, em
   };
 
   const onAnalyze = async () => {
-    if (!file) return;
+    if (!file || isPatient) return;
     setLoading(true);
     setError("");
     setResult(null);
     setCareTeamNotified(false);
     setPendingSent(false);
     try {
-      const savePid = isPatient ? undefined : normalizedPropPid || undefined;
-      const data = isPatient
-        ? await brainTumorApi.predictPatient(file)
-        : await brainTumorApi.predictDoctor(file, savePid);
+      const savePid = normalizedPropPid || undefined;
+      const data = await brainTumorApi.predictDoctor(file, savePid);
       setResult(data);
-      if (isPatient) setCareTeamNotified(true);
       void loadHistory();
     } catch (e) {
       setError(e.message || t("doctorBrainMri.error"));
@@ -261,7 +258,7 @@ const BrainMriAnalysisPage = ({ variant = "doctor", patientId: patientIdProp, em
                         type="file"
                         accept="image/*"
                         onChange={onPick}
-                        disabled={loading || (isPatient && sendLoading)}
+                        disabled={isPatient ? sendLoading : loading}
                         className="form-control-sm"
                       />
                       {file && (
@@ -289,46 +286,25 @@ const BrainMriAnalysisPage = ({ variant = "doctor", patientId: patientIdProp, em
 
                     <div className="d-grid gap-2 mt-4">
                       {isPatient ? (
-                        <>
-                          <Button
-                            variant="primary"
-                            size="lg"
-                            className="fw-semibold"
-                            onClick={onSendToDoctor}
-                            disabled={!file || loading || sendLoading}
-                          >
-                            {sendLoading ? (
-                              <>
-                                <Spinner animation="border" size="sm" className="me-2" role="status" />
-                                {t("patientBrainMri.sendingImage")}
-                              </>
-                            ) : (
-                              <>
-                                <i className="ri-send-plane-fill me-2" aria-hidden />
-                                {t("patientBrainMri.sendToDoctor")}
-                              </>
-                            )}
-                          </Button>
-                          <Button
-                            variant="outline-primary"
-                            size="lg"
-                            className="fw-semibold"
-                            onClick={onAnalyze}
-                            disabled={!file || loading || sendLoading}
-                          >
-                            {loading ? (
-                              <>
-                                <Spinner animation="border" size="sm" className="me-2" role="status" />
-                                {t("doctorBrainMri.analyzing")}
-                              </>
-                            ) : (
-                              <>
-                                <i className="ri-radar-line me-2" aria-hidden />
-                                {t("patientBrainMri.analyzeOnDevice")}
-                              </>
-                            )}
-                          </Button>
-                        </>
+                        <Button
+                          variant="primary"
+                          size="lg"
+                          className="fw-semibold"
+                          onClick={onSendToDoctor}
+                          disabled={!file || sendLoading}
+                        >
+                          {sendLoading ? (
+                            <>
+                              <Spinner animation="border" size="sm" className="me-2" role="status" />
+                              {t("patientBrainMri.sendingImage")}
+                            </>
+                          ) : (
+                            <>
+                              <i className="ri-send-plane-fill me-2" aria-hidden />
+                              {t("patientBrainMri.sendToDoctor")}
+                            </>
+                          )}
+                        </Button>
                       ) : (
                         <Button
                           variant="primary"

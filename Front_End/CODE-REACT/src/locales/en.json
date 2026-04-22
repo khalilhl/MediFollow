@@ -3130,7 +3130,7 @@
   },
   "patientBrainMri": {
     "title": "Brain MRI — assisted review (your space)",
-    "subtitle": "Send an image to your physician for analysis, or run an immediate analysis on this device.",
+    "subtitle": "Send an image to your physician so they can run assisted analysis from your record.",
     "disclaimer": "Decision-support tool only. Not a diagnosis. Emergency? Call emergency services. Sending to your doctor does not replace a visit or a formal radiology report.",
     "loginPrompt": "Sign in as a patient to use this page.",
     "signIn": "Sign in",

@@ -18,10 +18,7 @@ import './assets/scss/customizer.scss'
 import './assets/custom/custom.scss'
 import './assets/scss/dyslexia-mode.scss'
 import './assets/vendor/font-awesome/css/font-awesome.min.css'
-import './assets/vendor/remixicon/fonts/remixicon.css'
 import './assets/vendor/phosphor-icons/Fonts/regular/style.css'
-import './assets/vendor/phosphor-icons/Fonts/duotone/style.css'
-import './assets/vendor/phosphor-icons/Fonts/fill/style.css' 
 
 //router
 import { RouterProvider, createBrowserRouter } from "react-router-dom";
@@ -34,6 +31,17 @@ import { store } from "./store/index";
 import { Provider } from "react-redux";
 
 const router = createBrowserRouter([...LayoutsRoute], { basename: import.meta.env.BASE_URL });
+
+function loadDeferredIconFonts() {
+  import("./deferred-icon-fonts.js").catch(() => {});
+}
+if (typeof window !== "undefined") {
+  if ("requestIdleCallback" in window) {
+    requestIdleCallback(() => loadDeferredIconFonts(), { timeout: 2500 });
+  } else {
+    window.addEventListener("load", loadDeferredIconFonts, { once: true });
+  }
+}
 
 createRoot(document.getElementById('root')).render(
   <Fragment>

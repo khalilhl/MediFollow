@@ -3,14 +3,24 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import { Doctor } from './schemas/doctor.schema';
+import { Patient } from '../patient/schemas/patient.schema';
+import { Appointment } from '../appointment/schemas/appointment.schema';
 import { EmailService } from '../auth/email.service';
+import { normalizeDoctorId } from '../doctor-availability/doctor-availability.service';
 
 @Injectable()
 export class DoctorService {
   constructor(
     @InjectModel(Doctor.name) private doctorModel: Model<Doctor>,
+    @InjectModel(Patient.name) private patientModel: Model<Patient>,
+    @InjectModel(Appointment.name) private appointmentModel: Model<Appointment>,
     private emailService: EmailService,
   ) {}
+
+  private localTodayYmd(): string {
+    const t = new Date();
+    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+  }
 
   /** Toujours persister `dr` ou `prof` pour l’affichage (Dr. / Pr.). */
   private normalizeAcademicTitle(v: unknown): 'dr' | 'prof' {
@@ -55,6 +65,27 @@ export class DoctorService {
     const doc = await this.doctorModel.findById(id).select('-password').lean().exec();
     if (!doc) throw new NotFoundException('Médecin non trouvé');
     return this.mapDoctorLean(doc as { academicTitle?: string });
+  }
+
+  /** Profil public + compteurs (patients référés, RDV confirmés à venir). */
+  async findByIdWithStats(id: string) {
+    const doctor = await this.findById(id);
+    const did = normalizeDoctorId(id);
+    const today = this.localTodayYmd();
+    const [assignedPatientsCount, upcomingAppointmentsCount] = await Promise.all([
+      this.patientModel.countDocuments({ doctorId: did }).exec(),
+      this.appointmentModel
+        .countDocuments({
+          doctorId: did,
+          date: { $gte: today },
+          status: { $in: ['confirmed', 'scheduled'] },
+        })
+        .exec(),
+    ]);
+    return {
+      ...doctor,
+      stats: { assignedPatientsCount, upcomingAppointmentsCount },
+    };
   }
 
   async update(id: string, data: Partial<Doctor>) {

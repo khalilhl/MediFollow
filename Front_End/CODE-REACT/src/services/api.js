@@ -605,7 +605,11 @@ export const authApi = {
 export const doctorApi = {
   create: (data) => api.post("/doctors", data),
   getAll: () => api.get("/doctors"),
-  getById: (id) => api.get(`/doctors/${id}`),
+  /** @param {{ stats?: boolean }} [options] — stats=1 : patients suivis + RDV à venir */
+  getById: (id, options) => {
+    const qs = options?.stats ? "?stats=1" : "";
+    return api.get(`/doctors/${id}${qs}`);
+  },
   update: (id, data) => api.put(`/doctors/${id}`, data),
   delete: (id) => api.delete(`/doctors/${id}`),
   toggleActive: (id) => api.put(`/doctors/${id}/toggle-active`, {}),
@@ -1165,6 +1169,9 @@ export const appointmentApi = {
   getUpcoming: (patientId) => api.get(`/appointments/patient/${patientId}/upcoming`),
   /** RDV confirmés à venir (JWT médecin) */
   getUpcomingForDoctor: () => api.getWithDoctorToken('/appointments/doctor/upcoming'),
+  /** Fiche profil : RDV à venir du médecin (JWT : titulaire du profil ou admin / superadmin) */
+  getUpcomingForDoctorProfile: (doctorId) =>
+    api.get(`/appointments/doctor/profile/${encodeURIComponent(String(doctorId))}/upcoming`),
   /** RDV confirmés pour un mois YYYY-MM (JWT médecin) — calendrier */
   getConfirmedForDoctorMonth: (yearMonth) =>
     api.getWithDoctorToken(`/appointments/doctor/month/${encodeURIComponent(yearMonth)}`),

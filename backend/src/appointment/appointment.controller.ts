@@ -65,6 +65,30 @@ export class AppointmentController {
     return this.appointmentService.findConfirmedByDoctorForMonth(String(req.user.id), yearMonth);
   }
 
+  /**
+   * RDV à venir affichés sur la fiche profil d’un médecin (JWT).
+   * Autorisé : le médecin concerné, ou un administrateur / super administrateur.
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('doctor/profile/:doctorId/upcoming')
+  getDoctorProfileUpcoming(
+    @Req() req: { user?: { id?: unknown; role?: string } },
+    @Param('doctorId') doctorId: string,
+  ) {
+    const role = req.user?.role;
+    const uid = String(req.user?.id ?? '');
+    const did = String(doctorId);
+    if (role === 'admin' || role === 'superadmin') {
+      return this.appointmentService.findUpcomingByDoctor(did);
+    }
+    if (role === 'doctor' && uid === did) {
+      return this.appointmentService.findUpcomingByDoctor(did);
+    }
+    throw new ForbiddenException(
+      "Vous ne pouvez consulter l'agenda détaillé que pour votre propre profil ou en tant qu'administrateur.",
+    );
+  }
+
   /** RDV des patients du même département que le coordinateur (JWT carecoordinator). */
   @UseGuards(JwtAuthGuard)
   @Get('coordinator/my-department')

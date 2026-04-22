@@ -1,31 +1,18 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Col, Row } from "react-bootstrap";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import Card from "../../components/Card";
 import FaceEnrollmentCard from "../../components/FaceEnrollmentCard";
-import { doctorApi } from "../../services/api";
+import { appointmentApi, doctorApi, notificationApi } from "../../services/api";
 import { formatDoctorFormalName } from "../../utils/doctorDisplayName";
 
-// Import FsLightBox
-import ReactFsLightbox from "fslightbox-react";
-
-// Import Image
-import imgg1 from "/assets/images/page-img/g1.jpg"
-import imgg2 from "/assets/images/page-img/g2.jpg"
-import imgg3 from "/assets/images/page-img/g3.jpg"
-import imgg4 from "/assets/images/page-img/g4.jpg"
-import imgg5 from "/assets/images/page-img/g5.jpg"
-import imgg6 from "/assets/images/page-img/g6.jpg"
-import imgg7 from "/assets/images/page-img/g7.jpg"
-import imgg8 from "/assets/images/page-img/g8.jpg"
-import imgg9 from "/assets/images/page-img/g9.jpg"
-import img11 from "/assets/images/user/11.png"
-import CountUp from "react-countup";
+import img11 from "/assets/images/user/11.png";
 
 const generatePath = (path) => window.origin + import.meta.env.BASE_URL + path;
 
-/** Face enrollment only when the doctor views their own profile — not when viewing a colleague or other roles. */
+const EM_DASH = "—";
+
 function isDoctorViewingOwnProfile(profileId) {
     if (!profileId) return false;
     try {
@@ -42,7 +29,6 @@ function isDoctorViewingOwnProfile(profileId) {
     }
 }
 
-/** Edit: own profile or admin — not when a doctor views another doctor’s profile (read-only). */
 function canEditDoctorProfile(profileId) {
     if (!profileId) return false;
     try {
@@ -57,55 +43,225 @@ function canEditDoctorProfile(profileId) {
     }
 }
 
-const DoctorProfile = (props) => {
+/** Agenda détaillé : titulaire du profil ou admin / superadmin. */
+function canViewProfileDoctorSchedule(profileId) {
+    if (!profileId) return false;
+    try {
+        const rawAd = localStorage.getItem("adminUser");
+        if (rawAd) {
+            const u = JSON.parse(rawAd);
+            if (u?.role === "admin" || u?.role === "superadmin") return true;
+        }
+        const raw = localStorage.getItem("doctorUser");
+        if (!raw) return false;
+        const u = JSON.parse(raw);
+        const did = u?.id ?? u?._id;
+        return did != null && String(did) === String(profileId);
+    } catch {
+        return false;
+    }
+}
+
+function formatLocation(d) {
+    if (!d || typeof d !== "object") return null;
+    const parts = [d.address, d.city, d.country, d.pinCode].filter(Boolean);
+    return parts.length ? parts.join(", ") : null;
+}
+
+function todayYmd() {
+    const t = new Date();
+    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
+}
+
+function ymdAddDays(ymd, days) {
+    const [y, m, d] = ymd.split("-").map((x) => parseInt(x, 10));
+    const dt = new Date(y, m - 1, d);
+    dt.setDate(dt.getDate() + days);
+    return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+}
+
+function apptDayLabel(dateStr, t) {
+    const d = String(dateStr || "").split("T")[0];
+    if (!d) return EM_DASH;
+    const t0 = todayYmd();
+    if (d === t0) return t("doctorProfile.today");
+    if (d === ymdAddDays(t0, 1)) return t("doctorProfile.tomorrow");
+    try {
+        return new Date(d + "T12:00:00").toLocaleDateString(undefined, {
+            weekday: "short",
+            day: "numeric",
+            month: "short",
+        });
+    } catch {
+        return d;
+    }
+}
+
+function appointmentPatientName(apt) {
+    const p = apt?.patientId;
+    if (p && typeof p === "object") {
+        const n = `${p.firstName || ""} ${p.lastName || ""}`.trim();
+        return n || EM_DASH;
+    }
+    return apt?.doctorName || EM_DASH;
+}
+
+const SCHEDULE_BADGES = ["primary", "danger", "warning", "info", "success"];
+
+const DoctorProfile = () => {
     const { t } = useTranslation();
     const { id } = useParams();
+    const navigate = useNavigate();
     const [doctor, setDoctor] = useState(null);
-    const [loading, setLoading] = useState(!!id);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-
-    const FsLightbox = ReactFsLightbox.default
-        ? ReactFsLightbox.default
-        : ReactFsLightbox;
-
-    const [imageController, setImageController] = useState({
-        toggler: false,
-        slide: 1,
-    });
+    const [appointments, setAppointments] = useState([]);
+    const [apptLoading, setApptLoading] = useState(false);
+    const [notifications, setNotifications] = useState([]);
 
     const showFaceEnrollment = useMemo(() => isDoctorViewingOwnProfile(id), [id]);
     const showEditButton = useMemo(() => canEditDoctorProfile(id), [id]);
+    const showSchedule = useMemo(() => canViewProfileDoctorSchedule(id), [id]);
+
+    useEffect(() => {
+        if (id) return;
+        setLoading(true);
+        try {
+            const raw = localStorage.getItem("doctorUser");
+            if (raw) {
+                const u = JSON.parse(raw);
+                const did = u?.id ?? u?._id;
+                if (did) {
+                    navigate(`/doctor/doctor-profile/${did}`, { replace: true });
+                    return;
+                }
+            }
+        } catch {
+            /* ignore */
+        }
+        setLoading(false);
+    }, [id, navigate]);
 
     useEffect(() => {
         if (!id) return;
-        const fetchDoctor = async () => {
+        let cancelled = false;
+        setLoading(true);
+        setError("");
+        const run = async () => {
             try {
-                const data = await doctorApi.getById(id);
-                setDoctor(data);
+                const data = await doctorApi.getById(id, { stats: true });
+                if (!cancelled) setDoctor(data);
             } catch (err) {
-                setError(err.message || "Médecin non trouvé");
+                if (!cancelled) setError(err.message || t("doctorProfile.loadError"));
             } finally {
-                setLoading(false);
+                if (!cancelled) setLoading(false);
             }
         };
-        fetchDoctor();
-    }, [id]);
+        run();
+        return () => {
+            cancelled = true;
+        };
+    }, [id, t]);
 
-    function imageOnSlide(number) {
-        setImageController({
-            toggler: !imageController.toggler,
-            slide: number,
-        });
-    }
+    useEffect(() => {
+        if (!id || !showSchedule) {
+            setAppointments([]);
+            return;
+        }
+        let cancelled = false;
+        setApptLoading(true);
+        appointmentApi
+            .getUpcomingForDoctorProfile(id)
+            .then((rows) => {
+                if (!cancelled) setAppointments(Array.isArray(rows) ? rows.slice(0, 12) : []);
+            })
+            .catch(() => {
+                if (!cancelled) setAppointments([]);
+            })
+            .finally(() => {
+                if (!cancelled) setApptLoading(false);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [id, showSchedule]);
+
+    useEffect(() => {
+        if (!isDoctorViewingOwnProfile(id)) {
+            setNotifications([]);
+            return;
+        }
+        let cancelled = false;
+        notificationApi
+            .getMine()
+            .then((data) => {
+                const items = data?.items;
+                if (!cancelled) setNotifications(Array.isArray(items) ? items.slice(0, 8) : []);
+            })
+            .catch(() => {
+                if (!cancelled) setNotifications([]);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [id]);
 
     const displayDoctor = doctor || {};
     const profileImg = doctor?.profileImage
-        ? (doctor.profileImage.startsWith("data:") ? doctor.profileImage
-            : (doctor.profileImage.startsWith("http") ? doctor.profileImage : generatePath(doctor.profileImage)))
+        ? doctor.profileImage.startsWith("data:")
+            ? doctor.profileImage
+            : doctor.profileImage.startsWith("http")
+              ? doctor.profileImage
+              : generatePath(doctor.profileImage)
         : img11;
+
     const lastDoctorSession = displayDoctor.updatedAt
-        ? new Date(displayDoctor.updatedAt).toLocaleString("fr-FR")
-        : "Session active";
+        ? new Date(displayDoctor.updatedAt).toLocaleString()
+        : null;
+
+    const stats = displayDoctor.stats || {};
+    const assignedCount = typeof stats.assignedPatientsCount === "number" ? stats.assignedPatientsCount : 0;
+    const upcomingCount = typeof stats.upcomingAppointmentsCount === "number" ? stats.upcomingAppointmentsCount : 0;
+
+    const displayName = displayDoctor.firstName ? formatDoctorFormalName(displayDoctor, t) : EM_DASH;
+    const specialtyLine = displayDoctor.specialty?.trim() || EM_DASH;
+    const departmentLine = displayDoctor.department?.trim() || EM_DASH;
+    const locationLine = formatLocation(displayDoctor) || EM_DASH;
+    const emailVal = displayDoctor.email?.trim();
+    const phoneVal = displayDoctor.phone?.trim();
+
+    if (!id) {
+        if (loading) {
+            return (
+                <Row>
+                    <Col sm={12}>
+                        <Card>
+                            <Card.Body className="text-center py-5">
+                                <div className="spinner-border text-primary" role="status">
+                                    <span className="visually-hidden">{t("doctorProfile.loading")}</span>
+                                </div>
+                                <p className="mt-3 mb-0">{t("doctorProfile.loading")}</p>
+                            </Card.Body>
+                        </Card>
+                    </Col>
+                </Row>
+            );
+        }
+        return (
+            <Row>
+                <Col sm={12}>
+                    <Card>
+                        <Card.Body className="text-center py-5">
+                            <p className="mb-3">{t("doctorProfile.needDoctorSession")}</p>
+                            <Link to="/doctor/doctor-list" className="btn btn-primary-subtle">
+                                {t("doctorProfile.backToList")}
+                            </Link>
+                        </Card.Body>
+                    </Card>
+                </Col>
+            </Row>
+        );
+    }
 
     if (loading) {
         return (
@@ -114,9 +270,9 @@ const DoctorProfile = (props) => {
                     <Card>
                         <Card.Body className="text-center py-5">
                             <div className="spinner-border text-primary" role="status">
-                                <span className="visually-hidden">Chargement...</span>
+                                <span className="visually-hidden">{t("doctorProfile.loading")}</span>
                             </div>
-                            <p className="mt-3 mb-0">Chargement du profil...</p>
+                            <p className="mt-3 mb-0">{t("doctorProfile.loading")}</p>
                         </Card.Body>
                     </Card>
                 </Col>
@@ -131,13 +287,22 @@ const DoctorProfile = (props) => {
                     <Card>
                         <Card.Body className="text-center py-5">
                             <p className="text-danger mb-3">{error}</p>
-                            <Link to="/doctor/doctor-list" className="btn btn-primary-subtle">Retour à la liste</Link>
+                            <Link to="/doctor/doctor-list" className="btn btn-primary-subtle">
+                                {t("doctorProfile.backToList")}
+                            </Link>
                         </Card.Body>
                     </Card>
                 </Col>
             </Row>
         );
     }
+
+    const social = [
+        { key: "facebook", url: displayDoctor.facebookUrl, icon: "ri-facebook-fill" },
+        { key: "twitter", url: displayDoctor.twitterUrl, icon: "ri-twitter-x-fill" },
+        { key: "instagram", url: displayDoctor.instagramUrl, icon: "ri-instagram-line" },
+        { key: "linkedin", url: displayDoctor.linkedinUrl, icon: "ri-linkedin-fill" },
+    ].filter((s) => s.url && String(s.url).trim());
 
     return (
         <>
@@ -148,41 +313,31 @@ const DoctorProfile = (props) => {
                     </Col>
                 </Row>
             ) : null}
-            <FsLightbox
-                toggler={imageController.toggler}
-                sources={[
-                    imgg1, imgg2, imgg3, imgg4, imgg5, imgg6, imgg7, imgg8, imgg9
-                ]}
-                slide={imageController.slide}
-            />
             <Row>
                 <Col lg={4}>
                     <Card>
                         <Card.Body className="ps-0 pe-0 pt-0">
                             <div className="docter-details-block">
-                                <div className="doc-profile-bg bg-primary rounded-top-2" style={{ height: "150px" }}>
-                                </div>
+                                <div className="doc-profile-bg bg-primary rounded-top-2" style={{ height: "150px" }} />
                                 <div className="docter-profile text-center">
-                                    <img src={profileImg} alt="profile-img" className="avatar-130 img-fluid" style={{ objectFit: "cover" }} />
+                                    <img src={profileImg} alt="" className="avatar-130 img-fluid" style={{ objectFit: "cover" }} />
                                 </div>
                                 <div className="text-center mt-3 ps-3 pe-3">
-                                    <h4><b>{displayDoctor.firstName ? formatDoctorFormalName(displayDoctor, t) : "Bini Jets"}</b></h4>
-                                    <p>{displayDoctor.specialty || "Doctor"}</p>
-                                    <p className="mb-0">{displayDoctor.department || "Lorem ipsum dolor sit amet, consectetur adipisicing elit. Delectus repudiandae eveniet harum."}</p>
+                                    <h4>
+                                        <b>{displayName}</b>
+                                    </h4>
+                                    <p className="mb-1">{specialtyLine}</p>
+                                    <p className="text-muted small mb-0">{departmentLine}</p>
                                 </div>
                                 <hr />
-                                <ul className="doctoe-sedual d-flex align-items-center justify-content-between p-0 m-0">
-                                    <li className="text-center">
-                                        <h3 className="counter"><CountUp end={4500} separator="" /></h3>
-                                        <span>Operations</span>
+                                <ul className="doctoe-sedual d-flex align-items-center justify-content-between p-0 m-0 list-unstyled">
+                                    <li className="text-center flex-fill px-1">
+                                        <h3 className="counter mb-0">{assignedCount}</h3>
+                                        <span className="small">{t("doctorProfile.statPatients")}</span>
                                     </li>
-                                    <li className="text-center">
-                                        <h3 className="counter"><CountUp end={100} separator="" /></h3>
-                                        <span>Hospital</span>
-                                    </li>
-                                    <li className="text-center">
-                                        <h3 className="counter"><CountUp end={10000} separator="" /></h3>
-                                        <span>Patients</span>
+                                    <li className="text-center flex-fill px-1">
+                                        <h3 className="counter mb-0">{upcomingCount}</h3>
+                                        <span className="small">{t("doctorProfile.statUpcomingAppts")}</span>
                                     </li>
                                 </ul>
                             </div>
@@ -202,80 +357,72 @@ const DoctorProfile = (props) => {
                         <Card.Body>
                             <div className="about-info m-0 p-0">
                                 <Row>
-                                    <Col xs={4}>First Name:</Col>
-                                    <Col xs={8}>{displayDoctor.firstName || "Bini"}</Col>
-                                    <Col xs={4}>Last Name:</Col>
-                                    <Col xs={8}>{displayDoctor.lastName || "Jets"}</Col>
-                                    <Col xs={4}>Position:</Col>
-                                    <Col xs={8}>{displayDoctor.specialty || "Senior Doctor"}</Col>
-                                    <Col xs={4}>Email:</Col>
-                                    <Col xs={8}>
-                                        <a href={`mailto:${displayDoctor.email || "biniJets24@demo.com"}`}>{displayDoctor.email || "biniJets24@demo.com"}</a>
+                                    <Col xs={4} className="text-muted">
+                                        {t("doctorProfile.labelFirstName")}
                                     </Col>
-                                    <Col xs={4}>Phone:</Col>
-                                    <Col xs={8}>
-                                        <a href={`tel:${displayDoctor.phone || "001-2351-25612"}`}>{displayDoctor.phone || "001 2351 256 12"}</a>
+                                    <Col xs={8}>{displayDoctor.firstName?.trim() || EM_DASH}</Col>
+                                    <Col xs={4} className="text-muted">
+                                        {t("doctorProfile.labelLastName")}
                                     </Col>
-                                    <Col xs={4}>Location:</Col>
-                                    <Col xs={8}>{displayDoctor.city || displayDoctor.country || "USA"}</Col>
-                                    <Col xs={4}>Session:</Col>
-                                    <Col xs={8}>
-                                        <span className="badge bg-success-subtle text-success">Connecté</span>
+                                    <Col xs={8}>{displayDoctor.lastName?.trim() || EM_DASH}</Col>
+                                    <Col xs={4} className="text-muted">
+                                        {t("doctorProfile.labelSpecialty")}
                                     </Col>
-                                    <Col xs={4}>Dernière session:</Col>
-                                    <Col xs={8}>{lastDoctorSession}</Col>
+                                    <Col xs={8}>{specialtyLine}</Col>
+                                    <Col xs={4} className="text-muted">
+                                        {t("doctorProfile.labelDepartment")}
+                                    </Col>
+                                    <Col xs={8}>{departmentLine}</Col>
+                                    <Col xs={4} className="text-muted">
+                                        {t("doctorProfile.labelEmail")}
+                                    </Col>
+                                    <Col xs={8}>
+                                        {emailVal ? <a href={`mailto:${emailVal}`}>{emailVal}</a> : EM_DASH}
+                                    </Col>
+                                    <Col xs={4} className="text-muted">
+                                        {t("doctorProfile.labelPhone")}
+                                    </Col>
+                                    <Col xs={8}>
+                                        {phoneVal ? <a href={`tel:${phoneVal}`}>{phoneVal}</a> : EM_DASH}
+                                    </Col>
+                                    <Col xs={4} className="text-muted">
+                                        {t("doctorProfile.labelLocation")}
+                                    </Col>
+                                    <Col xs={8}>{locationLine}</Col>
+                                    <Col xs={4} className="text-muted">
+                                        {t("doctorProfile.labelAccount")}
+                                    </Col>
+                                    <Col xs={8}>
+                                        {displayDoctor.isActive === false ? (
+                                            <span className="badge bg-secondary-subtle text-secondary">
+                                                {t("doctorProfile.accountInactive")}
+                                            </span>
+                                        ) : (
+                                            <span className="badge bg-success-subtle text-success">
+                                                {t("doctorProfile.accountActive")}
+                                            </span>
+                                        )}
+                                    </Col>
+                                    <Col xs={4} className="text-muted">
+                                        {t("doctorProfile.labelLastUpdate")}
+                                    </Col>
+                                    <Col xs={8}>{lastDoctorSession || EM_DASH}</Col>
                                 </Row>
-
                             </div>
                         </Card.Body>
                     </Card>
-                    <Card >
-                        <div className="card-header d-flex align-items-center justify-content-between">
-                            <div className="header-title">
-                                <h4 className="card-title">Photos</h4>
-                            </div>
-                        </div>
-                        <div className="card-body">
-                            <div className="d-grid gap-card grid-cols-3">
-                                <a className="text-center">
-                                    <img src={imgg1} className="img-fluid w-100" alt="profile-image"
-                                        loading="lazy" onClick={() => imageOnSlide(1)} />
-                                </a>
-                                <a className="text-center">
-                                    <img src={imgg2} className="img-fluid w-100" alt="profile-image"
-                                        loading="lazy" onClick={() => imageOnSlide(2)} />
-                                </a>
-                                <a className="text-center">
-                                    <img src={imgg3} className="img-fluid w-100" alt="profile-image"
-                                        loading="lazy" onClick={() => imageOnSlide(3)} />
-                                </a>
-                                <a className="text-center">
-                                    <img src={imgg4} className="img-fluid w-100" alt="profile-image"
-                                        loading="lazy" onClick={() => imageOnSlide(4)} />
-                                </a>
-                                <a className="text-center">
-                                    <img src={imgg5} className="img-fluid w-100" alt="profile-image"
-                                        loading="lazy" onClick={() => imageOnSlide(5)} />
-                                </a>
-                                <a className="text-center">
-                                    <img src={imgg6} className="img-fluid w-100" alt="profile-image"
-                                        loading="lazy" onClick={() => imageOnSlide(6)} />
-                                </a>
-                                <a className="text-center">
-                                    <img src={imgg7} className="img-fluid w-100" alt="profile-image"
-                                        loading="lazy" onClick={() => imageOnSlide(7)} />
-                                </a>
-                                <a className="text-center">
-                                    <img src={imgg8} className="img-fluid w-100" alt="profile-image"
-                                        loading="lazy" onClick={() => imageOnSlide(8)} />
-                                </a>
-                                <a className="text-center">
-                                    <img src={imgg9} className="img-fluid w-100" alt="profile-image"
-                                        loading="lazy" onClick={() => imageOnSlide(9)} />
-                                </a>
-                            </div>
-                        </div>
-                    </Card>
+                    {showFaceEnrollment ? (
+                        <Card>
+                            <Card.Body className="d-grid gap-2">
+                                <Link to="/doctor/my-patients" className="btn btn-outline-primary">
+                                    {t("doctorProfile.linkMyPatients")}
+                                </Link>
+                                <Link to="/doctor/availability-calendar" className="btn btn-outline-secondary">
+                                    {t("doctorProfile.linkCalendar")}
+                                </Link>
+                            </Card.Body>
+                        </Card>
+                    ) : null}
                 </Col>
                 <Col lg={8}>
                     <Row>
@@ -283,257 +430,147 @@ const DoctorProfile = (props) => {
                             <Card>
                                 <Card.Header className="d-flex justify-content-between">
                                     <Card.Header.Title>
-                                        <h4 className="card-title">Speciality</h4>
+                                        <h4 className="card-title mb-0">{t("doctorProfile.cardProfessional")}</h4>
                                     </Card.Header.Title>
                                 </Card.Header>
                                 <Card.Body>
-                                    <ul className="speciality-list m-0 p-0">
-                                        <li className="d-flex mb-4 align-items-center">
-                                            <div className="user-img img-fluid"><a href="#" className="bg-primary-subtle"><i
-                                                className="ri-award-fill"></i></a></div>
+                                    <ul className="speciality-list m-0 p-0 list-unstyled">
+                                        <li className="d-flex mb-3 align-items-start">
+                                            <div className="user-img img-fluid">
+                                                <span className="d-inline-flex align-items-center justify-content-center rounded bg-primary-subtle text-primary p-2">
+                                                    <i className="ri-stethoscope-line" />
+                                                </span>
+                                            </div>
                                             <div className="media-support-info ms-3">
-                                                <h6>Professional</h6>
-                                                <p className="mb-0">Certified Skin
-                                                    Treatment</p>
+                                                <h6 className="mb-1">{t("doctorProfile.proSpecialty")}</h6>
+                                                <p className="mb-0 text-muted">{specialtyLine}</p>
                                             </div>
                                         </li>
-                                        <li className="d-flex mb-4 align-items-center">
-                                            <div className="user-img img-fluid"><a href="#" className="bg-warning-subtle"><i
-                                                className="ri-award-fill"></i></a></div>
+                                        <li className="d-flex mb-3 align-items-start">
+                                            <div className="user-img img-fluid">
+                                                <span className="d-inline-flex align-items-center justify-content-center rounded bg-info-subtle text-info p-2">
+                                                    <i className="ri-building-2-line" />
+                                                </span>
+                                            </div>
                                             <div className="media-support-info ms-3">
-                                                <h6>Certified</h6>
-                                                <p className="mb-0">Cold Laser Operation</p>
+                                                <h6 className="mb-1">{t("doctorProfile.proDepartment")}</h6>
+                                                <p className="mb-0 text-muted">{departmentLine}</p>
                                             </div>
                                         </li>
-                                        <li className="d-flex mb-4 align-items-center">
-                                            <div className="user-img img-fluid"><a href="#" className="bg-info-subtle"><i
-                                                className="ri-award-fill"></i></a></div>
+                                        <li className="d-flex mb-3 align-items-start">
+                                            <div className="user-img img-fluid">
+                                                <span className="d-inline-flex align-items-center justify-content-center rounded bg-warning-subtle text-warning p-2">
+                                                    <i className="ri-map-pin-line" />
+                                                </span>
+                                            </div>
                                             <div className="media-support-info ms-3">
-                                                <h6>Medication Laser</h6>
-                                                <p className="mb-0">Hair Lose Product</p>
+                                                <h6 className="mb-1">{t("doctorProfile.proLocation")}</h6>
+                                                <p className="mb-0 text-muted">{locationLine}</p>
                                             </div>
                                         </li>
                                     </ul>
+                                    {social.length ? (
+                                        <div className="d-flex flex-wrap gap-2 pt-2 border-top">
+                                            {social.map((s) => (
+                                                <a
+                                                    key={s.key}
+                                                    href={s.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="btn btn-sm btn-outline-secondary"
+                                                    aria-label={s.key}
+                                                >
+                                                    <i className={s.icon} />
+                                                </a>
+                                            ))}
+                                        </div>
+                                    ) : null}
                                 </Card.Body>
                             </Card>
+                        </Col>
+                        <Col md={6}>
+                            {isDoctorViewingOwnProfile(id) ? (
+                                <Card>
+                                    <Card.Header className="d-flex justify-content-between">
+                                        <Card.Header.Title>
+                                            <h4 className="card-title mb-0">{t("doctorProfile.cardNotifications")}</h4>
+                                        </Card.Header.Title>
+                                    </Card.Header>
+                                    <Card.Body>
+                                        {notifications.length === 0 ? (
+                                            <p className="text-muted mb-0 small">{t("doctorProfile.notificationsEmpty")}</p>
+                                        ) : (
+                                            <ul className="timeline m-0 p-0">
+                                                {notifications.map((n, idx) => {
+                                                    const dot =
+                                                        idx % 3 === 0 ? "border-success" : idx % 3 === 1 ? "border-danger" : "border-primary";
+                                                    const title = n.title || n.body || "";
+                                                    const when = n.sortAt || n.createdAt;
+                                                    return (
+                                                        <li key={n._id || n.id || idx}>
+                                                            <div className={`timeline-dots ${dot}`} />
+                                                            <h6 className="mb-1">{title}</h6>
+                                                            {when ? (
+                                                                <small className="text-muted">
+                                                                    {new Date(when).toLocaleString()}
+                                                                </small>
+                                                            ) : null}
+                                                        </li>
+                                                    );
+                                                })}
+                                            </ul>
+                                        )}
+                                    </Card.Body>
+                                </Card>
+                            ) : (
+                                <Card>
+                                    <Card.Body>
+                                        <p className="text-muted small mb-0">{t("doctorProfile.notificationsOtherProfile")}</p>
+                                    </Card.Body>
+                                </Card>
+                            )}
                         </Col>
                         <Col md={6}>
                             <Card>
                                 <Card.Header className="d-flex justify-content-between">
                                     <Card.Header.Title>
-                                        <h4 className="card-title">Notifications</h4>
+                                        <h4 className="card-title mb-0">{t("doctorProfile.cardSchedule")}</h4>
                                     </Card.Header.Title>
                                 </Card.Header>
                                 <Card.Body>
-                                    <ul className="timeline">
-                                        <li>
-                                            <div className="timeline-dots border-success"></div>
-                                            <h6 class>Dr. Joy Send you Photo</h6>
-                                            <small className="mt-1">23 November 2019</small>
-                                        </li>
-                                        <li>
-                                            <div className="timeline-dots border-danger"></div>
-                                            <h6 class>Reminder : Opertion Time!</h6>
-                                            <small className="mt-1">20 November 2019</small>
-                                        </li>
-                                        <li>
-                                            <div className="timeline-dots border-primary"></div>
-                                            <h6 className="mb-1">Patient Call</h6>
-                                            <small className="mt-1">19 November 2019</small>
-                                        </li>
-                                    </ul>
-                                </Card.Body>
-                            </Card>
-                        </Col>
-                        <Col md={6}>
-                            <Card>
-                                <Card.Header className="d-flex justify-content-between">
-                                    <Card.Header.Title>
-                                        <h4 className="card-title">Schedule</h4>
-                                    </Card.Header.Title>
-                                </Card.Header>
-                                <Card.Body>
-                                    <ul className="list-inline m-0 p-0">
-                                        <li>
-                                            <h6 className="float-start mb-1">Ruby Saul
-                                                (Blood Check)</h6>
-                                            <small className="float-end mt-1">Today</small>
-                                            <div className="d-inline-block w-100">
-                                                <p className="badge text-bg-primary">09:00
-                                                    AM </p>
-                                            </div>
-                                        </li>
-                                        <li>
-                                            <h6 className="float-start mb-1"> Anna Mull
-                                                (Fever)</h6>
-                                            <small className="float-end mt-1">Today</small>
-                                            <div className="d-inline-block w-100">
-                                                <p className="badge text-bg-danger">09:15 AM
-                                                </p>
-                                            </div>
-                                        </li>
-                                        <li>
-                                            <h6 className="float-start mb-1">Petey Cruiser
-                                                (X-ray)</h6>
-                                            <small className="float-end mt-1">Today</small>
-                                            <div className="d-inline-block w-100">
-                                                <p className="badge text-bg-warning">10:00
-                                                    AM </p>
-                                            </div>
-                                        </li>
-                                        <li>
-                                            <h6 className="float-start mb-1">Anna Sthesia
-                                                (Full body Check up)</h6>
-                                            <small className="float-end mt-1">Today</small>
-                                            <div className="d-inline-block w-100">
-                                                <p className="badge text-bg-info">01:00 PM
-                                                </p>
-                                            </div>
-                                        </li>
-                                        <li>
-                                            <h6 className="float-start mb-1">Paul Molive
-                                                (Operation)</h6>
-                                            <small className="float-end mt-1">Tomorrow</small>
-                                            <div className="d-inline-block w-100">
-                                                <p className="badge text-bg-success">09:00
-                                                    AM </p>
-                                            </div>
-                                        </li>
-
-                                    </ul>
-                                </Card.Body>
-                            </Card>
-                        </Col>
-                        <Col md={6}>
-                            <Card>
-                                <Card.Header className="d-flex justify-content-between">
-                                    <Card.Header.Title >
-                                        <h4 className="card-title">Patients Notes</h4>
-                                    </Card.Header.Title>
-                                </Card.Header>
-                                <Card.Body>
-                                    <ul className="list-inline m-0 p-0">
-                                        <li className="d-flex align-items-center justify-content-between mb-3">
-                                            <div>
-                                                <h6>Treatment was good!</h6>
-                                                <p className="mb-0">Eye Test </p>
-                                            </div>
-                                            <div><a href="#" className="btn btn-primary-subtle">Open</a></div>
-                                        </li>
-                                        <li className="d-flex align-items-center justify-content-between mb-3">
-                                            <div>
-                                                <h6>My Health is better Now</h6>
-                                                <p className="mb-0">Fever Test</p>
-                                            </div>
-                                            <div><a href="#" className="btn btn-primary-subtle">Open</a></div>
-                                        </li>
-                                        <li className="d-flex align-items-center justify-content-between mb-3">
-                                            <div>
-                                                <h6>No Effected</h6>
-                                                <p className="mb-0">Thyroid Test</p>
-                                            </div>
-                                            <div><a href="#" className="btn btn-danger-subtle">Close</a></div>
-                                        </li>
-                                        <li className="d-flex align-items-center justify-content-between mb-3">
-                                            <div>
-                                                <h6>Operation Successfull</h6>
-                                                <p className="mb-0">Orthopaedic</p>
-                                            </div>
-                                            <div><a href="#" className="btn btn-primary-subtle">Open</a></div>
-                                        </li>
-                                        <li className="d-flex align-items-center justify-content-between mb-3">
-                                            <div>
-                                                <h6>Medical Care is just a click
-                                                    away</h6>
-                                                <p className="mb-0">Join Pain </p>
-                                            </div>
-                                            <div><a href="#" className="btn btn-danger-subtle">Close</a></div>
-                                        </li>
-                                        <li className="d-flex align-items-center justify-content-between">
-                                            <div>
-                                                <h6>Treatment is good</h6>
-                                                <p className="mb-0">Skin Treatment </p>
-                                            </div>
-                                            <div><a href="#" className="btn btn-primary-subtle">Open</a></div>
-                                        </li>
-                                    </ul>
-                                </Card.Body>
-                            </Card>
-                        </Col>
-                        <Col md={12}>
-                            <Card>
-                                <Card.Header className="d-flex justify-content-between">
-                                    <Card.Header.Title>
-                                        <h4 className="card-title">Education</h4>
-                                    </Card.Header.Title>
-                                </Card.Header>
-                                <Card.Body>
-                                    <div className="table-responsive">
-                                        <table className="table mb-0 table-borderless">
-                                            <thead>
-                                                <tr>
-                                                    <th scope="col">Year</th>
-                                                    <th scope="col">Degree</th>
-                                                    <th scope="col">Institute</th>
-                                                    <th scope="col">Result</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <tr>
-                                                    <td>2010</td>
-                                                    <td>MBBS, M.D</td>
-                                                    <td>University of Wyoming</td>
-                                                    <td><span className="badge text-bg-success">Distinction</span></td>
-                                                </tr>
-                                                <tr>
-                                                    <td>2014</td>
-                                                    <td>M.D. of Medicine</td>
-                                                    <td>Netherland Medical College</td>
-                                                    <td><span className="badge text-bg-success">Distinction</span></td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </Card.Body>
-                            </Card>
-                        </Col>
-                        <Col md={12}>
-                            <Card>
-                                <Card.Header className="d-flex justify-content-between">
-                                    <Card.Header.Title>
-                                        <h4 className="card-title">Experience</h4>
-                                    </Card.Header.Title>
-                                </Card.Header>
-                                <Card.Body>
-                                    <div className="table-responsive">
-                                        <table className="table mb-0 table-borderless">
-                                            <thead>
-                                                <tr>
-                                                    <th scope="col">Year</th>
-                                                    <th scope="col">Department</th>
-                                                    <th scope="col">Position</th>
-                                                    <th scope="col">Hospital</th>
-                                                    <th scope="col">Feedback</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <tr>
-                                                    <td>2014 - 2018</td>
-                                                    <td>MBBS, M.D</td>
-                                                    <td>Senior Docter</td>
-                                                    <td>Midtown Medical Clinic</td>
-                                                    <td><span className="badge text-bg-primary">Good</span></td>
-                                                </tr>
-                                                <tr>
-                                                    <td>2018 - 2020</td>
-                                                    <td>M.D. of Medicine</td>
-                                                    <td>Associate Prof.</td>
-                                                    <td>Netherland Medical College</td>
-                                                    <td><span className="badge text-bg-success">excellence</span></td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
+                                    {!showSchedule ? (
+                                        <p className="text-muted small mb-0">{t("doctorProfile.scheduleRestricted")}</p>
+                                    ) : apptLoading ? (
+                                        <div className="text-center py-3">
+                                            <div className="spinner-border spinner-border-sm text-primary" role="status" />
+                                        </div>
+                                    ) : appointments.length === 0 ? (
+                                        <p className="text-muted small mb-0">{t("doctorProfile.scheduleEmpty")}</p>
+                                    ) : (
+                                        <ul className="list-inline m-0 p-0">
+                                            {appointments.map((apt, idx) => {
+                                                const badge = SCHEDULE_BADGES[idx % SCHEDULE_BADGES.length];
+                                                const patientName = appointmentPatientName(apt);
+                                                const title = apt.title || t("doctorProfile.apptDefaultTitle");
+                                                return (
+                                                    <li key={apt._id || idx} className="mb-3">
+                                                        <h6 className="float-start mb-1">
+                                                            {patientName}
+                                                            <span className="text-muted fw-normal"> — {title}</span>
+                                                        </h6>
+                                                        <small className="float-end mt-1 text-muted">
+                                                            {apptDayLabel(apt.date, t)}
+                                                        </small>
+                                                        <div className="d-inline-block w-100">
+                                                            <span className={`badge text-bg-${badge}`}>
+                                                                {apt.time || EM_DASH}
+                                                            </span>
+                                                        </div>
+                                                    </li>
+                                                );
+                                            })}
+                                        </ul>
+                                    )}
                                 </Card.Body>
                             </Card>
                         </Col>
@@ -541,7 +578,7 @@ const DoctorProfile = (props) => {
                 </Col>
             </Row>
         </>
-    )
-}
+    );
+};
 
-export default DoctorProfile
+export default DoctorProfile;

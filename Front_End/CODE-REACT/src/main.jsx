@@ -41,16 +41,7 @@ const routeLazyFallback = (
   </div>
 );
 
-function loadDeferredIconFonts() {
-  import("./deferred-icon-fonts.js").catch(() => {});
-}
-if (typeof window !== "undefined") {
-  if ("requestIdleCallback" in window) {
-    requestIdleCallback(() => loadDeferredIconFonts(), { timeout: 1000 });
-  } else {
-    window.addEventListener("load", loadDeferredIconFonts, { once: true });
-  }
-}
+/* Icônes Remix + Phosphor (duotone/fill) : chargées via liens non bloquants injectés dans index.html (vite.config.js) pour éviter la chaîne critique HTML → index.js → CSS. */
 
 createRoot(document.getElementById('root')).render(
   <Fragment>

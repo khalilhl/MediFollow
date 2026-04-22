@@ -92,16 +92,42 @@ function viteEmittedAssetHref(viteBase, fileName) {
   return `${base}/${f}`.replace(/([^:])\/+/g, "$1/");
 }
 
+/** Chemins servis par Vite en dev : même feuilles que `src/deferred-icon-fonts.js`, découvertes dès le HTML (pas après index-*.js). */
+const DEV_DEFERRED_ICON_CSS_HREFS = [
+  "/src/assets/vendor/remixicon/fonts/remixicon.css",
+  "/src/assets/vendor/phosphor-icons/Fonts/duotone/style.css",
+  "/src/assets/vendor/phosphor-icons/Fonts/fill/style.css",
+];
+
+const VIEWPORT_META_ANCHOR = '<meta name="viewport" content="width=device-width, initial-scale=1.0" />';
+
+function deferredIconFontAsyncStyleLink(href) {
+  return `<link rel="preload" as="style" href="${href}" fetchpriority="low" onload="this.onload=null;this.rel='stylesheet'">\n  <noscript><link rel="stylesheet" href="${href}"></noscript>`;
+}
+
+function injectDeferredIconFontsAfterViewport(html, block) {
+  if (html.includes(VIEWPORT_META_ANCHOR)) {
+    return html.replace(VIEWPORT_META_ANCHOR, `${VIEWPORT_META_ANCHOR}\n  ${block}`);
+  }
+  return html.replace("</head>", `  ${block}\n</head>`);
+}
+
 /**
- * Le CSS « deferred-icon-fonts » n’est découvert qu’après exécution du gros index-*.js → longue chaîne critique.
- * Preload en parallèle (fetchpriority bas) pour le réseau sans bloquer le rendu.
+ * CSS icônes lourdes : lien non bloquant dans le HTML pour ne pas chaîner après le bundle d’entrée (Lighthouse / chemin critique).
+ * - dev : 3 feuilles `/src/...` en parallèle du module principal
+ * - build : chunk `deferred-icon-fonts-*.css` (entrée Rollup dédiée) + même motif preload → stylesheet
  */
-function deferredIconFontsCssPreloadPlugin(viteBase) {
+function deferredIconFontsEarlyCssPlugin(viteBase) {
   return {
-    name: "deferred-icon-fonts-css-preload",
+    name: "deferred-icon-fonts-early-css",
     transformIndexHtml: {
       order: "post",
       handler(html, ctx) {
+        /* Dev : pas de `bundle` au transform HTML ; en build le bundle est présent. */
+        if (!ctx.bundle) {
+          const block = DEV_DEFERRED_ICON_CSS_HREFS.map(deferredIconFontAsyncStyleLink).join("\n  ");
+          return injectDeferredIconFontsAfterViewport(html, block);
+        }
         const bundle = ctx.bundle;
         if (!bundle) return html;
         let cssName = null;
@@ -126,8 +152,8 @@ function deferredIconFontsCssPreloadPlugin(viteBase) {
         }
         if (!cssName) return html;
         const href = viteEmittedAssetHref(viteBase, cssName);
-        const link = `<link rel="preload" as="style" href="${href}" fetchpriority="low" />`;
-        return html.replace("</head>", `  ${link}\n</head>`);
+        const block = deferredIconFontAsyncStyleLink(href);
+        return injectDeferredIconFontsAfterViewport(html, block);
       },
     },
   };
@@ -210,7 +236,7 @@ export default defineConfig(({ mode }) => {
       landingHeroLcpPreloadPlugin(baseUrl),
       react(),
       asyncEntryCssPlugin(),
-      deferredIconFontsCssPreloadPlugin(baseUrl),
+      deferredIconFontsEarlyCssPlugin(baseUrl),
     ],
     css: {
       preprocessorOptions: {
@@ -229,6 +255,12 @@ export default defineConfig(({ mode }) => {
       outDir: "dist",
       minify: true,
       target: "esnext",
+      rollupOptions: {
+        input: {
+          main: path.resolve(__dirname, "index.html"),
+          "deferred-icon-fonts": path.resolve(__dirname, "src/deferred-icon-fonts.js"),
+        },
+      },
     },
     test: {
       environment: "jsdom",

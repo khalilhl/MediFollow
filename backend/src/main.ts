@@ -20,6 +20,7 @@ async function bootstrap() {
   mkdirSync(mediaDir, { recursive: true });
   mkdirSync(join(process.cwd(), 'uploads', 'lab-analysis'), { recursive: true });
   mkdirSync(join(process.cwd(), 'uploads', 'brain-mri'), { recursive: true });
+  mkdirSync(join(process.cwd(), 'uploads', 'prescriptions'), { recursive: true });
   app.useStaticAssets(mediaDir, { prefix: '/api/chat/media/' });
   app.use(json({ limit: '10mb' }));
   app.use(urlencoded({ extended: true, limit: '10mb' }));

@@ -2467,6 +2467,7 @@
     "fallbackTitle": "Notification",
     "medReminder": "Reminder — {{name}}",
     "medDefaultName": "Medication",
+    "downloadPrescriptionPdf": "Download prescription (PDF)",
     "medScheduled": "Due {{time}}",
     "lateMinutes": "{{count}} min late",
     "lateHours": "{{count}} h late",
@@ -2560,7 +2561,9 @@
       "callDeclinedTitle": "Call declined — {{sender}}",
       "callCancelledTitle": "Call cancelled — {{sender}}",
       "mailInboxTitle": "New message from {{sender}}",
-      "mailInboxBodyFallback": "(No subject)"
+      "mailInboxBodyFallback": "(No subject)",
+      "prescriptionPdfTitle": "New prescription — {{doctor}}",
+      "prescriptionPdfBody": "Your doctor sent you a prescription ({{count}} line(s)). Download the PDF."
     }
   },
   "patientProfile": {

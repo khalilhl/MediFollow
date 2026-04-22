@@ -7,9 +7,19 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import { randomUUID } from 'crypto';
+import { promises as fs } from 'fs';
+import { join } from 'path';
 import { Medication } from './schemas/medication.schema';
 import { Patient } from '../patient/schemas/patient.schema';
+import { PrescriptionFile } from './schemas/prescription-file.schema';
+import { Doctor } from '../doctor/schemas/doctor.schema';
 import { getSlotCountForFrequency } from './medication-slots.util';
+import {
+  buildPrescriptionPdfBuffer,
+  type PrescriptionLineInput,
+} from './prescription-pdf.util';
+import { NotificationService } from '../notification/notification.service';
 
 const localDateString = () => {
   const d = new Date();
@@ -29,6 +39,9 @@ export class MedicationService {
   constructor(
     @InjectModel(Medication.name) private medicationModel: Model<Medication>,
     @InjectModel(Patient.name) private patientModel: Model<Patient>,
+    @InjectModel(PrescriptionFile.name) private prescriptionFileModel: Model<PrescriptionFile>,
+    @InjectModel(Doctor.name) private doctorModel: Model<Doctor>,
+    private notificationService: NotificationService,
   ) {}
 
   private async assertAccessToPatient(patientId: string, user: JwtUser | undefined) {
@@ -239,5 +252,134 @@ export class MedicationService {
     const { patientId } = await this.getMedicationAndPatientId(id);
     await this.assertAccessToPatient(patientId, user);
     return this.medicationModel.findByIdAndUpdate(id, { $set: { isActive: false } }, { new: true }).exec();
+  }
+
+  private doctorDisplayNameFromUser(user: JwtUser, doctorLean: Record<string, unknown> | null) {
+    const drFirst = String(doctorLean?.firstName || user.firstName || '');
+    const drLast = String(doctorLean?.lastName || user.lastName || '');
+    const title = doctorLean?.academicTitle === 'prof' ? 'Pr.' : 'Dr.';
+    const n = `${drFirst} ${drLast}`.trim();
+    if (n) return `${title} ${n}`;
+    return String(user.name || 'Medecin');
+  }
+
+  /**
+   * Enregistre plusieurs lignes de medicaments, genere une ordonnance PDF (modele papier),
+   * enregistre le fichier et notifie le patient avec lien de telechargement (JWT).
+   */
+  async createPrescriptionBatch(body: Record<string, unknown>, user?: JwtUser) {
+    if (!user || user.role !== 'doctor') {
+      throw new ForbiddenException('Seul un medecin peut enregistrer une ordonnance');
+    }
+    const patientId = String(body?.patientId || '').trim();
+    if (!patientId) throw new BadRequestException('patientId requis');
+    const rawMeds = body?.medications;
+    if (!Array.isArray(rawMeds) || rawMeds.length === 0) {
+      throw new BadRequestException('Au moins une ligne de medicament est requise');
+    }
+    await this.assertAccessToPatient(patientId, user);
+
+    const patient = await this.patientModel.findById(patientId).lean().exec();
+    if (!patient) throw new NotFoundException('Patient introuvable');
+
+    const doctorLean = await this.doctorModel
+      .findById(String(user.id))
+      .select('specialty department academicTitle firstName lastName')
+      .lean()
+      .exec();
+    const doctorDisplayName = this.doctorDisplayNameFromUser(user, doctorLean as Record<string, unknown> | null);
+
+    let prescribedBy = `${user.firstName || ''} ${user.lastName || ''}`.trim() || (user.name as string) || doctorDisplayName;
+
+    const created: Medication[] = [];
+    const lineInputs: PrescriptionLineInput[] = [];
+
+    for (const row of rawMeds as Record<string, unknown>[]) {
+      const name = String(row?.name || '').trim();
+      if (!name) continue;
+      const dosage = String(row?.dosage || '');
+      const frequency = String(row?.frequency || 'once daily');
+      const startDate = String(row?.startDate || '');
+      const endDate = String(row?.endDate || '');
+      const notes = String(row?.notes || '');
+      const docRow = await this.medicationModel.create({
+        patientId: new Types.ObjectId(patientId),
+        name,
+        dosage,
+        frequency,
+        prescribedBy,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+        notes: notes || undefined,
+        isActive: true,
+      });
+      created.push(docRow);
+      lineInputs.push({ name, dosage, frequency, startDate, endDate, notes });
+    }
+
+    if (!created.length) {
+      throw new BadRequestException('Aucune ligne de medicament valide');
+    }
+
+    const p = patient as Record<string, unknown>;
+    const dobRaw = p.dateOfBirth ? String(p.dateOfBirth) : '';
+    const issuedDateYmd = localDateString();
+    const buffer = await buildPrescriptionPdfBuffer({
+      patientFirstName: String(p.firstName || ''),
+      patientLastName: String(p.lastName || ''),
+      patientDob: dobRaw ? dobRaw.slice(0, 10) : undefined,
+      doctorDisplayName,
+      doctorSpecialty: doctorLean ? String((doctorLean as any).specialty || '') : '',
+      doctorDepartment: doctorLean ? String((doctorLean as any).department || '') : '',
+      issuedDateYmd,
+      lines: lineInputs,
+    });
+
+    const storageKey = randomUUID().replace(/[^a-f0-9-]/gi, '');
+    const dir = join(process.cwd(), 'uploads', 'prescriptions');
+    await fs.mkdir(dir, { recursive: true });
+    await fs.writeFile(join(dir, `${storageKey}.pdf`), buffer);
+
+    await this.prescriptionFileModel.create({
+      storageKey,
+      patientId: new Types.ObjectId(patientId),
+      doctorId: new Types.ObjectId(String(user.id)),
+    });
+
+    await this.notificationService.notifyPatientPrescriptionPdf({
+      patientId,
+      storageKey,
+      doctorName: doctorDisplayName,
+      medicationCount: created.length,
+    });
+
+    return {
+      medications: created.map((m) => m.toObject()),
+      prescriptionPdfKey: storageKey,
+    };
+  }
+
+  async getPrescriptionPdfBuffer(storageKey: string, user?: JwtUser): Promise<Buffer> {
+    if (!user) throw new UnauthorizedException();
+    const key = String(storageKey || '').trim();
+    if (!key || !/^[a-f0-9-]{36}$/i.test(key)) {
+      throw new BadRequestException('Document invalide');
+    }
+    const rec = await this.prescriptionFileModel.findOne({ storageKey: key }).lean().exec();
+    if (!rec) throw new NotFoundException('Document introuvable');
+    const pid = String(rec.patientId);
+    const did = String(rec.doctorId);
+    const uid = String(user.id);
+    if (user.role === 'patient') {
+      if (uid !== pid) throw new ForbiddenException('Acces refuse');
+    } else if (user.role === 'doctor') {
+      if (uid !== did) throw new ForbiddenException('Acces refuse');
+    } else if (user.role === 'admin' || user.role === 'superadmin') {
+      /* ok */
+    } else {
+      throw new ForbiddenException('Acces refuse');
+    }
+    const filePath = join(process.cwd(), 'uploads', 'prescriptions', `${key}.pdf`);
+    return fs.readFile(filePath);
   }
 }

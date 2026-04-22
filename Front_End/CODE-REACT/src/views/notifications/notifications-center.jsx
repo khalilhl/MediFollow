@@ -191,8 +191,13 @@ export default function NotificationsCenterPage() {
     if (role !== "patient") return { api: [], med: [] };
 
     if (catFilter === "medicaments") {
-      if (readFilter === "read") return { api: [], med: [] };
-      return { api: [], med: missedMeds };
+      const apiRx = apiItems.filter((n) => {
+        const isRx = n.type === "prescription_pdf" || n.meta?.kind === "prescription_pdf";
+        if (!isRx) return false;
+        return matchesReadFilter(n, readFilter);
+      });
+      const med = readFilter === "read" ? [] : missedMeds;
+      return { api: apiRx, med };
     }
 
     const api = apiItems.filter((n) => {
@@ -479,32 +484,70 @@ export default function NotificationsCenterPage() {
                   n.type === "chat_voice_invite";
                 const isAppt =
                   n.type === "appointment_reminder_24h" || n.type === "appointment_new" || isVirt;
+                const isPrescriptionPdf =
+                  n.type === "prescription_pdf" || n.meta?.kind === "prescription_pdf";
+                const prescriptionStorageKey =
+                  isPrescriptionPdf && n.meta?.storageKey ? String(n.meta.storageKey) : "";
                 const mailHref =
                   isMail && n.meta?.stateId
                     ? `${EMAIL_INBOX_PATH}?stateId=${encodeURIComponent(String(n.meta.stateId))}`
                     : EMAIL_INBOX_PATH;
-                const href = isMail ? mailHref : isChat ? CHAT_PATH : isAppt ? DASHBOARD_APPTS_HASH : DASHBOARD_MEDS_HASH;
-                const icon = isMail
-                  ? "ri-mail-line"
-                  : isChat
-                  ? n.type === "chat_voice_invite"
-                    ? n.meta?.isVideo === true || /vidéo|video/i.test(String(n.title || ""))
-                      ? "ri-vidicon-line"
-                      : "ri-phone-fill"
-                    : n.type === "chat_message_sent"
-                      ? "ri-send-plane-2-line"
-                      : "ri-chat-3-line"
-                  : isAppt
-                    ? "ri-calendar-event-fill"
-                    : "ri-information-line";
+                const href = isPrescriptionPdf
+                  ? "#"
+                  : isMail
+                    ? mailHref
+                    : isChat
+                      ? CHAT_PATH
+                      : isAppt
+                        ? DASHBOARD_APPTS_HASH
+                        : DASHBOARD_MEDS_HASH;
+                const icon = isPrescriptionPdf
+                  ? "ri-file-pdf-line"
+                  : isMail
+                    ? "ri-mail-line"
+                    : isChat
+                      ? n.type === "chat_voice_invite"
+                        ? n.meta?.isVideo === true || /vidéo|video/i.test(String(n.title || ""))
+                          ? "ri-vidicon-line"
+                          : "ri-phone-fill"
+                        : n.type === "chat_message_sent"
+                          ? "ri-send-plane-2-line"
+                          : "ri-chat-3-line"
+                      : isAppt
+                        ? "ri-calendar-event-fill"
+                        : "ri-information-line";
                 const time = formatNotifTime(n.createdAt, t, i18n.language);
                 const unread = n.read === false;
+
+                const downloadPrescription = async (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (!prescriptionStorageKey) return;
+                  try {
+                    const blob = await medicationApi.downloadPrescriptionPdfBlob(prescriptionStorageKey);
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = "ordonnance-medifollow.pdf";
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    URL.revokeObjectURL(url);
+                  } catch {
+                    /* ignore */
+                  }
+                };
+
                 return (
                   <Link
                     key={String(id)}
                     to={href}
                     className={`notifications-center__item ${unread ? "notifications-center__item--unread" : ""}`}
-                    onClick={() => {
+                    onClick={(e) => {
+                      if (isPrescriptionPdf) {
+                        e.preventDefault();
+                        downloadPrescription(e);
+                      }
                       if (!n.read && id && !isVirt) onMarkRead(id);
                     }}
                   >
@@ -526,7 +569,9 @@ export default function NotificationsCenterPage() {
                       )}
                       <div
                         className={`notifications-center__icon-box border ${
-                          isAppt || isChat || isMail ? "bg-primary-subtle text-primary" : "bg-light text-primary"
+                          isPrescriptionPdf || isAppt || isChat || isMail
+                            ? "bg-primary-subtle text-primary"
+                            : "bg-light text-primary"
                         }`}
                       >
                         <i className={`${icon} fs-5`} aria-hidden />
@@ -537,6 +582,16 @@ export default function NotificationsCenterPage() {
                           {time ? <span className="notifications-center__time-pill">{time}</span> : null}
                         </div>
                         <p className="mb-0 small text-muted text-break mt-1 lh-sm">{disp.body}</p>
+                        {isPrescriptionPdf && prescriptionStorageKey ? (
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-danger-subtle mt-2"
+                            onClick={downloadPrescription}
+                          >
+                            <i className="ri-download-2-line me-1" aria-hidden />
+                            {t("notifications.downloadPrescriptionPdf")}
+                          </button>
+                        ) : null}
                         {!n.read && !isVirt && (
                           <button
                             type="button"

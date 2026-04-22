@@ -205,39 +205,78 @@ export default function PatientMedicationNotificationsBell({
                   n.type === "appointment_reminder_24h" ||
                   n.type === "appointment_new" ||
                   isVirt;
+                const isPrescriptionPdf =
+                  n.type === "prescription_pdf" || n.meta?.kind === "prescription_pdf";
+                const prescriptionStorageKey =
+                  isPrescriptionPdf && n.meta?.storageKey ? String(n.meta.storageKey) : "";
                 const mailHref =
                   isMail && n.meta?.stateId
                     ? `${EMAIL_INBOX_PATH}?stateId=${encodeURIComponent(String(n.meta.stateId))}`
                     : EMAIL_INBOX_PATH;
-                const href = isMail ? mailHref : isChat ? CHAT_PATH : isAppt ? DASHBOARD_APPTS_HASH : DASHBOARD_MEDS_HASH;
-                const icon = isMail
-                  ? "ri-mail-line"
-                  : isChat
-                    ? n.type === "chat_voice_invite"
-                      ? n.meta?.isVideo === true || /vidéo|video/i.test(String(n.title || ""))
-                        ? "ri-vidicon-line"
-                        : "ri-phone-fill"
-                      : n.type === "chat_message_sent"
-                        ? "ri-send-plane-2-line"
-                        : "ri-chat-3-line"
-                    : isAppt
-                      ? "ri-calendar-event-fill"
-                      : "ri-information-line";
+                const href = isPrescriptionPdf
+                  ? "#"
+                  : isMail
+                    ? mailHref
+                    : isChat
+                      ? CHAT_PATH
+                      : isAppt
+                        ? DASHBOARD_APPTS_HASH
+                        : DASHBOARD_MEDS_HASH;
+                const icon = isPrescriptionPdf
+                  ? "ri-file-pdf-line"
+                  : isMail
+                    ? "ri-mail-line"
+                    : isChat
+                      ? n.type === "chat_voice_invite"
+                        ? n.meta?.isVideo === true || /vidéo|video/i.test(String(n.title || ""))
+                          ? "ri-vidicon-line"
+                          : "ri-phone-fill"
+                        : n.type === "chat_message_sent"
+                          ? "ri-send-plane-2-line"
+                          : "ri-chat-3-line"
+                      : isAppt
+                        ? "ri-calendar-event-fill"
+                        : "ri-information-line";
                 const time = formatNotifTime(n.createdAt, t, i18n.language);
+                const downloadPrescription = async (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (!prescriptionStorageKey) return;
+                  try {
+                    const blob = await medicationApi.downloadPrescriptionPdfBlob(prescriptionStorageKey);
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = "ordonnance-medifollow.pdf";
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    URL.revokeObjectURL(url);
+                  } catch {
+                    /* ignore */
+                  }
+                };
+
                 return (
                   <Link
                     key={String(id)}
                     to={href}
                     className={`iq-sub-card d-block w-100 text-decoration-none border-bottom ${n.read === false ? "bg-primary-subtle bg-opacity-10" : ""}`}
                     style={{ maxWidth: "100%", boxSizing: "border-box" }}
-                    onClick={() => {
+                    onClick={(e) => {
+                      if (isPrescriptionPdf) {
+                        e.preventDefault();
+                        downloadPrescription(e);
+                      }
                       if (!n.read && id && !isVirt) notificationApi.markRead(id).then(load).catch(() => {});
                     }}
                   >
                     <div className="d-flex align-items-start gap-2 px-3 py-3">
                       <div
                         className={`flex-shrink-0 rounded-3 d-flex align-items-center justify-content-center border ${
-                          isAppt || isChat || isMail ? "bg-primary-subtle text-primary" : "bg-light text-primary"
+                          isPrescriptionPdf || isAppt || isChat || isMail
+                            ? "bg-primary-subtle text-primary"
+                            : "bg-light text-primary"
                         }`}
                         style={{ width: 50, height: 50 }}
                       >
@@ -258,6 +297,16 @@ export default function PatientMedicationNotificationsBell({
                         >
                           {disp.body}
                         </p>
+                        {isPrescriptionPdf && prescriptionStorageKey ? (
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-danger-subtle mt-2"
+                            onClick={downloadPrescription}
+                          >
+                            <i className="ri-download-2-line me-1" aria-hidden />
+                            {t("notifications.downloadPrescriptionPdf")}
+                          </button>
+                        ) : null}
                         {!n.read && !isVirt && (
                           <button
                             type="button"

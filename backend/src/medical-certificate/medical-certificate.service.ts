@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import PDFDocument from 'pdfkit';
+import PDFDocument = require('pdfkit');
 import { MedicalCertificate } from './schemas/medical-certificate.schema';
 import { Patient } from '../patient/schemas/patient.schema';
 import { Medication } from '../medication/schemas/medication.schema';

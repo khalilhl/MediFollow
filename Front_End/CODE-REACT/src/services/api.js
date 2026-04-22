@@ -329,6 +329,52 @@ export const api = {
     return res.json();
   },
 
+  /** GET binaire (ex. PDF) avec le jeton courant. */
+  async getBlob(endpoint) {
+    const token = getValidToken();
+    const res = await fetch(`${API_BASE}${endpoint}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ message: res.statusText }));
+      const error = new Error(messageFromApiErr(err));
+      error.status = res.status;
+      attachApiErrorFields(error, err);
+      throw error;
+    }
+    return res.blob();
+  },
+
+  async getBlobWithPatientToken(endpoint) {
+    const token = okToken(localStorage.getItem("patientToken"));
+    const res = await fetch(`${API_BASE}${endpoint}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ message: res.statusText }));
+      const error = new Error(messageFromApiErr(err));
+      error.status = res.status;
+      attachApiErrorFields(error, err);
+      throw error;
+    }
+    return res.blob();
+  },
+
+  async getBlobWithDoctorToken(endpoint) {
+    const token = okToken(localStorage.getItem("doctorToken"));
+    const res = await fetch(`${API_BASE}${endpoint}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ message: res.statusText }));
+      const error = new Error(messageFromApiErr(err));
+      error.status = res.status;
+      attachApiErrorFields(error, err);
+      throw error;
+    }
+    return res.blob();
+  },
+
   /** GET avec jeton admin uniquement (évite le conflit patient/admin dans getValidToken). */
   async getWithAdminToken(endpoint) {
     const token = okToken(localStorage.getItem("adminToken"));
@@ -1108,6 +1154,19 @@ export const healthLogApi = {
 
 export const medicationApi = {
   create: (data) => api.post('/medications', data),
+  /** Ordonnance groupée : enregistre les lignes, génère le PDF, notifie le patient. */
+  createPrescriptionBatch: (data) => api.postWithDoctorToken("/medications/prescription-batch", data),
+  /** Télécharger le PDF d’ordonnance (JWT patient ou médecin prescripteur). */
+  downloadPrescriptionPdfBlob: (storageKey) => {
+    const path = `/medications/prescription-pdf/${encodeURIComponent(String(storageKey))}`;
+    if (typeof localStorage !== "undefined" && localStorage.getItem("patientUser")) {
+      return api.getBlobWithPatientToken(path);
+    }
+    if (typeof localStorage !== "undefined" && localStorage.getItem("doctorUser")) {
+      return api.getBlobWithDoctorToken(path);
+    }
+    return api.getBlob(path);
+  },
   getByPatient: (patientId) => api.get(`/medications/patient/${patientId}`),
   toggleTaken: (id, localDate, slotIndex, recordedAt) =>
     api.put(`/medications/${id}/toggle-taken`, {

@@ -2499,6 +2499,7 @@
     "fallbackTitle": "إشعار",
     "medReminder": "تذكير — {{name}}",
     "medDefaultName": "دواء",
+    "downloadPrescriptionPdf": "تنزيل الوصفة (PDF)",
     "medScheduled": "موعد {{time}}",
     "lateMinutes": "متأخر {{count}} د",
     "lateHours": "متأخر {{count}} س",
@@ -2596,7 +2597,9 @@
       "callDeclinedTitle": "مكالمة مرفوضة — {{sender}}",
       "callCancelledTitle": "مكالمة ملغاة — {{sender}}",
       "mailInboxTitle": "رسالة جديدة من {{sender}}",
-      "mailInboxBodyFallback": "(بلا موضوع)"
+      "mailInboxBodyFallback": "(بلا موضوع)",
+      "prescriptionPdfTitle": "وصفة جديدة — {{doctor}}",
+      "prescriptionPdfBody": "أرسل لك طبيبك وصفة ({{count}} بند/بنود). نزّل ملف PDF."
     }
   },
   "patientProfile": {

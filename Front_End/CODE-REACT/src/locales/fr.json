@@ -2467,6 +2467,7 @@
     "fallbackTitle": "Notification",
     "medReminder": "Rappel — {{name}}",
     "medDefaultName": "Médicament",
+    "downloadPrescriptionPdf": "Télécharger l’ordonnance (PDF)",
     "medScheduled": "Prévu {{time}}",
     "lateMinutes": "En retard de {{count}} min",
     "lateHours": "En retard de {{count}} h",
@@ -2560,7 +2561,9 @@
       "callDeclinedTitle": "Appel refusé — {{sender}}",
       "callCancelledTitle": "Appel annulé — {{sender}}",
       "mailInboxTitle": "Nouveau message de {{sender}}",
-      "mailInboxBodyFallback": "(Sans objet)"
+      "mailInboxBodyFallback": "(Sans objet)",
+      "prescriptionPdfTitle": "Nouvelle ordonnance — {{doctor}}",
+      "prescriptionPdfBody": "Votre médecin vous a transmis une ordonnance ({{count}} ligne(s)). Téléchargez le PDF."
     }
   },
   "patientProfile": {

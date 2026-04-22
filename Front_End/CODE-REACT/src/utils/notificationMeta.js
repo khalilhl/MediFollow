@@ -197,7 +197,9 @@ export function patientApiCategory(n) {
     n.type === "mail_inbox";
   const isAppt =
     n.type === "appointment_reminder_24h" || n.type === "appointment_new" || isVirt;
+  const isPrescriptionPdf = n.type === "prescription_pdf" || n.meta?.kind === "prescription_pdf";
   if (isChat) return "messages_appels";
   if (isAppt) return "rdv";
+  if (isPrescriptionPdf) return "medicaments";
   return "autres";
 }

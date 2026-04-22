@@ -954,4 +954,30 @@ export class NotificationService {
       },
     });
   }
+
+  /** Ordonnance PDF envoyee au patient depuis l'espace medecin. */
+  async notifyPatientPrescriptionPdf(params: {
+    patientId: string;
+    storageKey: string;
+    doctorName: string;
+    medicationCount: number;
+  }) {
+    const pid = String(params.patientId);
+    const n = Math.max(1, Math.floor(params.medicationCount) || 1);
+    const dr = String(params.doctorName || 'Votre medecin').trim();
+    await this.notificationModel.create({
+      recipientId: pid,
+      recipientRole: 'patient',
+      type: 'prescription_pdf',
+      title: `Nouvelle ordonnance — ${dr}`,
+      body: `${dr} vous a transmis une ordonnance (${n} ligne(s)). Telechargez le PDF depuis cette notification.`,
+      read: false,
+      meta: {
+        kind: 'prescription_pdf',
+        storageKey: params.storageKey,
+        doctorName: dr,
+        medicationCount: n,
+      },
+    });
+  }
 }

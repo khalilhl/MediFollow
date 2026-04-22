@@ -152,17 +152,17 @@ const DoctorPrescriptions = () => {
     setSaving(true);
     setError("");
     try {
-      for (const row of toSave) {
-        await medicationApi.create({
-          patientId: selectedPatientId,
+      await medicationApi.createPrescriptionBatch({
+        patientId: selectedPatientId,
+        medications: toSave.map((row) => ({
           name: row.name.trim(),
           dosage: row.dosage || "",
           frequency: row.frequency,
           startDate: row.startDate || "",
           endDate: row.endDate || "",
           notes: row.notes || "",
-        });
-      }
+        })),
+      });
       const meds = await medicationApi.getByPatient(selectedPatientId);
       setMedications(Array.isArray(meds) ? meds : []);
       setLines([emptyMedicationLine()]);

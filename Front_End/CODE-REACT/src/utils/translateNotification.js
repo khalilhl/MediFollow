@@ -99,6 +99,16 @@ export function translateNotificationDisplay(n, t, i18n) {
     return { title, body };
   }
 
+  if (meta.kind === "prescription_pdf") {
+    const title = t("notifications.content.prescriptionPdfTitle", {
+      doctor: String(meta.doctorName || "").trim() || t("notifications.medDefaultName"),
+    });
+    const body = t("notifications.content.prescriptionPdfBody", {
+      count: Number(meta.medicationCount) || 1,
+    });
+    return { title, body };
+  }
+
   // --- Regex fallbacks (anciennes notifs sans meta) ---
   let m;
 

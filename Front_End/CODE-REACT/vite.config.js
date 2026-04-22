@@ -6,6 +6,8 @@ import react from "@vitejs/plugin-react-swc";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const coreJsEmpty = path.resolve(__dirname, "src/shims/core-js-empty.js");
+/** Sources ES6+ du paquet : évite le bundle dist prétranspilé (helpers Babel / audit Lighthouse « Ancien JavaScript »). */
+const apexchartsSrc = path.resolve(__dirname, "node_modules/apexcharts/src/apexcharts.js");
 
 /** Racine : @tensorflow/tfjs-core 4.22 (dépendance directe) — utilisé par @tensorflow/tfjs et backends */
 const tfjsCore422Root = path.resolve(__dirname, "node_modules/@tensorflow/tfjs-core");
@@ -47,6 +49,22 @@ function tfjsCoreDualResolve() {
  * Remplace le <link rel="stylesheet"> du chunk CSS d’entrée (index-*.css) par preload + onload,
  * pour éviter le blocage du rendu signalé par Lighthouse (chemin critique / LCP).
  */
+/** Les sources ApexCharts importent le CSS en « default string » (webpack) ; Vite : `?raw`. */
+function apexchartsSourceCssPlugin() {
+  const needle = "import apexCSS from './assets/apexcharts.css'";
+  const replacement = "import apexCSS from './assets/apexcharts.css?raw'";
+  return {
+    name: "apexcharts-source-css-raw",
+    enforce: "pre",
+    transform(code, id) {
+      const norm = id.replace(/\\/g, "/");
+      if (!norm.includes("apexcharts/src/apexcharts.js")) return null;
+      if (!code.includes(needle)) return null;
+      return code.replace(needle, replacement);
+    },
+  };
+}
+
 function asyncEntryCssPlugin() {
   return {
     name: "async-entry-css",
@@ -77,6 +95,7 @@ export default defineConfig(({ mode }) => {
           find: /^core-js\/(modules|es|features|stable|web)\/.+$/,
           replacement: coreJsEmpty,
         },
+        { find: /^apexcharts$/, replacement: apexchartsSrc },
       ],
     },
     /** Navigateurs récents : moins de transpilation / polyfills inutiles (audit Lighthouse « Legacy JavaScript »). */
@@ -98,7 +117,7 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
-    plugins: [tfjsCoreDualResolve(), react(), asyncEntryCssPlugin()],
+    plugins: [tfjsCoreDualResolve(), apexchartsSourceCssPlugin(), react(), asyncEntryCssPlugin()],
     css: {
       preprocessorOptions: {
         scss: {

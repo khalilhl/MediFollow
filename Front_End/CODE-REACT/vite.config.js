@@ -5,6 +5,7 @@ import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react-swc";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const coreJsEmpty = path.resolve(__dirname, "src/shims/core-js-empty.js");
 
 /** Racine : @tensorflow/tfjs-core 4.22 (dépendance directe) — utilisé par @tensorflow/tfjs et backends */
 const tfjsCore422Root = path.resolve(__dirname, "node_modules/@tensorflow/tfjs-core");
@@ -70,6 +71,14 @@ export default defineConfig(({ mode }) => {
 
   return {
     base: baseUrl,
+    resolve: {
+      alias: [
+        {
+          find: /^core-js\/(modules|es|features|stable|web)\/.+$/,
+          replacement: coreJsEmpty,
+        },
+      ],
+    },
     /** Navigateurs récents : moins de transpilation / polyfills inutiles (audit Lighthouse « Legacy JavaScript »). */
     esbuild: {
       target: "esnext",

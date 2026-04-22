@@ -49,6 +49,11 @@ const Home = () => {
                   className="w-100 h-100"
                   src={landingImg("chu-about.jpg")}
                   alt={t("landing.aboutImageAlt")}
+                  width={960}
+                  height={640}
+                  sizes="(max-width: 991px) 100vw, 454px"
+                  decoding="async"
+                  loading="lazy"
                   style={{ objectFit: "cover", minHeight: "280px" }}
                 />
               </div>

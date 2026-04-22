@@ -99,7 +99,15 @@ export default function LandingShell({ navActive = "home", children }) {
         <Container>
           <Navbar expand="lg" bg="white" variant="light" className="py-3 py-lg-0" expanded={expanded} onToggle={setExpanded}>
             <Navbar.Brand as={Link} to="/">
-              <img src={generatePath("assets/images/logosite.png")} alt="MediFollow" style={{ maxHeight: "45px" }} />
+              <img
+                src={generatePath("assets/images/logosite.png")}
+                alt="MediFollow"
+                width={160}
+                height={90}
+                decoding="async"
+                fetchPriority="high"
+                style={{ maxHeight: "45px", width: "auto", height: "auto" }}
+              />
             </Navbar.Brand>
             <Navbar.Toggle aria-controls="navbarCollapse" />
             <Navbar.Collapse id="navbarCollapse" className="align-items-lg-center">

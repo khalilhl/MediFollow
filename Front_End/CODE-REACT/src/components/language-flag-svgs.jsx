@@ -1,5 +1,4 @@
 import { useId } from "react";
-import tunisiaFlagUrl from "../assets/flags/Flag_of_Tunisia.svg.png";
 
 const svgBase = {
   display: "block",
@@ -56,18 +55,28 @@ export function SvgFlagFr({ className = "", style, width = 20 }) {
   );
 }
 
-/** Tunisie — image importée par Vite (`src/assets/flags/…`) pour une URL fiable (évite les soucis de BASE_URL / fichiers publics manquants). */
+/** Tunisie — SVG inline (léger à l’échelle 32px ; évite le PNG 960×640). */
 export function SvgFlagTn({ className = "", style, width = 20 }) {
+  const h = (width * 2) / 3;
   return (
-    <img
-      src={tunisiaFlagUrl}
-      alt=""
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 12 8"
       width={width}
+      height={h}
       className={className}
-      style={{ ...svgBase, width, height: "auto", objectFit: "contain", ...style }}
-      draggable={false}
+      style={{ ...svgBase, ...style }}
       aria-hidden
-    />
+    >
+      <path fill="#E70013" d="M0 0h12v8H0z" />
+      <circle cx="6" cy="4" r="2.35" fill="#fff" />
+      <circle cx="6.42" cy="4" r="1.95" fill="#E70013" />
+      <circle cx="6.78" cy="4" r="1.72" fill="#fff" />
+      <path
+        fill="#E70013"
+        d="M6.95 3.15l.22.68h.72l-.58.42.22.68-.58-.42-.58.42.22-.68-.58-.42h.72z"
+      />
+    </svg>
   );
 }
 

@@ -1,5 +1,21 @@
 // import { StrictMode } from 'react'
 import { Fragment } from "react";
+
+/** Preload hero landing (LCP) — respecte import.meta.env.BASE_URL (ex. déploiement sous sous-chemin). */
+(() => {
+  try {
+    const base = (import.meta.env.BASE_URL || "/").replace(/\/+$/, "");
+    const href = `${base}/assets/images/landing/chu-hero.jpg`.replace(/([^:])\/{2,}/g, "$1/");
+    const link = document.createElement("link");
+    link.rel = "preload";
+    link.as = "image";
+    link.href = href;
+    link.setAttribute("fetchpriority", "high");
+    document.head.appendChild(link);
+  } catch {
+    /* ignore */
+  }
+})();
 import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
 import "swiper/css";
@@ -17,6 +33,8 @@ import './assets/scss/customizer.scss'
  
 import './assets/custom/custom.scss'
 import './assets/scss/dyslexia-mode.scss'
+import 'bootstrap-icons/font/bootstrap-icons.css'
+import '@fortawesome/fontawesome-free/css/all.min.css'
 import './assets/vendor/font-awesome/css/font-awesome.min.css'
 import './assets/vendor/remixicon/fonts/remixicon.css'
 import './assets/vendor/phosphor-icons/Fonts/regular/style.css'

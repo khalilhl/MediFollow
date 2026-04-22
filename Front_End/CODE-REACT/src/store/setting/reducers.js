@@ -11,7 +11,7 @@ import {
   getStorage,
   updateThemeScheme,
 } from "../../utilities/setting";
-import { setFontFamily } from "../../utilities/root-var";
+import { setFontFamily, getRootVars } from "../../utilities/root-var";
 import _ from "lodash";
 const DefaultSetting = defaultState.setting;
 
@@ -83,6 +83,7 @@ export const settingSlice = createSlice({
       if (typeof action.payload !== typeof undefined) {
         state.setting.theme_scheme.value = action.payload;
       }
+      const cssPrefix = getRootVars("--prefix") || "bs-";
       updateHtmlAttr({
         prop: "data-bs-theme",
         value: state.setting.theme_scheme.value,
@@ -90,7 +91,8 @@ export const settingSlice = createSlice({
       updateThemeScheme(
         state.setting.theme_scheme.value,
         Choices,
-        state.setting.theme_color
+        state.setting.theme_color,
+        cssPrefix
       );
       updateBodyClass(Choices.SchemeChoice, state.setting.theme_scheme.value);
       updateStorage(state.saveLocal, state.storeKey, createSettingObj(state));
@@ -112,6 +114,7 @@ export const settingSlice = createSlice({
         });
         state.setting.theme_color.value = action.payload.value;
       }
+      const cssPrefix = getRootVars("--prefix") || "bs-";
       updateHtmlAttr({
         prop: "data-bs-theme-color",
         value: state.setting.theme_color.value,
@@ -120,7 +123,8 @@ export const settingSlice = createSlice({
       updateColorRootVar(
         state.setting.theme_scheme.value,
         state.setting.theme_color,
-        Choices.ColorChoice
+        Choices.ColorChoice,
+        cssPrefix
       );
       updateStorage(state.saveLocal, state.storeKey, createSettingObj(state));
     },

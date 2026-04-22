@@ -39,8 +39,9 @@ export const updateTitle = (value) => {
   setContent('[data-setting="app_name"]', value);
 };
 
-export const updateColorRootVar = (theme_scheme, theme_color, choices) => {
-  const prefix = getRootVars("--prefix") || "bs-";
+/** @param {string | undefined} prefixCache si déjà lu avant des écritures DOM (évite reflow forcé). */
+export const updateColorRootVar = (theme_scheme, theme_color, choices, prefixCache) => {
+  const prefix = prefixCache != null && prefixCache !== "" ? prefixCache : getRootVars("--prefix") || "bs-";
   let newColors = {};
   let dark = false;
   if (theme_scheme !== "light" && theme_scheme !== "auto") {
@@ -61,6 +62,7 @@ export const updateColorRootVar = (theme_scheme, theme_color, choices) => {
 };
 
 export const updateDomValueBySetting = (setting, Choices) => {
+  const prefix = getRootVars("--prefix") || "bs-";
   updateHtmlAttr({ prop: "dir", value: setting.theme_scheme_direction.value });
   updateHtmlClass(Choices.FSChoice, setting.theme_font_size.value);
   updateHtmlAttr({
@@ -78,7 +80,8 @@ export const updateDomValueBySetting = (setting, Choices) => {
   updateColorRootVar(
     setting.theme_scheme.value,
     setting.theme_color,
-    Choices.ColorChoice
+    Choices.ColorChoice,
+    prefix
   );
   updateTitle(setting.app_name.value);
 };
@@ -128,7 +131,7 @@ export const getStorage = (key) => {
   }
   return null;
 };
-export const updateThemeScheme = (value, Choices, theme_color) => {
+export const updateThemeScheme = (value, Choices, theme_color, prefixCache) => {
   let className = [];
   if (value === "auto") {
     className.push("auto");
@@ -141,6 +144,6 @@ export const updateThemeScheme = (value, Choices, theme_color) => {
     className.push(value);
   }
   const filterValue = className.filter((x) => x !== "auto");
-  // updateBodyClass(Choices.SchemeChoice, className)
-  updateColorRootVar(...filterValue, theme_color, Choices.ColorChoice);
+  const resolvedScheme = filterValue.length ? filterValue[filterValue.length - 1] : value;
+  updateColorRootVar(resolvedScheme, theme_color, Choices.ColorChoice, prefixCache);
 };

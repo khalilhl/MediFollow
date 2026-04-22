@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Alert, Badge, Button, Card, Col, Form, Modal, Row, Spinner, Table } from "react-bootstrap";
@@ -15,6 +15,7 @@ import {
 import { broadcastDoctorHealthLogResolved, subscribeDoctorHealthLogResolved } from "../../utils/healthLogResolveBroadcast";
 import { translateSymptom } from "../../utils/symptomLabels";
 import { formatMedicationFrequencyDisplay } from "../../utils/medicationFrequencyLabel";
+import { createAmbulanceSirenPlayer } from "../../utils/ambulanceSiren";
 import "./doctor-patient-dossier.css";
 
 const VITALS_TZ = "Africa/Tunis";
@@ -255,6 +256,159 @@ function VitalSnapshotForAlertRow({ vitals, t }) {
         </Col>
       </Row>
     </div>
+  );
+}
+
+/** Bandeau unique : SOS + alertes cliniques, clignotement si urgence (danger / SOS / relevé flaggé). */
+function VitalsEmergencyBundle({ latestLog, doctorAlerts, t }) {
+  const loc = latestLog?.location;
+  const hasSos = loc != null && loc.lat != null && loc.lng != null;
+  const alerts = Array.isArray(doctorAlerts) ? doctorAlerts : [];
+  const bundleVisible = hasSos || alerts.length > 0;
+  const hasDanger = alerts.some((a) => a.severity === "danger");
+  const isUrgent = hasSos || hasDanger || !!latestLog?.flagged;
+  const [sosModalOpen, setSosModalOpen] = useState(false);
+  const sirenPlayerRef = useRef(null);
+  const sirenSuppressedRef = useRef(false);
+
+  useEffect(() => {
+    if (hasSos) setSosModalOpen(true);
+    else setSosModalOpen(false);
+  }, [hasSos, loc?.lat, loc?.lng]);
+
+  /** Nouveau SOS : autoriser à nouveau la sirène */
+  useEffect(() => {
+    if (!hasSos) sirenSuppressedRef.current = false;
+  }, [hasSos]);
+
+  useEffect(() => {
+    if (!bundleVisible) return undefined;
+    if (sirenSuppressedRef.current) return undefined;
+    const player = createAmbulanceSirenPlayer({
+      volume: isUrgent ? 0.22 : 0.12,
+      wailHz: isUrgent ? 2.5 : 1.7,
+    });
+    sirenPlayerRef.current = player;
+    player.start();
+    return () => {
+      player.stop();
+      sirenPlayerRef.current = null;
+    };
+  }, [bundleVisible, isUrgent]);
+
+  const stopSirenOnMapClick = useCallback(() => {
+    sirenPlayerRef.current?.stop();
+    sirenPlayerRef.current = null;
+    if (hasSos) sirenSuppressedRef.current = true;
+  }, [hasSos]);
+
+  if (!bundleVisible) return null;
+
+  const bundleClass = [
+    "dossier-vitals-emergency-bundle",
+    "mb-3",
+    isUrgent ? "dossier-vitals-emergency-bundle--urgent" : "dossier-vitals-emergency-bundle--caution",
+  ].join(" ");
+
+  const mapUrl = hasSos ? `https://maps.google.com/?q=${encodeURIComponent(`${loc.lat},${loc.lng}`)}` : "";
+
+  return (
+    <>
+      {hasSos && (
+        <Modal
+          show={sosModalOpen}
+          onHide={() => setSosModalOpen(false)}
+          fullscreen
+          backdrop="static"
+          className="dossier-sos-fs-modal"
+          dialogClassName="dossier-sos-fs-modal__dialog m-0"
+          contentClassName="dossier-sos-fs-modal__content border-0 rounded-0 shadow-none"
+          backdropClassName="dossier-sos-fs-modal__backdrop"
+          enforceFocus
+          aria-labelledby="dossier-sos-modal-title"
+        >
+          <Modal.Header closeButton closeVariant="white" className="dossier-sos-fs-modal__header border-0">
+            <Modal.Title id="dossier-sos-modal-title" className="d-flex align-items-center gap-2 text-white mb-0">
+              <span className="dossier-sos-fs-modal__title-icon" aria-hidden>
+                <i className="ri-alarm-warning-fill" />
+              </span>
+              {t("doctorPatientDossier.sosModalTitle")}
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body className="dossier-sos-fs-modal__body d-flex flex-column align-items-center justify-content-center text-center px-4 py-5">
+            <div className="dossier-sos-fs-modal__pin-ring mb-4" aria-hidden>
+              <div className="dossier-sos-fs-modal__pin-inner">
+                <i className="ri-map-pin-fill" />
+              </div>
+            </div>
+            <p className="dossier-sos-fs-modal__subtitle fw-bold mb-2">{t("doctorPatientDossier.sosLocationLabel")}</p>
+            <p className="dossier-sos-fs-modal__lead text-muted mb-4 mx-auto" style={{ maxWidth: "28rem" }}>
+              {t("doctorPatientDossier.sosModalLead")}
+            </p>
+            <a
+              href={mapUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-danger btn-lg px-5 py-3 rounded-3 shadow-lg dossier-sos-fs-modal__map-btn text-decoration-none"
+              onClick={stopSirenOnMapClick}
+            >
+              <i className="ri-external-link-line me-2" aria-hidden />
+              {t("doctorPatientDossier.viewOnMap")}
+            </a>
+            <Button variant="outline-dark" className="mt-4 rounded-pill px-4" onClick={() => setSosModalOpen(false)}>
+              {t("doctorPatientDossier.sosModalDismiss")}
+            </Button>
+          </Modal.Body>
+        </Modal>
+      )}
+
+      <div className={bundleClass} role="alert" aria-live="assertive">
+      <div className="dossier-vitals-emergency-bundle__head">
+        <span className="dossier-vitals-emergency-bundle__pulse-icon" aria-hidden>
+          <i className="ri-alarm-warning-fill" />
+        </span>
+        <strong className="dossier-vitals-emergency-bundle__title">{t("doctorPatientDossier.emergencyBannerTitle")}</strong>
+      </div>
+
+      {hasSos && (
+        <div className="dossier-vitals-emergency-bundle__sos d-flex flex-wrap align-items-center justify-content-between gap-2">
+          <div className="d-flex align-items-center gap-2 min-w-0">
+            <i className="ri-map-pin-2-fill fs-5 flex-shrink-0" aria-hidden />
+            <span className="fw-semibold small mb-0">{t("doctorPatientDossier.sosLocationLabel")}</span>
+          </div>
+          <a
+            href={mapUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-sm btn-danger flex-shrink-0"
+            onClick={stopSirenOnMapClick}
+          >
+            <i className="ri-external-link-line me-1" aria-hidden />
+            {t("doctorPatientDossier.viewOnMap")}
+          </a>
+        </div>
+      )}
+
+      {alerts.length > 0 && (
+        <ul
+          className={`dossier-vitals-emergency-bundle__list list-unstyled mb-0 ${hasSos ? "dossier-vitals-emergency-bundle__list--after-sos" : ""}`}
+        >
+          {alerts.map((a, i) => (
+            <li
+              key={i}
+              className={`dossier-vitals-emergency-bundle__item dossier-vitals-emergency-bundle__item--${a.severity}`}
+            >
+              <i
+                className={`me-2 ${a.severity === "danger" ? "ri-alarm-warning-fill" : "ri-alert-line"}`}
+                aria-hidden
+              />
+              <span>{a.text}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+    </>
   );
 }
 
@@ -648,37 +802,7 @@ export default function DoctorPatientDossierView({ patient }) {
               </Alert>
             ) : (
               <>
-                {latestLog.location && (
-                  <Alert variant="danger" className="py-2 mb-3 rounded-3 border-0 d-flex align-items-center justify-content-between shadow-sm">
-                    <div>
-                      <i className="ri-map-pin-2-fill me-2 fs-5 align-middle" />
-                      <strong className="align-middle">{t("doctorPatientDossier.sosLocationLabel", "SOS: Critical Location Recorded")}</strong>
-                    </div>
-                    <a
-                      href={`https://maps.google.com/?q=${latestLog.location.lat},${latestLog.location.lng}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn btn-sm btn-danger"
-                    >
-                      <i className="ri-external-link-line me-1" /> {t("doctorPatientDossier.viewOnMap", "View Map")}
-                    </a>
-                  </Alert>
-                )}
-
-                {hasAnyAlert && (
-                  <div className="mb-3">
-                    {doctorAlerts.map((a, i) => (
-                      <Alert
-                        key={i}
-                        variant={a.severity === "danger" ? "danger" : "warning"}
-                        className="py-2 mb-2 rounded-3 border-0 shadow-sm"
-                      >
-                        <i className={`me-2 ${a.severity === "danger" ? "ri-alarm-warning-fill" : "ri-alert-line"}`} />
-                        {a.text}
-                      </Alert>
-                    ))}
-                  </div>
-                )}
+                <VitalsEmergencyBundle latestLog={latestLog} doctorAlerts={doctorAlerts} t={t} />
 
                 {!hasAnyAlert && hasVitalMeasurements && (
                   <Alert variant="success" className="py-2 mb-3 rounded-3 border-0">

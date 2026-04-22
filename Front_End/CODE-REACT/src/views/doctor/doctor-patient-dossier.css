@@ -269,6 +269,307 @@
   border-bottom: 1px solid rgba(8, 155, 171, 0.15);
 }
 
+/* Bandeau unique SOS + alertes (clignotement urgence) */
+@keyframes dossier-vitals-emergency-urgent {
+  0%,
+  100% {
+    background-color: rgba(254, 226, 226, 0.97);
+    border-color: rgba(220, 53, 69, 0.5);
+    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.35);
+  }
+  50% {
+    background-color: rgba(255, 240, 240, 1);
+    border-color: rgba(185, 28, 28, 0.95);
+    box-shadow: 0 0 22px 6px rgba(220, 53, 69, 0.28);
+  }
+}
+
+@keyframes dossier-vitals-emergency-caution {
+  0%,
+  100% {
+    opacity: 1;
+    border-color: rgba(253, 126, 20, 0.45);
+  }
+  50% {
+    opacity: 0.92;
+    border-color: rgba(253, 126, 20, 0.75);
+  }
+}
+
+@keyframes dossier-vitals-emergency-icon-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.12);
+  }
+}
+
+.dossier-vitals-emergency-bundle {
+  border-radius: 0.85rem;
+  border: 2px solid;
+  padding: 0.9rem 1rem 1rem;
+  color: #450a0a;
+}
+
+.dossier-vitals-emergency-bundle--urgent {
+  animation: dossier-vitals-emergency-urgent 1.05s ease-in-out infinite;
+}
+
+.dossier-vitals-emergency-bundle--caution {
+  background: linear-gradient(180deg, #fff7ed 0%, #fffefb 100%);
+  color: #7c2d12;
+  animation: dossier-vitals-emergency-caution 1.8s ease-in-out infinite;
+}
+
+.dossier-vitals-emergency-bundle__head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.65rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(185, 28, 28, 0.2);
+}
+
+.dossier-vitals-emergency-bundle--caution .dossier-vitals-emergency-bundle__head {
+  border-bottom-color: rgba(234, 88, 12, 0.25);
+}
+
+.dossier-vitals-emergency-bundle__pulse-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.5rem;
+  background: rgba(220, 53, 69, 0.15);
+  color: #b91c1c;
+  font-size: 1.35rem;
+  flex-shrink: 0;
+}
+
+.dossier-vitals-emergency-bundle--urgent .dossier-vitals-emergency-bundle__pulse-icon {
+  animation: dossier-vitals-emergency-icon-pulse 1.05s ease-in-out infinite;
+}
+
+.dossier-vitals-emergency-bundle--caution .dossier-vitals-emergency-bundle__pulse-icon {
+  background: rgba(253, 126, 20, 0.15);
+  color: #c2410c;
+  animation: dossier-vitals-emergency-icon-pulse 1.8s ease-in-out infinite;
+}
+
+.dossier-vitals-emergency-bundle__title {
+  font-size: 0.9375rem;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+.dossier-vitals-emergency-bundle__sos {
+  padding: 0.5rem 0;
+  color: #7f1d1d;
+}
+
+.dossier-vitals-emergency-bundle__list {
+  margin: 0;
+}
+
+.dossier-vitals-emergency-bundle__list--after-sos {
+  margin-top: 0.5rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid rgba(220, 53, 69, 0.22);
+}
+
+.dossier-vitals-emergency-bundle--caution .dossier-vitals-emergency-bundle__list--after-sos {
+  border-top-color: rgba(234, 88, 12, 0.22);
+}
+
+.dossier-vitals-emergency-bundle__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.15rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.45;
+  padding: 0.45rem 0.35rem;
+  margin: 0 -0.35rem;
+  border-radius: 0.45rem;
+}
+
+.dossier-vitals-emergency-bundle__item + .dossier-vitals-emergency-bundle__item {
+  margin-top: 0.15rem;
+}
+
+.dossier-vitals-emergency-bundle__item--danger {
+  background: rgba(254, 202, 202, 0.35);
+  color: #7f1d1d;
+}
+
+.dossier-vitals-emergency-bundle__item--warning {
+  background: rgba(254, 243, 199, 0.55);
+  color: #78350f;
+}
+
+.dossier-vitals-emergency-bundle__item i {
+  margin-top: 0.12rem;
+  flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dossier-vitals-emergency-bundle--urgent,
+  .dossier-vitals-emergency-bundle--caution,
+  .dossier-vitals-emergency-bundle--urgent .dossier-vitals-emergency-bundle__pulse-icon,
+  .dossier-vitals-emergency-bundle--caution .dossier-vitals-emergency-bundle__pulse-icon {
+    animation: none !important;
+  }
+
+  .dossier-vitals-emergency-bundle--urgent {
+    background-color: rgba(254, 226, 226, 0.97);
+    border-color: rgba(220, 53, 69, 0.65);
+  }
+
+  .dossier-sos-fs-modal__backdrop,
+  .dossier-sos-fs-modal__content,
+  .dossier-sos-fs-modal__pin-ring,
+  .dossier-sos-fs-modal__map-btn {
+    animation: none !important;
+  }
+}
+
+/* Modale plein écran SOS + animation urgence */
+@keyframes dossier-sos-backdrop-pulse {
+  0%,
+  100% {
+    background-color: rgba(127, 29, 29, 0.72);
+  }
+  50% {
+    background-color: rgba(185, 28, 28, 0.88);
+  }
+}
+
+@keyframes dossier-sos-modal-shake {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  20% {
+    transform: translate(-3px, 2px);
+  }
+  40% {
+    transform: translate(3px, -2px);
+  }
+  60% {
+    transform: translate(-2px, -1px);
+  }
+  80% {
+    transform: translate(2px, 1px);
+  }
+}
+
+@keyframes dossier-sos-pin-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.9;
+    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.55);
+  }
+  70% {
+    transform: scale(1.06);
+    opacity: 1;
+    box-shadow: 0 0 0 22px rgba(220, 53, 69, 0);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.9;
+    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+  }
+}
+
+@keyframes dossier-sos-map-btn-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0.5rem 1.25rem rgba(220, 53, 69, 0.45);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0.75rem 2rem rgba(220, 53, 69, 0.65);
+    transform: scale(1.03);
+  }
+}
+
+.dossier-sos-fs-modal .modal-dialog {
+  max-width: 100%;
+  margin: 0;
+  height: 100%;
+}
+
+.dossier-sos-fs-modal__backdrop.show {
+  animation: dossier-sos-backdrop-pulse 1.2s ease-in-out infinite;
+}
+
+.dossier-sos-fs-modal__content {
+  min-height: 100vh;
+  background: linear-gradient(165deg, #fff5f5 0%, #ffffff 38%, #fef2f2 100%) !important;
+  animation: dossier-sos-modal-shake 0.5s ease-in-out 3;
+  animation-delay: 0.1s;
+}
+
+.dossier-sos-fs-modal__header {
+  background: linear-gradient(90deg, #b91c1c 0%, #dc2626 50%, #b91c1c 100%) !important;
+  padding: 1rem 1.25rem !important;
+  box-shadow: 0 4px 20px rgba(185, 28, 28, 0.35);
+}
+
+.dossier-sos-fs-modal__title-icon {
+  display: inline-flex;
+  animation: dossier-vitals-emergency-icon-pulse 1s ease-in-out infinite;
+}
+
+.dossier-sos-fs-modal__subtitle {
+  font-size: 1.25rem;
+  color: #7f1d1d;
+  letter-spacing: -0.02em;
+}
+
+.dossier-sos-fs-modal__lead {
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.dossier-sos-fs-modal__pin-ring {
+  width: 7.5rem;
+  height: 7.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(220, 53, 69, 0.12);
+  animation: dossier-sos-pin-ring 1.8s ease-out infinite;
+}
+
+.dossier-sos-fs-modal__pin-inner {
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #dc2626, #991b1b);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.25rem;
+  box-shadow: 0 8px 28px rgba(220, 53, 69, 0.45);
+}
+
+.dossier-sos-fs-modal__map-btn {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  animation: dossier-sos-map-btn-pulse 1.4s ease-in-out infinite;
+}
+
+.dossier-sos-fs-modal__map-btn:hover {
+  animation: none;
+  transform: scale(1.02);
+}
+
 /* Bloc « alertes constantes — clôture » : fond clair, texte lisible (évite alert-danger plein) */
 .dossier-vital-closure-panel {
   border-radius: 0.85rem;

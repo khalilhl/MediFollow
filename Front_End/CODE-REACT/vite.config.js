@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { defineConfig, loadEnv } from "vite";
-import react from "@vitejs/plugin-react";
+import react from "@vitejs/plugin-react-swc";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -70,6 +70,16 @@ export default defineConfig(({ mode }) => {
 
   return {
     base: baseUrl,
+    /** Navigateurs récents : moins de transpilation / polyfills inutiles (audit Lighthouse « Legacy JavaScript »). */
+    esbuild: {
+      target: "esnext",
+      legalComments: "none",
+    },
+    optimizeDeps: {
+      esbuildOptions: {
+        target: "esnext",
+      },
+    },
     /** Dev : si le front appelle `/api` sur le port Vite, proxifier vers Nest (évite « Cannot GET /api/... »). */
     server: {
       proxy: {
@@ -96,6 +106,7 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: "dist",
       minify: true,
+      target: "esnext",
     },
     test: {
       environment: "jsdom",

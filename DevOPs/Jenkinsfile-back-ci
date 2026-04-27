@@ -33,11 +33,12 @@ pipeline {
                         sh '''
                         docker run --rm \
                           --network=host \
+                          --add-host=host.docker.internal:host-gateway \
                           -v "$(pwd):/usr/src" \
                           sonarsource/sonar-scanner-cli:5.0 \
                           -Dsonar.projectKey=MediFollow-Backend \
                           -Dsonar.sources=. \
-                          -Dsonar.host.url=http://localhost:9000 \
+                          -Dsonar.host.url=http://host.docker.internal:9000 \
                           -Dsonar.login=$SONAR_TOKEN
                         '''
                     }

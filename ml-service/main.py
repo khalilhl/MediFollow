@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 
-from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 from inference import MODEL_FILES, predict_image_bytes

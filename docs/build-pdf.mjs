@@ -53,11 +53,11 @@ const css = `
 `;
 
 const html = `<!doctype html>
-<html lang="fr">
+<html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="generator" content="medifollow build-pdf.mjs" />
-<title>MediFollow — Rapport d'optimisation Landing</title>
+<title>MediFollow — Landing Optimization Report</title>
 <style>${css}</style>
 </head>
 <body>

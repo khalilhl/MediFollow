@@ -2,7 +2,7 @@
 # Rendre : créer une Web Service (Docker) avec ce fichier ou importer le Blueprint.
 #
 # Déploiement manuel sans Blueprint :
-# - Root Directory : (vide ou répo racine)
+# - Root Directory : VIDE = racine du repo (ne PAS mettre backend ni backend/models)
 # - Dockerfile path : ml-service/Dockerfile
 # - après déploiement : copier l’URL https://xxxx.onrender.com dans ML_SERVICE_URL (backend MediFollow).
 

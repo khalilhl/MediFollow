@@ -1,4 +1,7 @@
-# Build depuis la racine du dépôt : docker build -f ml-service/Dockerfile .
+# Build : contexte Docker = racine du dépôt (là où se trouvent ml-service/ et backend/models/).
+# Sur Render : Root Directory laisser VIDE (racine du repo). Si Root = backend/models,
+# le build cherche backend/models/ml-service et échoue (no such file).
+# Commande locale : docker build -f ml-service/Dockerfile .
 FROM python:3.11-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
